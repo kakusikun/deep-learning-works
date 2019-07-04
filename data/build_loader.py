@@ -97,7 +97,7 @@ def build_reid_loader(cfg):
 
     num_workers = cfg.DATALOADER.NUM_WORKERS
 
-    sampler = IdBasedSampler(train_dataset)
+    sampler = IdBasedSampler(train_dataset, K=cfg.REID.SIZE_PERSON)
 
     t_loader = data.DataLoader(
         train_dataset, 
