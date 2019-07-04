@@ -105,7 +105,7 @@ def build_reid_loader(cfg):
         sampler=sampler, 
         num_workers=num_workers, 
         pin_memory=True, 
-        drop_last=False,
+        drop_last=True,
     )
 
     q_loader = data.DataLoader(
