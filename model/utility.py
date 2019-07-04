@@ -240,45 +240,52 @@ class FocalWeight():
 
 
 class GradNorm():
-    def __init__(self, cfg, shared_weight, alpha=0.16):
+    def __init__(self, cfg, shared_weight, alpha=0.16, device=-1):
         self.shared_weight = shared_weight
         self.alpha = alpha
         self.length = cfg.OPTIMIZER.NUM_LOSSES
-        self.g_weights = nn.Parameter(torch.ones(self.length))
+        self.need_initial = True
+
+        self.fc = nn.Linear(self.length, 1, bias=False)
+        self.g_weights = self.fc.weight
+        nn.init.constant_(self.g_weights, 1.0)
+        
         self.l1_loss = nn.L1Loss(size_average=False)
         self.initial_loss = None
-        self.opt = NovoGrad([{"params": self.g_weights}], amsgrad=True)
+        self.opt = NovoGrad(self.fc.parameters(), amsgrad=True)
 
+        if device != -1:
+            self.fc = self.fc.cuda()
     @property
     def weights(self):
-        self.g_weights = F.normalize(self.g_weights.unsqueeze(0), p=1).squeeze() * self.length        
-        return self.g_weights.detach()
+        self.g_weights.data = F.normalize(self.g_weights.detach(), p=1) * self.length        
+        return self.g_weights.detach().squeeze()
     
     def loss_weight_backward(self, loss):
-
+        w = self.g_weights.squeeze()
         GWt_norms = []
-        glog.info(loss)
         for i in range(loss.size(0)):
             shared_weight_grad = torch.autograd.grad(loss[i],
                                                      self.shared_weight,
                                                      retain_graph=True)  
-            glog.info(shared_weight_grad)
-            
-            # GWt = self.g_weights[i] * shared_weight_grad.detach()
-            # GWt_norms.append(GWt.norm())
-        sys.exit(1)
-        GWt_norms = torch.cat(GWt_norms)
+           
+            GWt = w[i] * shared_weight_grad[0].detach()
+            GWt_norms.append(GWt.norm())
+        
+        GWt_norms = torch.stack(GWt_norms)
+
         loss_ratios = loss.detach() / self.initial_loss
         inverse_training_rates = loss_ratios / loss_ratios.mean()
 
         desired_GWt_norm = GWt_norms.mean() * torch.pow(inverse_training_rates, self.alpha)
-        L_grad = self.l1_loss(GWt_norms, desired_GWt_norm)
 
+        L_grad = self.l1_loss(GWt_norms, desired_GWt_norm)
         self.opt.zero_grad()
         L_grad.backward()
         self.opt.step()
 
     def weight_initialize(self, cores, data, use_gpu=False):
+        glog.info("GradNorm initialize ...")
         losses = []
         for idx, batch in enumerate(data):
             if idx > 5:
@@ -306,6 +313,7 @@ class GradNorm():
         effective_idx = mask.scatter(0, indice[:bs//2], 1).expand_as(esitmated_loss)   
         esitmated_loss = esitmated_loss[effective_idx == 1].view(lg, bs//2)
         self.initial_loss = esitmated_loss.mean(1)
+        self.need_initial = False
 
 
 if __name__ == '__main__':

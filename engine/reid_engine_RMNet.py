@@ -1,4 +1,5 @@
 import os
+import sys
 from tqdm import tqdm
 import torch
 import torch.nn.functional as F
@@ -28,7 +29,7 @@ class ReIDEngine():
         self.train_accu = 0.0
         self.best_accu = 0.0
         self.accu = 0.0
-        self.weight_handler = GradNorm(cfg, self.cores['main'].l_features.conv.parameters()) 
+        self.weight_handler = GradNorm(cfg, self.cores['main'].l_features.conv.weight, device=cfg.MODEL.NUM_GPUS) 
         self.weights = 0.0
 
     def _start(self):
@@ -38,8 +39,9 @@ class ReIDEngine():
             glog.info("Training start")
         self.iter = self.cfg.OPTIMIZER.START_EPOCH * len(self.tdata)
         self.epoch = self.cfg.OPTIMIZER.START_EPOCH
-        self._check_gpu()        
-        
+        self._check_gpu()      
+
+        self.weight_handler.weight_initialize(self.cores, self.tdata, self.use_gpu) 
 
     def _train_epoch_start(self): 
         self.epoch += 1
@@ -48,7 +50,6 @@ class ReIDEngine():
         for core in self.cores.keys():
             self.cores[core].train() 
 
-        self.weight_handler.weight_initialize(self.cores, self.tdata, self.use_gpu)   
 
     def _eval_epoch_start(self): 
         for core in self.cores.keys():
@@ -56,8 +57,9 @@ class ReIDEngine():
 
     def _train_iter_start(self):
         self.iter += 1
+        if self.epoch == self.opt.cum_epoch:
+            self.weight_handler.need_initial = True
         self.opt._iter_start(self.iter, self.epoch)
-        #TODO grad norm initialization
 
     def _eval_iter_start(self):
         raise NotImplementedError
@@ -105,9 +107,8 @@ class ReIDEngine():
             glob_loss = self.cores['glob_loss'](glob, labels)
             
             loss = torch.stack([glob_loss] + local_loss)
-            weights = self.weight_handler.weights.expand_as(loss.t()).t()
-            if self.use_gpu:
-                weights = weights.cuda()
+            weights = self.weight_handler.weights.expand_as(loss.t()).t()            
+
             loss = weights * loss
 
             lg, bs = loss.size()
@@ -121,9 +122,14 @@ class ReIDEngine():
             loss = loss[effective_idx == 1].view(lg, bs//2).mean(1)
 
             self.opt.before_backward()
-            self.weights = weights.tolist()
+
+            self.weights = self.weight_handler.weights.tolist()
             loss.sum().backward(retain_graph=True)
+
+            if self.weight_handler.need_initial:
+                self.weight_handler.weight_initialize(self.cores, self.tdata, self.use_gpu) 
             self.weight_handler.loss_weight_backward(loss)
+
             self.opt.after_backward()            
 
             self.loss = loss.tolist()
