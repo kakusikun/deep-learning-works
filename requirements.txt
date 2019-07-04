@@ -1,0 +1,16 @@
+glog==0.3.1
+jupyter==1.0.0
+lmdb==0.94
+numpy==1.16.4
+Pillow==5.1.0
+protobuf==3.7.1
+scikit-image==0.15.0
+scikit-learn==0.20.3
+scipy==1.1.0
+tensorboard==1.14.0
+tensorboardX==1.7
+tensorflow==1.14.0
+torch==1.1.0
+torchvision==0.3.0
+tqdm==4.31.1
+yacs==0.1.6
