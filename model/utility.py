@@ -277,7 +277,7 @@ class GradNorm():
         loss_ratios = loss.detach() / self.initial_loss
         inverse_training_rates = loss_ratios / loss_ratios.mean()
 
-        desired_GWt_norm = GWt_norms.mean() * torch.pow(inverse_training_rates, self.alpha)
+        desired_GWt_norm = GWt_norms.mean().detach() * torch.pow(inverse_training_rates, self.alpha)
 
         L_grad = self.l1_loss(GWt_norms, desired_GWt_norm)
         self.opt.zero_grad()
