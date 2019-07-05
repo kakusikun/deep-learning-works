@@ -16,8 +16,10 @@ class ModelManager():
 
         # self.models = OrderedDict({"main": OSNet(r=[64,96,128], b=[2,2,2], cifar10=True), "fc":FC(512, cfg.MODEL.NUM_CLASSES)})
         # self.models = OrderedDict({"main": RMNet(b=[4,8,10,11], cifar10=False, reid=False), "fc":FC(256, cfg.MODEL.NUM_CLASSES)})
+        # self.models = OrderedDict({"main": RMNet(b=[4,8,10,11], cifar10=False, reid=True),
+        #                            "local_loss": CenterPushLoss(256, cfg.MODEL.NUM_CLASSES, K=cfg.REID.SIZE_PERSON),
+        #                            "glob_loss": AMCrossEntropyLossLSR(256, cfg.MODEL.NUM_CLASSES)})
         self.models = OrderedDict({"main": RMNet(b=[4,8,10,11], cifar10=False, reid=True),
-                                   "local_loss": CenterPushLoss(256, cfg.MODEL.NUM_CLASSES, K=cfg.REID.SIZE_PERSON),
                                    "glob_loss": AMCrossEntropyLossLSR(256, cfg.MODEL.NUM_CLASSES)})
         
         # self.models = OrderedDict({"main": ResNet18(), "fc":FC(512, cfg.MODEL.NUM_CLASSES)})

@@ -4,7 +4,6 @@ from tqdm import tqdm
 import torch
 import torch.nn.functional as F
 from tools.eval_reid_metrics import evaluate
-from model.utility import GradNorm
 import numpy as np
 import glog
 
@@ -29,6 +28,7 @@ class ReIDEngine():
         self.train_accu = 0.0
         self.best_accu = 0.0
         self.accu = 0.0
+        self.phase = cfg.PHASE
 
     def _start(self):
         if self.opt.findLR:
@@ -58,27 +58,21 @@ class ReIDEngine():
     def _eval_iter_start(self):
         raise NotImplementedError
             
-    def _train_iter_end(self):          
-        self.show.add_scalar('train/glob_loss', self.loss[0], self.iter)
-        self.show.add_scalar('train/center_loss', self.loss[1], self.iter)
-        self.show.add_scalar('train/gpush_loss', self.loss[2], self.iter)
-        self.show.add_scalar('train/push_loss', self.loss[3], self.iter)
+    def _train_iter_end(self):                
+        if self.phase == '2':
+            self.show.add_scalar('train/glob_loss', self.loss[0], self.iter)
+            self.show.add_scalar('train/center_loss', self.loss[1], self.iter)
+            self.show.add_scalar('train/gpush_loss', self.loss[2], self.iter)
+            self.show.add_scalar('train/push_loss', self.loss[3], self.iter)
+        else:
+            self.show.add_scalar('train/glob_loss', self.loss, self.iter)
         self.show.add_scalar('train/lr', self.opt.lr * self.opt.annealing_mult, self.iter)
 
     def _eval_iter_end(self):           
         raise NotImplementedError
 
     def _train_epoch_end(self):
-        if self.epoch % self.cfg.OPTIMIZER.LOG_FREQ == 0:
-            if isinstance(self.cores['local_loss'], torch.nn.DataParallel): 
-                local_embeddings = F.normalize(self.cores['local_loss'].module.center.data)
-                glob_embeddings = F.normalize(self.cores['glob_loss'].module.weight.data)
-            else:
-                local_embeddings = F.normalize(self.cores['local_loss'].center.data)
-                glob_embeddings = F.normalize(self.cores['glob_loss'].weight.data)       
-
-            self.show.add_embedding(local_embeddings, global_step=self.epoch, tag="local_embedding")
-            self.show.add_embedding(glob_embeddings, global_step=self.epoch, tag="global_embedding")
+        raise NotImplementedError
 
     def _eval_epoch_end(self):
         glog.info("Epoch {} evaluation ends, accuracy {:.4f}".format(self.epoch, self.accu))
@@ -99,26 +93,31 @@ class ReIDEngine():
             
             local, glob = self.cores['main'](images)
 
-            local_loss = list(self.cores['local_loss'](local, labels))
             glob_loss = self.cores['glob_loss'](glob, labels)
+
+            if self.phase == 2:
+                local_loss = list(self.cores['local_loss'](local, labels))            
             
-            loss = torch.stack([glob_loss] + local_loss)
+                loss = torch.stack([glob_loss] + local_loss)
 
-            lg, bs = loss.size()
-            _, indice = loss[:3].sum(0).sort(descending=True)
-            if self.use_gpu:
-                mask = torch.zeros(loss.size(1)).cuda()
+                lg, bs = loss.size()
+                _, indice = loss[:3].sum(0).sort(descending=True)
+                if self.use_gpu:
+                    mask = torch.zeros(loss.size(1)).cuda()
+                else:
+                    mask = torch.zeros(loss.size(1))
+
+                effective_idx = mask.scatter(0, indice[:bs//2], 1).expand_as(loss)  
+                loss = loss[effective_idx == 1].view(lg, bs//2).mean(1)
+                self.loss = loss.tolist()
+
             else:
-                mask = torch.zeros(loss.size(1))
-
-            effective_idx = mask.scatter(0, indice[:bs//2], 1).expand_as(loss)  
-            loss = loss[effective_idx == 1].view(lg, bs//2).mean(1)
+                loss = glob_loss.mean()       
+                self.loss = loss.item()
 
             self.opt.before_backward()
             loss.sum().backward()          
-            self.opt.after_backward()    
-
-            self.loss = loss.tolist()
+            self.opt.after_backward()                    
 
             self._train_iter_end()
 
@@ -127,7 +126,6 @@ class ReIDEngine():
         for i in range(self.max_epoch):
             self._train_epoch_start()
             self._train_once()
-            self._train_epoch_end()
             if not self.opt.findLR and self.epoch % self.cfg.OPTIMIZER.EVALUATE_FREQ == 0:
                 self._evaluate()
 

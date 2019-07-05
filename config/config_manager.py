@@ -18,6 +18,8 @@ _C = CN()
 
 _C.EXPERIMENT = ""
 
+_C.PHASE = 1
+
 _C.MODEL = CN()
 _C.MODEL.NUM_GPUS = 0
 _C.MODEL.NUM_CLASSES = 2

@@ -193,38 +193,39 @@ class AMCrossEntropyLossLSR(nn.Module):
         return cross_entropy
 
 class FocalWeight():
-    def __init__(self, length, batch_size, alpha=0.25, gamma=2.0, device=0):
+    def __init__(self, length, batch_size, delta=0.16, alpha=0.25, gamma=2.0, device=0):
         self.a = alpha
         self.r = gamma
+        self.d = delta
         self.bs = batch_size
         self.lg = length
         # 1st column -> previous
         # 2nd column -> current
-        self.k = torch.zeros(length, batch_size, 2)  
-        self.mask = torch.zeros(batch_size)  
+        self.k = torch.zeros(length, 2)  
+
+        self.change_target = False
 
         if device > 0:
             self.k = self.k.cuda()
-            self.mask = self.mask.cuda()
     
-    def get_weighted_losses(self, losses):
+    def get_weighted_losses(self, loss):
 
-        
-        self.k[:,:,1] = self.a * losses.detach() + (1 - self.a) * self.k[:,:,0]
+        self.k[:,0] = self.k[:,1]
 
-        p = self.k.min(dim=2)[0] / self.k[:,:,0]
+        self.k[:,1] = self.a * loss.detach() + (1 - self.a) * self.k[:,0]
+
+        p = self.k.min(dim=1)[0] / self.k[:,0]
+
         focal_weight = -1 * torch.pow(1 - p, self.r) * torch.log(p)
-        losses = focal_weight * losses
 
-        _, indice = losses[:3].sum(0).sort(descending=True)
-        mask = self.mask.scatter(0, indice[:self.bs//2], 1).expand_as(losses)
-        losses = losses[mask == 1].view(self.lg, self.bs//2)   
+        loss = focal_weight * loss     
 
-        self.k[:,:,0] = self.k[:,:,1]
+        self.change_target = (focal_weight[1] / focal_weight[0]) < self.d
 
-        return losses.mean(1)
+        return loss
     
     def weight_initialize(self, cores, data, use_gpu=False):
+        glog.info("FocalWeight initialize ...")
         batch = next(iter(data))
         images, labels, _ = batch
         if use_gpu:
@@ -234,8 +235,25 @@ class FocalWeight():
 
         local_loss = list(cores['local_loss'](local, labels))
         glob_loss = cores['glob_loss'](glob, labels)
-        losses = torch.stack([glob_loss] + local_loss)
-        self.k[:,:,0] = losses.detach()
+        loss = torch.stack([glob_loss] + local_loss)    
+        lg, bs = loss.size()
+        _, indice = loss[:3].sum(0).sort(descending=True)
+
+        if use_gpu:
+            mask = torch.zeros(loss.size(1)).cuda()
+        else:
+            mask = torch.zeros(loss.size(1))
+
+        effective_idx = mask.scatter(0, indice[:bs//2], 1).expand_as(loss)  
+        loss = loss[effective_idx == 1].view(lg, bs//2).mean(1)
+
+        glob_loss = loss[0]
+        
+        local_loss = loss[1:].sum()    
+
+        loss = torch.cat([glob_loss, local_loss])
+
+        self.k[:,1] = loss.detach()
 
 
 
