@@ -79,15 +79,16 @@ class ReIDEngine():
         raise NotImplementedError
 
     def _train_epoch_end(self):
-        if isinstance(self.cores['local_loss'], torch.nn.DataParallel): 
-            local_embeddings = self.cores['local_loss'].module.center.data
-            glob_embeddings = self.cores['glob_loss'].module.weight.data        
-        else:
-            local_embeddings = self.cores['local_loss'].center.data
-            glob_embeddings = self.cores['glob_loss'].weight.data        
+        if self.epoch % 5 == 0:
+            if isinstance(self.cores['local_loss'], torch.nn.DataParallel): 
+                local_embeddings = self.cores['local_loss'].module.center.data
+                glob_embeddings = self.cores['glob_loss'].module.weight.data        
+            else:
+                local_embeddings = self.cores['local_loss'].center.data
+                glob_embeddings = self.cores['glob_loss'].weight.data        
 
-        self.show.add_embedding(local_embeddings, global_step=self.epoch, tag="local_embedding")
-        self.show.add_embedding(glob_embeddings, global_step=self.epoch, tag="global_embedding")
+            self.show.add_embedding(local_embeddings, global_step=self.epoch, tag="local_embedding")
+            self.show.add_embedding(glob_embeddings, global_step=self.epoch, tag="global_embedding")
 
     def _eval_epoch_end(self):
         glog.info("Epoch {} evaluation ends, accuracy {:.4f}".format(self.epoch, self.accu))
