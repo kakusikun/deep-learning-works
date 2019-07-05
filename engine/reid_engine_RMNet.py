@@ -29,8 +29,6 @@ class ReIDEngine():
         self.train_accu = 0.0
         self.best_accu = 0.0
         self.accu = 0.0
-        # self.weight_handler = GradNorm(cfg, self.cores['main'].l_features.conv.weight, device=cfg.MODEL.NUM_GPUS) 
-        # self.weights = 0.0
 
     def _start(self):
         if self.opt.findLR:
@@ -41,7 +39,6 @@ class ReIDEngine():
         self.epoch = self.cfg.OPTIMIZER.START_EPOCH
         self._check_gpu()      
 
-        # self.weight_handler.weight_initialize(self.cores, self.tdata, self.use_gpu) 
 
     def _eval_epoch_start(self): 
         for core in self.cores.keys():
@@ -56,8 +53,6 @@ class ReIDEngine():
   
     def _train_iter_start(self):
         self.iter += 1
-        # if self.epoch == self.opt.cum_epoch:
-        #     self.weight_handler.need_initial = True
         self.opt._iter_start(self.iter, self.epoch)
 
     def _eval_iter_start(self):
@@ -68,10 +63,6 @@ class ReIDEngine():
         self.show.add_scalar('train/center_loss', self.loss[1], self.iter)
         self.show.add_scalar('train/gpush_loss', self.loss[2], self.iter)
         self.show.add_scalar('train/push_loss', self.loss[3], self.iter)
-        # self.show.add_scalar('train/glob_weight', self.weights[0], self.iter)
-        # self.show.add_scalar('train/center_weight', self.weights[1], self.iter)
-        # self.show.add_scalar('train/gpush_weight', self.weights[2], self.iter)
-        # self.show.add_scalar('train/push_weight', self.weights[3], self.iter)
         self.show.add_scalar('train/lr', self.opt.lr * self.opt.annealing_mult, self.iter)
 
     def _eval_iter_end(self):           
@@ -80,11 +71,11 @@ class ReIDEngine():
     def _train_epoch_end(self):
         if self.epoch % self.cfg.OPTIMIZER.LOG_FREQ == 0:
             if isinstance(self.cores['local_loss'], torch.nn.DataParallel): 
-                local_embeddings = self.cores['local_loss'].module.center.data
-                glob_embeddings = self.cores['glob_loss'].module.weight.data        
+                local_embeddings = F.normalize(self.cores['local_loss'].module.center.data)
+                glob_embeddings = F.normalize(self.cores['glob_loss'].module.weight.data)
             else:
-                local_embeddings = self.cores['local_loss'].center.data
-                glob_embeddings = self.cores['glob_loss'].weight.data        
+                local_embeddings = F.normalize(self.cores['local_loss'].center.data)
+                glob_embeddings = F.normalize(self.cores['glob_loss'].weight.data)       
 
             self.show.add_embedding(local_embeddings, global_step=self.epoch, tag="local_embedding")
             self.show.add_embedding(glob_embeddings, global_step=self.epoch, tag="global_embedding")
@@ -112,9 +103,6 @@ class ReIDEngine():
             glob_loss = self.cores['glob_loss'](glob, labels)
             
             loss = torch.stack([glob_loss] + local_loss)
-            # weights = self.weight_handler.weights.expand_as(loss.t()).t()            
-
-            # loss = weights * loss
 
             lg, bs = loss.size()
             _, indice = loss[:3].sum(0).sort(descending=True)
@@ -127,14 +115,8 @@ class ReIDEngine():
             loss = loss[effective_idx == 1].view(lg, bs//2).mean(1)
 
             self.opt.before_backward()
-            # self.weights = self.weight_handler.weights.tolist()
             loss.sum().backward()          
             self.opt.after_backward()    
-
-            # if self.weight_handler.need_initial:
-            #     self.weight_handler.weight_initialize(self.cores, self.tdata, self.use_gpu) 
-            # self.weight_handler.loss_weight_backward(loss)
-
 
             self.loss = loss.tolist()
 

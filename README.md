@@ -6,7 +6,6 @@ It contains the task of
 
 with some training methods of
 * [NovoGrad](https://arxiv.org/abs/1905.11286)
-* [GradNorm](https://arxiv.org/abs/1711.02257)
 * Cross Entropy with label smoothing
 * [SGDR, cosine annealing](https://arxiv.org/abs/1608.03983)
 
