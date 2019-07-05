@@ -43,18 +43,17 @@ class ReIDEngine():
 
         self.weight_handler.weight_initialize(self.cores, self.tdata, self.use_gpu) 
 
+    def _eval_epoch_start(self): 
+        for core in self.cores.keys():
+            self.cores[core].eval()  
+
     def _train_epoch_start(self): 
         self.epoch += 1
         glog.info("Epoch {} start".format(self.epoch))
 
         for core in self.cores.keys():
             self.cores[core].train() 
-
-
-    def _eval_epoch_start(self): 
-        for core in self.cores.keys():
-            self.cores[core].eval()         
-
+  
     def _train_iter_start(self):
         self.iter += 1
         if self.epoch == self.opt.cum_epoch:
@@ -156,7 +155,7 @@ class ReIDEngine():
 
     def _evaluate(self):
         glog.info("Epoch {} evaluation start".format(self.epoch))
-             
+        self._eval_epoch_start()
         with torch.no_grad():
             qf, q_pids, q_camids = [], [], []
             for batch in tqdm(self.qdata, desc="Validation"):
