@@ -30,7 +30,7 @@ class ReIDEngine():
         self.best_accu = 0.0
         self.accu = 0.0
         # self.weight_handler = GradNorm(cfg, self.cores['main'].l_features.conv.weight, device=cfg.MODEL.NUM_GPUS) 
-        self.weights = 0.0
+        # self.weights = 0.0
 
     def _start(self):
         if self.opt.findLR:
@@ -68,10 +68,10 @@ class ReIDEngine():
         self.show.add_scalar('train/center_loss', self.loss[1], self.iter)
         self.show.add_scalar('train/gpush_loss', self.loss[2], self.iter)
         self.show.add_scalar('train/push_loss', self.loss[3], self.iter)
-        self.show.add_scalar('train/glob_weight', self.weights[0], self.iter)
-        self.show.add_scalar('train/center_weight', self.weights[1], self.iter)
-        self.show.add_scalar('train/gpush_weight', self.weights[2], self.iter)
-        self.show.add_scalar('train/push_weight', self.weights[3], self.iter)
+        # self.show.add_scalar('train/glob_weight', self.weights[0], self.iter)
+        # self.show.add_scalar('train/center_weight', self.weights[1], self.iter)
+        # self.show.add_scalar('train/gpush_weight', self.weights[2], self.iter)
+        # self.show.add_scalar('train/push_weight', self.weights[3], self.iter)
         self.show.add_scalar('train/lr', self.opt.lr * self.opt.annealing_mult, self.iter)
 
     def _eval_iter_end(self):           
@@ -128,7 +128,7 @@ class ReIDEngine():
 
             self.opt.before_backward()
             # self.weights = self.weight_handler.weights.tolist()
-            loss.sum().backward(retain_graph=True)          
+            loss.sum().backward()          
             self.opt.after_backward()    
 
             # if self.weight_handler.need_initial:
