@@ -78,7 +78,7 @@ class ReIDEngine():
         raise NotImplementedError
 
     def _train_epoch_end(self):
-        if self.epoch % self.OPTIMIZER.LOG_FREQ == 0:
+        if self.epoch % self.cfg.OPTIMIZER.LOG_FREQ == 0:
             if isinstance(self.cores['local_loss'], torch.nn.DataParallel): 
                 local_embeddings = self.cores['local_loss'].module.center.data
                 glob_embeddings = self.cores['glob_loss'].module.weight.data        
