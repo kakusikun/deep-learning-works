@@ -29,7 +29,7 @@ class ReIDEngine():
         self.train_accu = 0.0
         self.best_accu = 0.0
         self.accu = 0.0
-        self.weight_handler = GradNorm(cfg, self.cores['main'].l_features.conv.weight, device=cfg.MODEL.NUM_GPUS) 
+        # self.weight_handler = GradNorm(cfg, self.cores['main'].l_features.conv.weight, device=cfg.MODEL.NUM_GPUS) 
         self.weights = 0.0
 
     def _start(self):
@@ -41,7 +41,7 @@ class ReIDEngine():
         self.epoch = self.cfg.OPTIMIZER.START_EPOCH
         self._check_gpu()      
 
-        self.weight_handler.weight_initialize(self.cores, self.tdata, self.use_gpu) 
+        # self.weight_handler.weight_initialize(self.cores, self.tdata, self.use_gpu) 
 
     def _eval_epoch_start(self): 
         for core in self.cores.keys():
@@ -56,8 +56,8 @@ class ReIDEngine():
   
     def _train_iter_start(self):
         self.iter += 1
-        if self.epoch == self.opt.cum_epoch:
-            self.weight_handler.need_initial = True
+        # if self.epoch == self.opt.cum_epoch:
+        #     self.weight_handler.need_initial = True
         self.opt._iter_start(self.iter, self.epoch)
 
     def _eval_iter_start(self):
@@ -112,9 +112,9 @@ class ReIDEngine():
             glob_loss = self.cores['glob_loss'](glob, labels)
             
             loss = torch.stack([glob_loss] + local_loss)
-            weights = self.weight_handler.weights.expand_as(loss.t()).t()            
+            # weights = self.weight_handler.weights.expand_as(loss.t()).t()            
 
-            loss = weights * loss
+            # loss = weights * loss
 
             lg, bs = loss.size()
             _, indice = loss[:3].sum(0).sort(descending=True)
@@ -124,16 +124,16 @@ class ReIDEngine():
                 mask = torch.zeros(loss.size(1))
 
             effective_idx = mask.scatter(0, indice[:bs//2], 1).expand_as(loss)  
-            loss = loss[effective_idx == 1].view(lg, bs//2).mean(1)
+            loss = loss[effective_idx == 1].view(lg, bs//2).sum(1)
 
             self.opt.before_backward()
-            self.weights = self.weight_handler.weights.tolist()
+            # self.weights = self.weight_handler.weights.tolist()
             loss.sum().backward(retain_graph=True)          
             self.opt.after_backward()    
 
-            if self.weight_handler.need_initial:
-                self.weight_handler.weight_initialize(self.cores, self.tdata, self.use_gpu) 
-            self.weight_handler.loss_weight_backward(loss)
+            # if self.weight_handler.need_initial:
+            #     self.weight_handler.weight_initialize(self.cores, self.tdata, self.use_gpu) 
+            # self.weight_handler.loss_weight_backward(loss)
 
 
             self.loss = loss.tolist()
