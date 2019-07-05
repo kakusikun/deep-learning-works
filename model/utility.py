@@ -110,12 +110,19 @@ class CenterPushLoss(nn.Module):
         device = inputs.get_device()
         n = inputs.size(0)
         m = self.center.size(0)  
-        center_feature = F.normalize(self.center)              
-        cdist = torch.pow(inputs, 2).sum(dim=1, keepdim=True).expand(n, m) + \
-              torch.pow(center_feature, 2).sum(dim=1, keepdim=True).expand(m ,n).t()
-        cdist.addmm_(1, -2, inputs, center_feature.t())
-        cdist = cdist.clamp(min=1e-12).sqrt() 
+        center_feature = F.normalize(self.center)  
+
+        cdist = F.linear(inputs, center_feature)         
+        # cdist = torch.pow(inputs, 2).sum(dim=1, keepdim=True).expand(n, m) + \
+        #       torch.pow(center_feature, 2).sum(dim=1, keepdim=True).expand(m ,n).t()
+        # cdist.addmm_(1, -2, inputs, center_feature.t())
+        # cdist = cdist.clamp(min=1e-12).sqrt()   
         
+        dist = F.linear(inputs, inputs)
+        # dist = torch.pow(inputs, 2).sum(dim=1, keepdim=True).expand(n, n)
+        # dist = dist + dist.t()
+        # dist.addmm_(1, -2, inputs, inputs.t())        
+        # dist = dist.clamp(min=1e-12).sqrt()              
 
         target = labels.view(-1,1).long()
         p = torch.zeros(cdist.size())
@@ -131,18 +138,14 @@ class CenterPushLoss(nn.Module):
         p.scatter_(1, target, 1)
         cdist_p = cdist[p==1].expand(m-1, n).t()
         cdist_n = cdist[p==0].reshape(n, -1)       
-        gpush = self.ranking_loss(cdist_n, cdist_p, cy).mean(1)
+        gpush = self.ranking_loss(cdist_p, cdist_n, cy).mean(1)      
 
-        dist = torch.pow(inputs, 2).sum(dim=1, keepdim=True).expand(n, n)
-        dist = dist + dist.t()
-        dist.addmm_(1, -2, inputs, inputs.t())
-        dist = dist.clamp(min=1e-12).sqrt()
         mask = labels.expand(n, n).eq(labels.expand(n, n).t())
         dist_p = cdist[p==1].expand(n-self.K, n).t()
         dist_n = dist[mask==0].reshape(n, -1)        
-        push = self.ranking_loss(dist_n, dist_p, y).mean(1)
+        push = self.ranking_loss(dist_p, dist_n, y).mean(1)
 
-        center = cdist[p==1]
+        center = 1.0 - cdist[p==1]
         
         return center, gpush, push
 
