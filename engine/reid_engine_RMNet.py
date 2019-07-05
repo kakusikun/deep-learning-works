@@ -124,7 +124,7 @@ class ReIDEngine():
                 mask = torch.zeros(loss.size(1))
 
             effective_idx = mask.scatter(0, indice[:bs//2], 1).expand_as(loss)  
-            loss = loss[effective_idx == 1].view(lg, bs//2).sum(1)
+            loss = loss[effective_idx == 1].view(lg, bs//2).mean(1)
 
             self.opt.before_backward()
             # self.weights = self.weight_handler.weights.tolist()
