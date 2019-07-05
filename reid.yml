@@ -1,7 +1,7 @@
 EXPERIMENT: "RMNet_Novo_Reid"
 
 MODEL:
-  NUM_GPUS: 1
+  NUM_GPUS: 2
   NUM_CLASSES: 751
 
 INPUT:
@@ -20,7 +20,7 @@ DATALOADER:
 
 DATASET:
   NAME: "market1501"
-  TRAIN_PATH: "/home/allen/Downloads/reid"
+  TRAIN_PATH: "/home/allen.jc.lin/reid"
 
 TRANSFORM:
   HFLIP: True
@@ -42,5 +42,4 @@ OPTIMIZER:
   MAX_EPOCHS: 300
   NUM_LOSSES: 4
 
-# RESUME: ["main", "/media/allen/mass/deep-learning-works/result_2019-06-26_11:32:16/weights/model_main_122_0.5074.pth", "fc", "/media/allen/mass/deep-learning-works/result_2019-06-26_11:32:16/weights/model_fc_122_0.5074.pth"]
-
+RESUME: ["main", "/home/allen.jc.lin/RMNet_ImageNet_64.16.pth"] 
