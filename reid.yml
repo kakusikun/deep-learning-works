@@ -1,6 +1,6 @@
-EXPERIMENT: "RMNet_Novo_Reid_Phase1"
+EXPERIMENT: "RMNet_Novo_Reid_Phase2"
 
-PHASE: 1
+PHASE: 2
 
 MODEL:
   NUM_GPUS: 2
@@ -33,7 +33,7 @@ TRANSFORM:
 OPTIMIZER:
   OPTIMIZER_NAME: "Novo"
   START_EPOCH: 0
-  BASE_LR: 0.0001
+  BASE_LR: 0.001
   LR_POLICY: "cosine"
   WARMRESTART_MULTIPLIER: 2
   WARMRESTART_PERIOD: 10
@@ -43,7 +43,7 @@ OPTIMIZER:
   # NESTEROV: True
   MAX_EPOCHS: 300
   NUM_LOSSES: 4
-  LOG_FREQ: 5
-  EVALUATE_FREQ: 5
+  # LOG_FREQ: 5
+  EVALUATE_FREQ: 10
 
-RESUME: ["main", "/home/allen.jc.lin/RMNet_ImageNet_64.16.pth"] 
+RESUME: ["main", "/home/allen.jc.lin/deep-learning-works/result_RMNet_Novo_Reid_Phase1_2019-07-05_16-16-25/weights/model_main_290_0.6790.pth", "glob_loss", "/home/allen.jc.lin/deep-learning-works/result_RMNet_Novo_Reid_Phase1_2019-07-05_16-16-25/weights/model_glob_loss_290_0.6790.pth"] 
