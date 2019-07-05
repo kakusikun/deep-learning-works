@@ -73,7 +73,7 @@ class ModelManager():
 
                 model_state = self.models[self.loadPath[2*i]].state_dict()
 
-                checkpointRefine = {k: v for k, v in checkpoint.items() if k in model_state}
+                checkpointRefine = {k: v for k, v in checkpoint.items() if k in model_state and torch.isnan(v).sum() == 0}
 
                 model_state.update(checkpointRefine)
 
@@ -83,7 +83,7 @@ class ModelManager():
 
                 model_state = self.models[self.loadPath[2*i]].state_dict()
 
-                checkpointRefine = {k: v for k, v in checkpoint.items() if k in model_state}
+                checkpointRefine = {k: v for k, v in checkpoint.items() if k in model_state and torch.isnan(v).sum() == 0}
 
                 model_state.update(checkpointRefine)
 
