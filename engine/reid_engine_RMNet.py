@@ -59,7 +59,7 @@ class ReIDEngine():
         raise NotImplementedError
             
     def _train_iter_end(self):                
-        if self.phase == '2':
+        if self.phase == 2:
             self.show.add_scalar('train/glob_loss', self.loss[0], self.iter)
             self.show.add_scalar('train/center_loss', self.loss[1], self.iter)
             self.show.add_scalar('train/gpush_loss', self.loss[2], self.iter)
