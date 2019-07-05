@@ -127,15 +127,14 @@ class ReIDEngine():
             loss = loss[effective_idx == 1].view(lg, bs//2).mean(1)
 
             self.opt.before_backward()
-
             self.weights = self.weight_handler.weights.tolist()
-            loss.sum().backward(retain_graph=True)
+            loss.sum().backward(retain_graph=True)          
+            self.opt.after_backward()    
 
             if self.weight_handler.need_initial:
                 self.weight_handler.weight_initialize(self.cores, self.tdata, self.use_gpu) 
             self.weight_handler.loss_weight_backward(loss)
 
-            self.opt.after_backward()            
 
             self.loss = loss.tolist()
 
