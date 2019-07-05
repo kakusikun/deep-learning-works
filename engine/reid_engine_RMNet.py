@@ -164,9 +164,9 @@ class ReIDEngine():
                 if self.use_gpu:
                     imgs = imgs.cuda()
                 
-                _, features = self.cores['main'](imgs).cpu()
+                _, features = self.cores['main'](imgs)
                 
-                qf.append(features)
+                qf.append(features.cpu())
                 q_pids.extend(pids)
                 q_camids.extend(camids)
 
@@ -182,9 +182,9 @@ class ReIDEngine():
                 if self.use_gpu:
                     imgs = imgs.cuda()
                 
-                _, features = self.cores['main'](imgs).cpu()
+                _, features = self.cores['main'](imgs)
                 
-                gf.append(features)
+                gf.append(features.cpu())
                 g_pids.extend(pids)
                 g_camids.extend(camids)
 
