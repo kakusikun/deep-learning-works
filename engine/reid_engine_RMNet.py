@@ -79,7 +79,7 @@ class ReIDEngine():
         raise NotImplementedError
 
     def _train_epoch_end(self):
-        if self.epoch % 5 == 0:
+        if self.epoch % self.OPTIMIZER.LOG_FREQ == 0:
             if isinstance(self.cores['local_loss'], torch.nn.DataParallel): 
                 local_embeddings = self.cores['local_loss'].module.center.data
                 glob_embeddings = self.cores['glob_loss'].module.weight.data        
@@ -148,7 +148,7 @@ class ReIDEngine():
             self._train_epoch_start()
             self._train_once()
             self._train_epoch_end()
-            if not self.opt.findLR and self.epoch % 5 == 0:
+            if not self.opt.findLR and self.epoch % self.cfg.OPTIMIZER.EVALUATE_FREQ == 0:
                 self._evaluate()
 
     def Inference(self):

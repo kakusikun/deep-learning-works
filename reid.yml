@@ -41,5 +41,7 @@ OPTIMIZER:
   # NESTEROV: True
   MAX_EPOCHS: 300
   NUM_LOSSES: 4
+  LOG_FREQ: 5
+  EVALUATE_FREQ: 5
 
 RESUME: ["main", "/home/allen.jc.lin/RMNet_ImageNet_64.16.pth"] 
