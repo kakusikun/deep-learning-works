@@ -7,7 +7,7 @@ from model.OSNet import OSNet
 from model.ResNet import ResNet34
 from model.ResNet_cifar10 import ResNet18
 from model.RMNet import RMNet
-from model.utility import FC, CenterPushLoss, AMCrossEntropyLossLSR
+from model.utility import FC, CenterPushLoss, AMCrossEntropyLossLSR, CenterPushTupletLoss
 import glog
 
 class ModelManager():
@@ -17,7 +17,7 @@ class ModelManager():
         # self.models = OrderedDict({"main": OSNet(r=[64,96,128], b=[2,2,2], cifar10=True), "fc":FC(512, cfg.MODEL.NUM_CLASSES)})
         # self.models = OrderedDict({"main": RMNet(b=[4,8,10,11], cifar10=False, reid=False), "fc":FC(256, cfg.MODEL.NUM_CLASSES)})
         self.models = OrderedDict({"main": RMNet(b=[4,8,10,11], cifar10=False, reid=True),
-                                  "local_loss": CenterPushLoss(256, cfg.MODEL.NUM_CLASSES, K=cfg.REID.SIZE_PERSON, m=0.8),
+                                  "local_loss": CenterPushTupletLoss(256, cfg.MODEL.NUM_CLASSES),
                                   "glob_loss": AMCrossEntropyLossLSR(256, cfg.MODEL.NUM_CLASSES)})
         #  self.models = OrderedDict({"main": RMNet(b=[4,8,10,11], cifar10=False, reid=True),
                                    #  "glob_loss": AMCrossEntropyLossLSR(256, cfg.MODEL.NUM_CLASSES)})

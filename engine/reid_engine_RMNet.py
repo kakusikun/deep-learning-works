@@ -61,9 +61,9 @@ class ReIDEngine():
     def _train_iter_end(self):                
         if self.phase == 2:
             self.show.add_scalar('train/glob_loss', self.loss[0], self.iter)
-            self.show.add_scalar('train/center_loss', self.loss[1], self.iter)
+            self.show.add_scalar('train/push_loss', self.loss[1], self.iter)
             self.show.add_scalar('train/gpush_loss', self.loss[2], self.iter)
-            self.show.add_scalar('train/push_loss', self.loss[3], self.iter)
+            # self.show.add_scalar('train/push_loss', self.loss[3], self.iter)
         else:
             self.show.add_scalar('train/glob_loss', self.loss, self.iter)
         self.show.add_scalar('train/lr', self.opt.lr * self.opt.annealing_mult, self.iter)
@@ -98,15 +98,15 @@ class ReIDEngine():
             if self.phase == 2:
                 local_loss = list(self.cores['local_loss'](local, labels))
             
-                loss = torch.stack([glob_loss] + local_loss)
+                loss = torch.stack([glob_loss.mean()] + local_loss)
 
-                final_loss, index = loss.sum(0).max(0)
+                final_loss = loss.sum()
 
-                self.loss = loss[:,index].tolist()
+                self.loss = loss.tolist()
 
             else:
                 final_loss = glob_loss.mean()       
-                self.loss = final_loss.ite.mean(1)
+                self.loss = final_loss.item()
 
             self.opt.before_backward()
             final_loss.backward()          
