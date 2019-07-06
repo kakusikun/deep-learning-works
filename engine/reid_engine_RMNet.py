@@ -96,27 +96,30 @@ class ReIDEngine():
             glob_loss = self.cores['glob_loss'](glob, labels)
 
             if self.phase == 2:
-                local_loss = list(self.cores['local_loss'](local, labels))            
+                local_loss = list(self.cores['local_loss'](local, labels))
             
                 loss = torch.stack([glob_loss] + local_loss)
 
-                lg, bs = loss.size()
-                _, indice = loss[:3].sum(0).sort(descending=True)
-                if self.use_gpu:
-                    mask = torch.zeros(loss.size(1)).cuda()
-                else:
-                    mask = torch.zeros(loss.size(1))
+                final_loss, index = loss.sum(0).max(0)
 
-                effective_idx = mask.scatter(0, indice[:bs//2], 1).expand_as(loss)  
-                loss = loss[effective_idx == 1].view(lg, bs//2).mean(1)
-                self.loss = loss.tolist()
+                #  lg, bs = loss.size()
+                #  _, indice = loss[:3].sum(0).sort(descending=True)
+                #  if self.use_gpu:
+                    #  mask = torch.zeros(loss.size(1)).cuda()
+                #  else:
+                    #  mask = torch.zeros(loss.size(1))
+
+                #  effective_idx = mask.scatter(0, indice[:bs//2], 1).expand_as(loss)  
+                #  loss = loss[effective_idx == 1].view(lg, bs//2)
+                #  final_loss = loss.mean(1)
+                self.loss = loss[:,index].tolist()
 
             else:
-                loss = glob_loss.mean()       
-                self.loss = loss.item()
+                final_loss = glob_loss.mean()       
+                self.loss = final_loss.ite.mean(1)
 
             self.opt.before_backward()
-            loss.sum().backward()          
+            final_loss.backward()          
             self.opt.after_backward()                    
 
             self._train_iter_end()
@@ -187,6 +190,8 @@ class ReIDEngine():
         self.accu = cmc[0]
 
         self._eval_epoch_end()
+
+        del qf, gf, distmat
         
 
     def _check_gpu(self):
