@@ -9,6 +9,8 @@ class IdBasedSampler(sampler.Sampler):
     def _sample(population, k):
         if len(population) < k:
             population = population * k
+            patch = [-1] * (k - len(population))
+            return population + patch
         return random.sample(population, k)
 
     def __init__(self, dataset, K=8):
