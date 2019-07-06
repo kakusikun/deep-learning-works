@@ -102,16 +102,6 @@ class ReIDEngine():
 
                 final_loss, index = loss.sum(0).max(0)
 
-                #  lg, bs = loss.size()
-                #  _, indice = loss[:3].sum(0).sort(descending=True)
-                #  if self.use_gpu:
-                    #  mask = torch.zeros(loss.size(1)).cuda()
-                #  else:
-                    #  mask = torch.zeros(loss.size(1))
-
-                #  effective_idx = mask.scatter(0, indice[:bs//2], 1).expand_as(loss)  
-                #  loss = loss[effective_idx == 1].view(lg, bs//2)
-                #  final_loss = loss.mean(1)
                 self.loss = loss[:,index].tolist()
 
             else:
