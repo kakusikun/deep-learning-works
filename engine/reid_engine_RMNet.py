@@ -4,6 +4,7 @@ from tqdm import tqdm
 import torch
 import torch.nn.functional as F
 from tools.eval_reid_metrics import evaluate
+from model.utility import TupletLoss
 import numpy as np
 import glog
 
@@ -11,7 +12,7 @@ class ReIDEngine():
     def __init__(self, cfg, criteria, opt, tdata, qdata, gdata, show, manager):
         self.cfg = cfg
         self.cores = manager.models
-        self.criteria = criteria
+        self.local_criteria = TupletLoss()
         self.opt = opt
         self.tdata = tdata
         self.qdata = qdata
@@ -62,10 +63,11 @@ class ReIDEngine():
         if self.phase == 2:
             self.show.add_scalar('train/glob_loss', self.loss[0], self.iter)
             self.show.add_scalar('train/push_loss', self.loss[1], self.iter)
-            self.show.add_scalar('train/gpush_loss', self.loss[2], self.iter)
+            # self.show.add_scalar('train/gpush_loss', self.loss[2], self.iter)
             # self.show.add_scalar('train/push_loss', self.loss[3], self.iter)
         else:
             self.show.add_scalar('train/glob_loss', self.loss, self.iter)
+        self.show.add_scalar('train/accuracy', self.train_accu, self.iter)      
         self.show.add_scalar('train/lr', self.opt.lr * self.opt.annealing_mult, self.iter)
 
     def _eval_iter_end(self):           
@@ -93,19 +95,20 @@ class ReIDEngine():
             
             local, glob = self.cores['main'](images)
 
-            glob_loss = self.cores['glob_loss'](glob, labels)
+            glob_loss, self.train_accu = self.cores['glob_loss'](glob, labels)
 
             if self.phase == 2:
-                local_loss = list(self.cores['local_loss'](local, labels))
-            
-                loss = torch.stack([glob_loss.mean()] + local_loss)
+                # local_loss = list(self.cores['local_loss'](local, labels))            
+                # loss = torch.stack([glob_loss.mean()] + local_loss)
+                # final_loss = loss.sum()
+                # self.loss = loss.tolist()
 
-                final_loss = loss.sum()
-
-                self.loss = loss.tolist()
+                local_loss = self.local_criteria(local, labels)
+                final_loss = glob_loss + local_loss
+                self.loss = [glob_loss.item(), local_loss.item()]
 
             else:
-                final_loss = glob_loss.mean()       
+                final_loss = glob_loss      
                 self.loss = final_loss.item()
 
             self.opt.before_backward()
