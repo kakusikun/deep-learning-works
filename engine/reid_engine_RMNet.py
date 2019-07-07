@@ -192,7 +192,10 @@ class ReIDEngine():
         
             if self.cfg.MODEL.NUM_GPUS > 1 and torch.cuda.device_count() > 1:
                 for core in self.cores.keys():
-                    self.cores[core] = torch.nn.DataParallel(self.cores[core]).cuda()
+                    if core == 'main':
+                        self.cores[core] = torch.nn.DataParallel(self.cores[core]).cuda()
+                    else:
+                        self.cores[core] = self.cores[core].cuda()
             else:
                 for core in self.cores.keys():
                     self.cores[core] = self.cores[core].cuda()
