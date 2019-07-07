@@ -187,20 +187,22 @@ class CenterPushTupletLoss(nn.Module):
 
         p.scatter_(1, target, 1)
         mask = labels.expand(n, n).eq(labels.expand(n, n).t())
-        cdist_p = cdist[p==1]
-        dist_p = dist[mask==1].view(n, -1)
+
         gpush = []
         push = []
+
         for i in range(n):
+            cdist_p = cdist[i][p[i]==1]
             cdist_n = cdist[i][p[i]==0]
             cdist_n = cdist_n[cdist_n >= self.thresh]              
-            crank = torch.exp(cdist_n - cdist_p[i] + self.m)
-            gpush.append(torch.log(crank[crank > 1].sum() + 1) + torch.pow(cdist_p[i] - 1, 2).mean() / 2)         
+            crank = torch.exp(cdist_n - cdist_p + self.m)
+            gpush.append(torch.log(crank[crank > 1].sum() + 1) + torch.pow(cdist_p - 1, 2).mean() / 2)         
             
+            dist_p = dist[i][mask[i]==1]
             dist_n = dist[i][mask[i]==0]  
             dist_n = dist_n[dist_n >= self.thresh]   
-            rank = torch.exp(dist_n - dist_p[i].min() + self.m)
-            push.append(torch.log(rank[rank > 1].sum() + 1) + torch.pow(dist_p[i] - 1, 2).mean() / 2)
+            rank = torch.exp(dist_n - dist_p.min()+ self.m)
+            push.append(torch.log(rank[rank > 1].sum() + 1) + torch.pow(dist_p - 1, 2).mean() / 2)
 
             # cdist_p = cdist[p==1].expand(m-1, n).t()
             # cdist_n = cdist[p==0].view(n, -1)      
