@@ -1,4 +1,4 @@
-EXPERIMENT: "RMNet_Novo_Reid_Phase2"
+EXPERIMENT: "RMNet_Novo_Reid_Phase2_m=0.8"
 
 PHASE: 2
 
@@ -18,7 +18,7 @@ REID:
   SIZE_PERSON: 6
   
 DATALOADER:
-  NUM_WORKERS: 20
+  NUM_WORKERS: 1
 
 DATASET:
   NAME: "market1501"
@@ -33,7 +33,7 @@ TRANSFORM:
 OPTIMIZER:
   OPTIMIZER_NAME: "Novo"
   START_EPOCH: 0
-  BASE_LR: 0.001
+  BASE_LR: 0.01
   LR_POLICY: "cosine"
   WARMRESTART_MULTIPLIER: 2
   WARMRESTART_PERIOD: 10
@@ -47,3 +47,4 @@ OPTIMIZER:
   EVALUATE_FREQ: 10
 
 RESUME: ["main", "/home/allen.jc.lin/deep-learning-works/result_RMNet_Novo_Reid_Phase1_2019-07-05_16-16-25/weights/model_main_290_0.6790.pth", "glob_loss", "/home/allen.jc.lin/deep-learning-works/result_RMNet_Novo_Reid_Phase1_2019-07-05_16-16-25/weights/model_glob_loss_290_0.6790.pth"] 
+# RESUME: ["main", "/home/allen.jc.lin/deep-learning-works/result_RMNet_Novo_Reid_Phase2_2019-07-06_11-44-51/weights/model_main_300_0.7758.pth", "glob_loss", "/home/allen.jc.lin/deep-learning-works/result_RMNet_Novo_Reid_Phase2_2019-07-06_11-44-51/weights/model_glob_loss_300_0.7758.pth", "local_loss", "/home/allen.jc.lin/deep-learning-works/result_RMNet_Novo_Reid_Phase2_2019-07-06_11-44-51/weights/model_local_loss_300_0.7758.pth"] 

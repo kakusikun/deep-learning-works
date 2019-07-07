@@ -8,7 +8,6 @@ class IdBasedSampler(sampler.Sampler):
     @staticmethod
     def _sample(population, k):
         if len(population) < k:
-            population = population * k
             patch = [-1] * (k - len(population))
             return population + patch
         return random.sample(population, k)
