@@ -196,30 +196,58 @@ class CenterPushTupletLoss(nn.Module):
             cdist_n = cdist[i][p[i]==0]
             cdist_n = cdist_n[cdist_n >= self.thresh]              
             crank = torch.exp(cdist_n - cdist_p + self.m)
-            gpush.append(torch.log(crank[crank > 1].sum() + 1) + torch.pow(cdist_p - 1, 2).mean() / 2)         
+            gpush.append(torch.log(crank[crank > 1].sum() + 1) + 1.5 * torch.pow(cdist_p - 1, 2).mean() / 2)         
             
             dist_p = dist[i][mask[i]==1]
             dist_n = dist[i][mask[i]==0]  
             dist_n = dist_n[dist_n >= self.thresh]   
             rank = torch.exp(dist_n - dist_p.min()+ self.m)
-            push.append(torch.log(rank[rank > 1].sum() + 1) + torch.pow(dist_p - 1, 2).mean() / 2)
+            push.append(torch.log(rank[rank > 1].sum() + 1) + 1.5 * torch.pow(dist_p - 1, 2).mean() / 2)
 
-            # cdist_p = cdist[p==1].expand(m-1, n).t()
-            # cdist_n = cdist[p==0].view(n, -1)      
-            # crank = torch.exp(cdist_n - cdist_p + self.m)
-            # crank[crank <= 1] = 0.0
-            # gpush = torch.log(crank.sum(1) + 1)
-            
-            # dist_p = dist[mask==1].view(n, -1).min(1)[0].expand(n-self.K, n).t()
-            # dist_n = dist[mask==0].view(n, -1)   
-            # rank = torch.exp(dist_n - dist_p + self.m)
-            # rank[rank <= 1] = 0.0
-            # push = torch.log(rank.sum(1) + 1)
         gpush = torch.stack(gpush).mean()
         push = torch.stack(push).mean()
         
         return gpush, push
 
+class TupletLoss(nn.Module):
+    r"""Implement of global push, center, push loss in RMNet: :
+    Args:
+        m: margin
+        thresh: similarity for hard negative
+    """
+    def __init__(self, m=0.3, thresh=0.7):
+        super(TupletLoss, self).__init__()
+        self.m = m
+        self.thresh = thresh
+
+    def forward(self, inputs, labels):
+        device = inputs.get_device()
+        inputs = inputs[labels > 0,:]
+        labels = labels[labels > 0]
+
+        n = inputs.size(0)
+       
+        dist = F.linear(inputs, inputs)
+
+        target = labels.view(-1,1).long()
+
+        if device > -1:
+            target = target.to(device)
+
+        mask = labels.expand(n, n).eq(labels.expand(n, n).t())
+
+        push = []
+
+        for i in range(n):
+            dist_p = dist[i][mask[i]==1]
+            dist_n = dist[i][mask[i]==0]  
+            dist_n = dist_n[dist_n >= self.thresh]   
+            rank = torch.exp(dist_n - dist_p.min()+ self.m)
+            push.append(torch.log(rank[rank > 1].sum() + 1) + 1.5 * torch.pow(dist_p - 1, 2).mean() / 2)
+
+        push = torch.stack(push).mean()
+        
+        return push
 
 class AMCrossEntropyLossLSR(nn.Module):
     r"""Implement of large margin cosine distance in cross entropy with label smoothing: :
@@ -265,9 +293,11 @@ class AMCrossEntropyLossLSR(nn.Module):
         output *= self.s
 
         log_q = F.log_softmax(output, 1)
+
+        acc = (log_q.detach().max(1)[1] == labels).float().mean()
         
-        cross_entropy = -1 * (p * log_q).sum(1)
-        return cross_entropy
+        cross_entropy = -1 * (p * log_q).sum(1).mean()
+        return cross_entropy, acc.item()
 
 class FocalWeight():
     def __init__(self, length, batch_size, delta=0.16, alpha=0.25, gamma=2.0, device=0):
