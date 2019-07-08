@@ -8,7 +8,7 @@ import shutil
 
 from config.config_manager import _C as cfg
 from data.build_loader import build_reid_loader
-from engine.reid_engine_RMNet import ReIDEngine
+from engine.reid_engine_ResNet import ReIDEngine
 from solver.optimizer import Solver
 from visualizer.visualizer import Visualizer
 from model.model_manager import ModelManager

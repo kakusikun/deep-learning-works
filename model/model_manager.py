@@ -5,9 +5,9 @@ import torch.nn as nn
 from collections import OrderedDict
 from model.OSNet import OSNet
 from model.ResNet import ResNet34
-from model.ResNet_cifar10 import ResNet18
+from model.ResNet import ResNet18
 from model.RMNet import RMNet
-from model.utility import FC, CenterPushLoss, AMCrossEntropyLossLSR, CenterPushTupletLoss
+from model.utility import FC, CenterLoss, AMSoftmax
 import glog
 
 class ModelManager():
@@ -18,11 +18,11 @@ class ModelManager():
         # self.models = OrderedDict({"main": RMNet(b=[4,8,10,11], cifar10=False, reid=False), "fc":FC(256, cfg.MODEL.NUM_CLASSES)})
         self.models = OrderedDict({"main": RMNet(b=[4,8,10,11], cifar10=False, reid=True, trick=True),
                                 #   "local_loss": CenterPushTupletLoss(256, cfg.MODEL.NUM_CLASSES),
-                                  "glob_loss": AMCrossEntropyLossLSR(256, cfg.MODEL.NUM_CLASSES, m=0.0, s=1.0, eps=0.1)})
+                                  "glob_feat": AMSoftmax(256, cfg.MODEL.NUM_CLASSES, m=0.0, s=1.0)})
         #  self.models = OrderedDict({"main": RMNet(b=[4,8,10,11], cifar10=False, reid=True),
                                    #  "glob_loss": AMCrossEntropyLossLSR(256, cfg.MODEL.NUM_CLASSES)})
         
-        self.models = OrderedDict({"main": ResNet18(), "FC": FC(512, cfg.MODEL.NUM_CLASSES, False)})
+        self.models = OrderedDict({"main": ResNet18(), "id_feat": AMSoftmax(512, cfg.MODEL.NUM_CLASSES), "center_loss": CenterLoss(512, cfg.MODEL.NUM_CLASSES)})
 
         self.params = []
         num_params = 0
