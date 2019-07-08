@@ -104,7 +104,13 @@ class ResNet(nn.Module):
     self.layer1 = self._make_layer(block, 64, layers[0])
     self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
     self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
-    self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
+    self.layer4 = self._make_layer(block, 512, layers[3], stride=1)
+
+    self.l_features = nn.Linear(512, 512)
+    self.BNNeck = nn.BatchNorm1d(512)
+    self.BNNeck.bias.requires_grad_(False)
+    self.g_features = nn.Linear(512, 512)
+
     self.flatten = Flatten()
     for m in self.modules():
       if isinstance(m, nn.Conv2d):
@@ -142,11 +148,19 @@ class ResNet(nn.Module):
     x = self.layer3(x)
     x = self.layer4(x)
 
-    x = F.avg_pool2d(x, (4, 8)) 
+    x = F.adaptive_avg_pool2d(x, 1) 
 
     x = self.flatten(x)
+    
+    x = self.l_features(x)
 
-    return x
+    local = F.normalize(x)
+
+    x = self.BNNeck(x)
+
+    glob = F.normalize(x)
+
+    return local, glob
 
 
 def ResNet18():

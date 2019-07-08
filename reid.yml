@@ -1,4 +1,4 @@
-EXPERIMENT: "RMNet_Novo_Reid_Phase2_TupletLoss"
+EXPERIMENT: "RMNet_Novo_REID_Phase2_TupletLoss_CELSR_Trick_scratch"
 
 PHASE: 2
 
@@ -7,7 +7,7 @@ MODEL:
   NUM_CLASSES: 751
 
 INPUT:
-  IMAGE_PAD: 10
+  IMAGE_PAD: 40
   IMAGE_SIZE: (384, 128)
   SIZE_TRAIN: 300
   SIZE_TEST: 256
@@ -36,15 +36,16 @@ OPTIMIZER:
   BASE_LR: 0.01
   LR_POLICY: "cosine"
   WARMRESTART_MULTIPLIER: 2
-  WARMRESTART_PERIOD: 20
+  WARMRESTART_PERIOD: 10
   # CYCLIC_MAX_LR: 0.003
   LR_RANGE_TEST: False
   WEIGHT_DECAY: 0.0001
   # NESTEROV: True
   MAX_EPOCHS: 300
-  NUM_LOSSES: 4
+  NUM_LOSSES: 2
   # LOG_FREQ: 5
   EVALUATE_FREQ: 10
 
-RESUME: ["main", "/home/allen.jc.lin/deep-learning-works/result_RMNet_Novo_Reid_Phase1_2019-07-05_16-16-25/weights/model_main_290_0.6790.pth", "glob_loss", "/home/allen.jc.lin/deep-learning-works/result_RMNet_Novo_Reid_Phase1_2019-07-05_16-16-25/weights/model_glob_loss_290_0.6790.pth"] 
+RESUME: ["main", "/home/allen.jc.lin/RMNet_ImageNet_64.16.pth"] 
+# RESUME: ["main", "/home/allen.jc.lin/deep-learning-works/result_RMNet_Novo_Reid_Phase1_2019-07-05_16-16-25/weights/model_main_290_0.6790.pth", "glob_loss", "/home/allen.jc.lin/deep-learning-works/result_RMNet_Novo_Reid_Phase1_2019-07-05_16-16-25/weights/model_glob_loss_290_0.6790.pth"] 
 # RESUME: ["main", "/home/allen.jc.lin/deep-learning-works/result_RMNet_Novo_Reid_Phase2_2019-07-06_11-44-51/weights/model_main_300_0.7758.pth", "glob_loss", "/home/allen.jc.lin/deep-learning-works/result_RMNet_Novo_Reid_Phase2_2019-07-06_11-44-51/weights/model_glob_loss_300_0.7758.pth", "local_loss", "/home/allen.jc.lin/deep-learning-works/result_RMNet_Novo_Reid_Phase2_2019-07-06_11-44-51/weights/model_local_loss_300_0.7758.pth"] 

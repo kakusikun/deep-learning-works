@@ -16,13 +16,13 @@ class ModelManager():
 
         # self.models = OrderedDict({"main": OSNet(r=[64,96,128], b=[2,2,2], cifar10=True), "fc":FC(512, cfg.MODEL.NUM_CLASSES)})
         # self.models = OrderedDict({"main": RMNet(b=[4,8,10,11], cifar10=False, reid=False), "fc":FC(256, cfg.MODEL.NUM_CLASSES)})
-        self.models = OrderedDict({"main": RMNet(b=[4,8,10,11], cifar10=False, reid=True),
+        self.models = OrderedDict({"main": RMNet(b=[4,8,10,11], cifar10=False, reid=True, trick=True),
                                 #   "local_loss": CenterPushTupletLoss(256, cfg.MODEL.NUM_CLASSES),
-                                  "glob_loss": AMCrossEntropyLossLSR(256, cfg.MODEL.NUM_CLASSES, m=0.0, s=1)})
+                                  "glob_loss": AMCrossEntropyLossLSR(256, cfg.MODEL.NUM_CLASSES, m=0.0, s=1.0, eps=0.1)})
         #  self.models = OrderedDict({"main": RMNet(b=[4,8,10,11], cifar10=False, reid=True),
                                    #  "glob_loss": AMCrossEntropyLossLSR(256, cfg.MODEL.NUM_CLASSES)})
         
-        # self.models = OrderedDict({"main": ResNet18(), "fc":FC(512, cfg.MODEL.NUM_CLASSES)})
+        self.models = OrderedDict({"main": ResNet18(), "FC": FC(512, cfg.MODEL.NUM_CLASSES, False)})
 
         self.params = []
         num_params = 0

@@ -4,7 +4,7 @@ from tqdm import tqdm
 import torch
 import torch.nn.functional as F
 from tools.eval_reid_metrics import evaluate
-from model.utility import TupletLoss, FocalWeight
+from model.utility import TupletLoss, FocalWeight, CrossEntropyLossLSR
 import numpy as np
 import glog
 
@@ -13,6 +13,7 @@ class ReIDEngine():
         self.cfg = cfg
         self.cores = manager.models
         self.local_criteria = TupletLoss()
+        self.glob_criteria = CrossEntropyLossLSR(cfg.MODEL.NUM_CLASSES)
         self.opt = opt
         self.tdata = tdata
         self.qdata = qdata
@@ -29,7 +30,6 @@ class ReIDEngine():
         self.train_accu = 0.0
         self.best_accu = 0.0
         self.accu = 0.0
-        self.phase = cfg.PHASE
         self.loss_weight = 0.0
 
     def _start(self):
@@ -53,7 +53,7 @@ class ReIDEngine():
         for core in self.cores.keys():
             self.cores[core].train() 
 
-        if self.epoch == 1 and self.phase == 2:
+        if self.epoch == 1:
             self.weight_handler.weight_initialize(self.cores, self.local_criteria, self.tdata)
   
     def _train_iter_start(self):
@@ -64,14 +64,11 @@ class ReIDEngine():
         raise NotImplementedError
             
     def _train_iter_end(self):                
-        if self.phase == 2:
-            self.show.add_scalar('train/glob_loss', self.loss[0], self.iter)
-            self.show.add_scalar('train/push_loss', self.loss[1], self.iter)
-            self.show.add_scalar('train/glob_weight', self.loss_weight[0], self.iter)
-            self.show.add_scalar('train/push_weight', self.loss_weight[1], self.iter)
-            self.show.add_scalar('train/rank1', self.train_rank1, self.iter)      
-        else:
-            self.show.add_scalar('train/glob_loss', self.loss, self.iter)
+        self.show.add_scalar('train/glob_loss', self.loss[0], self.iter)
+        self.show.add_scalar('train/push_loss', self.loss[1], self.iter)
+        self.show.add_scalar('train/glob_weight', self.loss_weight[0], self.iter)
+        self.show.add_scalar('train/push_weight', self.loss_weight[1], self.iter)
+        self.show.add_scalar('train/rank1', self.train_rank1, self.iter)      
         self.show.add_scalar('train/accuracy', self.train_accu, self.iter)      
         self.show.add_scalar('train/lr', self.opt.lr * self.opt.annealing_mult, self.iter)
 
@@ -100,18 +97,19 @@ class ReIDEngine():
             
             local, glob = self.cores['main'](images)
 
-            glob_loss, self.train_accu = self.cores['glob_loss'](glob, labels)
+            local_loss, self.train_rank1 = self.local_criteria(local, labels)
 
-            if self.phase == 2:
-                local_loss, self.train_rank1 = self.local_criteria(local, labels)
-                loss = torch.stack([glob_loss, local_loss])    
-                focal_weight = self.weight_handler.get_loss_weight(loss)
-                final_loss = focal_weight[0] * glob_loss + focal_weight[1] * local_loss 
-                self.loss = [glob_loss.item(), local_loss.item()]
-                self.loss_weight = focal_weight.tolist()
-            else:
-                final_loss = glob_loss      
-                self.loss = final_loss.item()
+            glob_output = self.cores['FC'](glob)
+            self.train_accu = (glob_output.max(1)[1] == labels).float().mean()
+            glob_loss = self.glob_criteria(glob_output, labels)
+
+            loss = torch.stack([glob_loss, local_loss])    
+
+            focal_weight = self.weight_handler.get_loss_weight(loss)
+            final_loss = focal_weight[0] * glob_loss + focal_weight[1] * local_loss 
+
+            self.loss = [glob_loss.item(), local_loss.item()]
+            self.loss_weight = focal_weight.tolist()
 
             self.opt.before_backward()
             final_loss.backward()          

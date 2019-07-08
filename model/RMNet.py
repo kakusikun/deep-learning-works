@@ -3,6 +3,15 @@ import torch.nn as nn
 import torch.nn.functional as F
 from model.utility import Flatten
 
+class BasicConv(nn.Module):
+    def __init__(self, in_planes, out_planes, kernal=1, stride=1, padding=0, groups=1, bias=False):
+        super(BasicConv, self).__init__()
+        self.conv = nn.Conv2d(in_channels=in_planes, out_channels=out_planes, kernel_size=(kernal, kernal), stride=(stride, stride), padding=(padding, padding), groups=groups, bias=bias)
+
+    def forward(self, x):
+        x = self.conv(x)
+        return x
+
 class ConvBlock(nn.Module):
     def __init__(self, in_planes, out_planes, kernal=1, stride=1, padding=0, groups=1, bias=False, activation=True):
         super(ConvBlock, self).__init__()
@@ -44,10 +53,11 @@ class RMBottleneck(nn.Module):
 
 
 class RMNet(nn.Module):
-    def __init__(self, b=[2,2,2], cifar10=False, reid=True):
+    def __init__(self, b=[2,2,2], cifar10=False, reid=True, trick=False):
         super(RMNet, self).__init__()
 
         self.reid = reid
+        self.trick = trick
 
         self.data_norm = nn.BatchNorm2d(3)
         if not cifar10:
@@ -62,9 +72,13 @@ class RMNet(nn.Module):
 
         self.conv2 = ConvBlock(256, 512)
         
-        self.l_features = ConvBlock(512, 256)
-
-        self.g_features = ConvBlock(256, 256)
+        if self.trick:
+            self.l_features = BasicConv(512, 256, bias = True)
+            self.BNNeck = nn.BatchNorm2d(256)
+            self.g_features = BasicConv(256, 256, bias = True)
+        else:
+            self.l_features = ConvBlock(512, 256)
+            self.g_features = ConvBlock(256, 256)
 
         self.flatten = Flatten()
 
@@ -93,15 +107,18 @@ class RMNet(nn.Module):
 
         x = self.conv2(x)
 
-        x = self.l_features(x)
 
         if self.reid:
-            x = F.normalize(x)
-            local = self.flatten(x)
-
-            x = self.g_features(x)
-            x = F.normalize(x)
-            glob = self.flatten(x)
+            if self.trick:
+                x = self.l_features(x)
+                local = F.normalize(self.flatten(x))
+                x = self.BNNeck(x)
+                glob = F.normalize(self.flatten(x))
+            else:
+                x = self.l_features(x)
+                local = F.normalize(self.flatten(x))
+                x = self.g_features(x)
+                glob = F.normalize(self.flatten(x))
 
             return local, glob
         else:

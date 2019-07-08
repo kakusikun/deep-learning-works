@@ -57,10 +57,10 @@ class ArcMarginProduct(nn.Module):
         return output
 
 class FC(nn.Module):
-    def __init__(self, in_features, num_classes):
+    def __init__(self, in_features, num_classes, bias=True):
         super(FC, self).__init__()
         glog.check_gt(num_classes, 0)
-        self.fc = nn.Linear(in_features, num_classes)
+        self.fc = nn.Linear(in_features, num_classes, bias)
         
     def forward(self, x):
         return self.fc(x)
@@ -74,6 +74,8 @@ class CrossEntropyLossLSR(nn.Module):
 
     def forward(self, inputs, labels):
         device = inputs.get_device()
+        inputs = inputs[labels > 0,:]
+        labels = labels[labels > 0]
 
         target = labels.view(-1,1).long()
         p = torch.ones(inputs.size()) * self.prior
@@ -215,7 +217,7 @@ class TupletLoss(nn.Module):
         m: margin
         thresh: similarity for hard negative
     """
-    def __init__(self, m=0.3, thresh=0.7):
+    def __init__(self, m=0.3, thresh=0.6):
         super(TupletLoss, self).__init__()
         self.m = m
         self.thresh = thresh
@@ -230,11 +232,16 @@ class TupletLoss(nn.Module):
         dist = F.linear(inputs, inputs)
 
         target = labels.view(-1,1).long()
+        rank_mask = 1 - torch.eye(n)
+        mask = labels.expand(n, n).eq(labels.expand(n, n).t())
 
         if device > -1:
             target = target.to(device)
-
-        mask = labels.expand(n, n).eq(labels.expand(n, n).t())
+            rank_mask = rank_mask.to(device)
+            
+        true = mask[rank_mask==1].reshape(n,-1)
+        rank1 = dist[rank_mask==1].reshape(n,-1).max(1)[1]
+        match = true.gather(1, rank1.long().view(-1,1))
 
         push = []
 
@@ -242,12 +249,14 @@ class TupletLoss(nn.Module):
             dist_p = dist[i][mask[i]==1]
             dist_n = dist[i][mask[i]==0]  
             dist_n = dist_n[dist_n >= self.thresh]   
-            rank = torch.exp(dist_n - dist_p.min()+ self.m)
-            push.append(torch.log(rank[rank > 1].sum() + 1) + 1.5 * torch.pow(dist_p - 1, 2).mean() / 2)
+            rank = torch.exp(dist_n - dist_p.min() + self.m)
+            push.append(torch.log(rank[rank > 1].sum() + 1) + 2 * torch.pow(dist_p - 1, 2).mean() / 2)
 
         push = torch.stack(push).mean()
         
-        return push
+        acc = match.float().mean()
+        
+        return push, acc.item()
 
 class AMCrossEntropyLossLSR(nn.Module):
     r"""Implement of large margin cosine distance in cross entropy with label smoothing: :
@@ -300,65 +309,42 @@ class AMCrossEntropyLossLSR(nn.Module):
         return cross_entropy, acc.item()
 
 class FocalWeight():
-    def __init__(self, length, batch_size, delta=0.16, alpha=0.25, gamma=2.0, device=0):
+    def __init__(self, length, alpha=0.25, gamma=2.0, use_gpu=False):
         self.a = alpha
         self.r = gamma
-        self.d = delta
-        self.bs = batch_size
-        self.lg = length
+        self.use_gpu = use_gpu
+        self.length = length
         # 1st column -> previous
         # 2nd column -> current
-        self.k = torch.zeros(length, 2)  
+        self.k = torch.zeros(self.length, 2)  
 
-        self.change_target = False
-
-        if device > 0:
+        if self.use_gpu:
             self.k = self.k.cuda()
     
-    def get_weighted_losses(self, loss):
+    def get_loss_weight(self, loss):
 
         self.k[:,0] = self.k[:,1]
 
         self.k[:,1] = self.a * loss.detach() + (1 - self.a) * self.k[:,0]
 
-        p = self.k.min(dim=1)[0] / self.k[:,0]
+        p = (1 - self.k.min(1)[0] / self.k[:,0]).clamp(min = 0.01)
 
-        focal_weight = -1 * torch.pow(1 - p, self.r) * torch.log(p)
+        focal_weight = F.normalize(-1 * torch.pow(1 - p, self.r) * torch.log(p), p = 1, dim = 0) * self.length
 
-        loss = focal_weight * loss     
-
-        self.change_target = (focal_weight[1] / focal_weight[0]) < self.d
-
-        return loss
+        return focal_weight
     
-    def weight_initialize(self, cores, data, use_gpu=False):
+    def weight_initialize(self, cores, criteria, data):
         glog.info("FocalWeight initialize ...")
         batch = next(iter(data))
         images, labels, _ = batch
-        if use_gpu:
+        if self.use_gpu:
             images, labels = images.cuda(), labels.cuda()
         
         local, glob = cores['main'](images)
 
-        local_loss = list(cores['local_loss'](local, labels))
-        glob_loss = cores['glob_loss'](glob, labels)
-        loss = torch.stack([glob_loss] + local_loss)    
-        lg, bs = loss.size()
-        _, indice = loss[:3].sum(0).sort(descending=True)
-
-        if use_gpu:
-            mask = torch.zeros(loss.size(1)).cuda()
-        else:
-            mask = torch.zeros(loss.size(1))
-
-        effective_idx = mask.scatter(0, indice[:bs//2], 1).expand_as(loss)  
-        loss = loss[effective_idx == 1].view(lg, bs//2).mean(1)
-
-        glob_loss = loss[0]
-        
-        local_loss = loss[1:].sum()    
-
-        loss = torch.cat([glob_loss, local_loss])
+        local_loss, _ = criteria(local, labels)
+        glob_loss, _ = cores['glob_loss'](glob, labels)
+        loss = torch.stack([glob_loss, local_loss])    
 
         self.k[:,1] = loss.detach()
 
