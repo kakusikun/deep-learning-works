@@ -74,8 +74,6 @@ class CrossEntropyLossLSR(nn.Module):
 
     def forward(self, inputs, labels):
         device = inputs.get_device()
-        inputs = inputs[labels > 0,:]
-        labels = labels[labels > 0]
 
         target = labels.view(-1,1).long()
         p = torch.ones(inputs.size()) * self.prior
@@ -163,21 +161,18 @@ class CenterLoss(nn.Module):
     def __init__(self, in_features, num_classes):
         super(CenterLoss, self).__init__()
         self.center = nn.Parameter(torch.FloatTensor(num_classes, in_features))
-        nn.init.xavier_uniform_(self.center)        
+        #  nn.init.xavier_uniform_(self.center)        
 
     def forward(self, inputs, labels):
         device = inputs.get_device()
-        inputs = inputs[labels > 0,:]
-        labels = labels[labels > 0]
-
+            
         n = inputs.size(0)
         m = self.center.size(0)  
-        center_feature = F.normalize(self.center)  
 
         #  cdist = F.linear(inputs, center_feature)         
         cdist = torch.pow(inputs, 2).sum(dim=1, keepdim=True).expand(n, m) + \
-             torch.pow(center_feature, 2).sum(dim=1, keepdim=True).expand(m ,n).t()
-        cdist.addmm_(1, -2, inputs, center_feature.t())        
+             torch.pow(self.center, 2).sum(dim=1, keepdim=True).expand(m ,n).t()
+        cdist.addmm_(1, -2, inputs, self.center.t())        
 
         target = labels.view(-1,1).long()
         p = torch.zeros(cdist.size())
@@ -188,7 +183,7 @@ class CenterLoss(nn.Module):
 
         p.scatter_(1, target, 1)
 
-        center_loss = cdist[p==1].sum() / 2
+        center_loss = cdist[p==1].clamp(min = 1e-12, max = 1e+12).mean()
         
         return center_loss
 
@@ -205,8 +200,6 @@ class TupletLoss(nn.Module):
 
     def forward(self, inputs, labels):
         device = inputs.get_device()
-        inputs = inputs[labels > 0,:]
-        labels = labels[labels > 0]
 
         n = inputs.size(0)
        
@@ -240,20 +233,22 @@ class TupletLoss(nn.Module):
         return push, acc.item()
 
 class TripletLoss(nn.Module):
-    r"""Implement of global push, center, push loss in RMNet: :
+    r"""Implement of triplet loss with hardest positive and negative: :
     Args:
         m: margin
         thresh: similarity for hard negative
     """
-    def __init__(self, m=0.3, thresh=0.6):
+    def __init__(self, m=0.3, normalize_feat=False):
         super(TripletLoss, self).__init__()
         self.m = m
-        self.thresh = thresh
+        self.normalize_feat = normalize_feat
+        self.ranking_loss = nn.MarginRankingLoss(margin = self.m)
 
     def forward(self, inputs, labels):
+        if self.normalize_feat:
+            inputs = F.normalize(inputs)
+
         device = inputs.get_device()
-        inputs = inputs[labels > 0,:]
-        labels = labels[labels > 0]
 
         n = inputs.size(0)
        
@@ -262,32 +257,39 @@ class TripletLoss(nn.Module):
         dist.addmm_(1, -2, inputs, inputs.t())        
         dist = dist.clamp(min=1e-12).sqrt()
 
-        target = labels.view(-1,1).long()
         rank_mask = 1 - torch.eye(n)
         mask = labels.expand(n, n).eq(labels.expand(n, n).t())
+        y = torch.ones(1)
+        indice = torch.arange(dist.size(1))
 
         if device > -1:
-            target = target.to(device)
             rank_mask = rank_mask.to(device)
+            indice = indice.cuda()
+            y = y.cuda()
             
         true = mask[rank_mask==1].reshape(n,-1)
-        rank1 = dist[rank_mask==1].reshape(n,-1).max(1)[1]
+        rank1 = dist[rank_mask==1].reshape(n,-1).min(1)[1]
         match = true.gather(1, rank1.long().view(-1,1))
 
         push = []
+        
 
         for i in range(n):
-            dist_p = dist[i][mask[i]==1]
-            dist_n = dist[i][mask[i]==0]  
-            dist_n = dist_n[dist_n >= self.thresh]   
-            rank = torch.exp(dist_n - dist_p.min() + self.m)
-            push.append(torch.log(rank[rank > 1].sum() + 1))
+            dist_p, dist_p_idx = dist[i][mask[i]==1].max(0, True)
+            dist_n, dist_n_idx = dist[i][mask[i]==0].min(0, True) 
+            loss = self.ranking_loss(dist_n, dist_p, y)
+            push.append(loss)
+
+        dist_q_idx = dist[n-1][mask[n-1]==1].min(0, True)[1]
+        q_idx = indice[mask[n-1]==1][dist_q_idx]
+        p_idx = indice[mask[n-1]==1][dist_p_idx]
+        n_idx = indice[mask[n-1]==0][dist_n_idx]
 
         push = torch.stack(push).mean()
         
         acc = match.float().mean()
         
-        return push, acc.item()
+        return push, acc.item(), q_idx, p_idx, n_idx
 
 class AMSoftmax(nn.Module):
     r"""Implement of large margin cosine distance in cross entropy with label smoothing: :
@@ -299,7 +301,7 @@ class AMSoftmax(nn.Module):
         cos(theta) - m
     """
 
-    def __init__(self, in_features, num_classes, s=30.0, m=0.40):
+    def __init__(self, in_features, num_classes, s=30.0, m=0.30):
         super(AMSoftmax, self).__init__()
         self.s = s
         self.m = m
@@ -309,8 +311,6 @@ class AMSoftmax(nn.Module):
 
     def forward(self, inputs, labels):
         device = inputs.get_device()
-        inputs = inputs[labels > 0,:]
-        labels = labels[labels > 0]
 
         cosine = F.linear(inputs, F.normalize(self.weight))
         phi = cosine - self.m

@@ -15,19 +15,25 @@ class ModelManager():
         self.savePath = os.path.join(cfg.OUTPUT_DIR, "weights")
 
         # self.models = OrderedDict({"main": OSNet(r=[64,96,128], b=[2,2,2], cifar10=True), "fc":FC(512, cfg.MODEL.NUM_CLASSES)})
+
         # self.models = OrderedDict({"main": RMNet(b=[4,8,10,11], cifar10=False, reid=False), "fc":FC(256, cfg.MODEL.NUM_CLASSES)})
-        self.models = OrderedDict({"main": RMNet(b=[4,8,10,11], cifar10=False, reid=True, trick=True),
-                                #   "local_loss": CenterPushTupletLoss(256, cfg.MODEL.NUM_CLASSES),
-                                  "glob_feat": AMSoftmax(256, cfg.MODEL.NUM_CLASSES, m=0.0, s=1.0)})
+
+        #  self.models = OrderedDict({"main": RMNet(b=[4,8,10,11], cifar10=False, reid=True, trick=True),
+                                 #  "local_loss": CenterPushTupletLoss(256, cfg.MODEL.NUM_CLASSES),
+                                  #  "glob_feat": AMSoftmax(256, cfg.MODEL.NUM_CLASSES, m=0.0, s=1.0)})
+
         #  self.models = OrderedDict({"main": RMNet(b=[4,8,10,11], cifar10=False, reid=True),
                                    #  "glob_loss": AMCrossEntropyLossLSR(256, cfg.MODEL.NUM_CLASSES)})
-        
-        self.models = OrderedDict({"main": ResNet18(), "id_feat": AMSoftmax(512, cfg.MODEL.NUM_CLASSES), "center_loss": CenterLoss(512, cfg.MODEL.NUM_CLASSES)})
+
+        self.models = OrderedDict({"main": ResNet18(), "id_feat": AMSoftmax(512, cfg.MODEL.NUM_CLASSES, m = 0.0, s = 1.0), "center_loss": CenterLoss(512, cfg.MODEL.NUM_CLASSES)})
 
         self.params = []
         num_params = 0
         for name in self.models.keys():
-            self.params.append({"params": self.models[name].parameters()})
+            if name == 'center_loss':
+                self.params.append({"params": self.models[name].parameters(), "lr": 0.5})
+            else:    
+                self.params.append({"params": self.models[name].parameters()})
             num_params += sum([p.numel() for p in self.models[name].parameters() if p.requires_grad])
         
         glog.info("Total trainable parameters: {:.2f}M".format(num_params / 1000000.0))
@@ -40,8 +46,8 @@ class ModelManager():
             glog.info("Evaluating model from {}".format(cfg.EVALUATE))
             self.loadPath = cfg.EVALUATE
             self.load_model()
-        # else:
-        #     self._initialize_weights()
+        else:
+           self._initialize_weights()
         
         
     def save_model(self, epoch, optimizer, accuracy):
@@ -77,6 +83,9 @@ class ModelManager():
 
                 checkpointRefine = {k: v for k, v in checkpoint.items() if k in model_state and torch.isnan(v).sum() == 0}
 
+                for name in checkpointRefine.keys():
+                    glog.info("{} layer is loaded".format(name))
+
                 model_state.update(checkpointRefine)
 
                 self.models[self.loadPath[2*i]].load_state_dict(model_state)
@@ -86,6 +95,9 @@ class ModelManager():
                 model_state = self.models[self.loadPath[2*i]].state_dict()
 
                 checkpointRefine = {k: v for k, v in checkpoint.items() if k in model_state and torch.isnan(v).sum() == 0}
+
+                for name in checkpointRefine.keys():
+                    glog.info("{} layer is loaded".format(name))
 
                 model_state.update(checkpointRefine)
 
@@ -100,10 +112,18 @@ class ModelManager():
                     m.weight.data.normal_(0, math.sqrt(2. / n))
                     if m.bias is not None:
                         m.bias.data.zero_()
+                    #  nn.init.kaiming_normal_(m.weight, a = 0, mode = 'fan_in')
+                    #  if m.bias:
+                        #  nn.init.constant_(m.bias, 0.0)
                 elif isinstance(m, nn.BatchNorm2d):
-                    m.weight.data.fill_(1)
-                    m.bias.data.zero_()
+                    nn.init.constant_(m.weight, 1.0)
+                    nn.init.constant_(m.bias, 0.0)
                 elif isinstance(m, nn.Linear):
-                    n = m.weight.size(1)
-                    m.weight.data.normal_(0, 0.01)
-                    m.bias.data.zero_()
+                    if name == "id_feat":
+                        nn.init.normal_(m.weight, std = 0.001)
+                        if m.bias:
+                            nn.init.constant_(m.bias, 0.0)
+                    else:
+                        nn.init.kaiming_normal_(m.weight, a = 0, mode = 'fan_out')
+                        nn.init.constant_(m.bias, 0.0)
+                        

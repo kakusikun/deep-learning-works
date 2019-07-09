@@ -22,6 +22,11 @@ def train(cfg):
 
     model_manager = ModelManager(cfg)
 
+    if cfg.EVALUATE != "":
+        engine = ReIDEngine(cfg, None, None, train_loader, query_loader, gallery_loader, None, model_manager) 
+        engine.Inference()
+        sys.exit(1) 
+
     cfg.OPTIMIZER.ITERATIONS_PER_EPOCH = len(train_loader)
     
     opt = Solver(cfg, model_manager.params)

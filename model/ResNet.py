@@ -106,10 +106,8 @@ class ResNet(nn.Module):
     self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
     self.layer4 = self._make_layer(block, 512, layers[3], stride=1)
 
-    self.l_features = nn.Linear(512, 512)
     self.BNNeck = nn.BatchNorm1d(512)
     self.BNNeck.bias.requires_grad_(False)
-    self.g_features = nn.Linear(512, 512)
 
     self.flatten = Flatten()
     for m in self.modules():
@@ -150,15 +148,9 @@ class ResNet(nn.Module):
 
     x = F.adaptive_avg_pool2d(x, 1) 
 
-    x = self.flatten(x)
-    
-    x = self.l_features(x)
+    local = self.flatten(x)
 
-    local = F.normalize(x)
-
-    x = self.BNNeck(x)
-
-    glob = F.normalize(x)
+    glob = self.BNNeck(local)
 
     return local, glob
 

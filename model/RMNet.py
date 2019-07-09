@@ -53,11 +53,10 @@ class RMBottleneck(nn.Module):
 
 
 class RMNet(nn.Module):
-    def __init__(self, b=[2,2,2], cifar10=False, reid=True, trick=False):
+    def __init__(self, b=[2,2,2], cifar10=False, reid=True):
         super(RMNet, self).__init__()
 
         self.reid = reid
-        self.trick = trick
 
         self.data_norm = nn.BatchNorm2d(3)
         if not cifar10:
@@ -72,13 +71,8 @@ class RMNet(nn.Module):
 
         self.conv2 = ConvBlock(256, 512)
         
-        if self.trick:
-            self.l_features = BasicConv(512, 256, bias = True)
-            self.BNNeck = nn.BatchNorm2d(256)
-            self.g_features = BasicConv(256, 256, bias = True)
-        else:
-            self.l_features = ConvBlock(512, 256)
-            self.g_features = ConvBlock(256, 256)
+        self.l_features = ConvBlock(512, 256)
+        self.g_features = ConvBlock(256, 256)
 
         self.flatten = Flatten()
 
@@ -109,16 +103,10 @@ class RMNet(nn.Module):
 
 
         if self.reid:
-            if self.trick:
-                x = self.l_features(x)
-                local = F.normalize(self.flatten(x))
-                x = self.BNNeck(x)
-                glob = F.normalize(self.flatten(x))
-            else:
-                x = self.l_features(x)
-                local = F.normalize(self.flatten(x))
-                x = self.g_features(x)
-                glob = F.normalize(self.flatten(x))
+            x = self.l_features(x)
+            local = F.normalize(self.flatten(x))
+            x = self.g_features(x)
+            glob = F.normalize(self.flatten(x))
 
             return local, glob
         else:
