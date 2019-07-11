@@ -1,102 +1,83 @@
 import torch
 import math
-import numpy as np
+import numpy as np 
 from solver.solvers import *
+from solver.lr_schedulers import *
 import glog
 
 class Solver(): 
-    def __init__(self, cfg, params):
-        if cfg.OPTIMIZER.OPTIMIZER_NAME == 'SGD':
-            self.opt = MySGD(params, 
-                            lr       = cfg.OPTIMIZER.BASE_LR, 
-                            momentum = cfg.OPTIMIZER.MOMENTUM, 
-                            nesterov = cfg.OPTIMIZER.NESTEROV)
-        elif cfg.OPTIMIZER.OPTIMIZER_NAME == 'Novo':
-            self.opt = NovoGrad(params, amsgrad=False)
-        
-        self.findLR = cfg.OPTIMIZER.LR_RANGE_TEST        
-        self.lr = cfg.OPTIMIZER.BASE_LR
-        self.nwd = cfg.OPTIMIZER.WEIGHT_DECAY
-        self.WD_NORMALIZED = cfg.OPTIMIZER.WD_NORMALIZED
-        self.cycle_mult = cfg.OPTIMIZER.WARMRESTART_MULTIPLIER
-        self.cycle_len = cfg.OPTIMIZER.WARMRESTART_PERIOD  
-        self.num_iter_per_epoch = cfg.OPTIMIZER.ITERATIONS_PER_EPOCH
-        self.annealing_mult = 1.0 
-        self.start_iter = 0
-        self.steps = 0
-        self.epoch_to_num_cycles = 0
-        self.lr_policy = cfg.OPTIMIZER.LR_POLICY
-        self.lr_decay = cfg.OPTIMIZER.LR_DECAY
-        self.cyclic_max_lr = cfg.OPTIMIZER.CYCLIC_MAX_LR
-        self.cyclic_min_lr = self.cyclic_max_lr / 6.0
-        self.max_epoch = cfg.OPTIMIZER.MAX_EPOCHS
-        self.cum_epoch = self.cycle_len + 1
+    def __init__(self, cfg, params, _lr=None, _wd=None, _name=None, _lr_policy=None):   
+        self.lr = cfg.SOLVER.BASE_LR if _lr is None else _lr
+        self.monitor_lr = 0.0
+        self.wd = cfg.SOLVER.WEIGHT_DECAY if _wd is None else _wd
+        self.cycle_mult = cfg.SOLVER.WARMRESTART_MULTIPLIER
+        self.cycle_len = cfg.SOLVER.WARMRESTART_PERIOD  
+        self.num_iter_per_epoch = cfg.SOLVER.ITERATIONS_PER_EPOCH
+        self.annealing_mult = 1.0
+        self.lr_policy = cfg.SOLVER.LR_POLICY if _lr_policy is None else _lr_policy
+        self.lr_steps = cfg.SOLVER.LR_STEPS
+        self.opt_name = cfg.SOLVER.OPTIMIZER_NAME if _name is None else _name
 
-        if self.findLR:
-            if self.num_iter_per_epoch > 1000:
-                self.LRIncrement = pow((1.0/self.lr), (1.0/self.num_iter_per_epoch)) 
-            else:
-                factor = int(1000/self.num_iter_per_epoch)
-                self.LRIncrement = pow((1.0/self.lr), (1.0/(self.num_iter_per_epoch * factor)))
-    
-    def _iter_start(self, cur_iter, cur_epoch):
-        self.steps = cur_iter # + self.start_iter
-        if self.findLR:
-            self.annealing_mult = pow(self.LRIncrement, float(self.steps))
+        self.max_epoch = cfg.SOLVER.MAX_EPOCHS
+        self.bias_lr_factor = cfg.SOLVER.BIAS_LR_FACTOR
+        self.wd_factor = cfg.SOLVER.WEIGHT_DECAY_BIAS_FACTOR
+
+        self.warmup = cfg.SOLVER.WARMUP
+        self.gamma = cfg.SOLVER.GAMMA
+        self.warmup_factor = cfg.SOLVER.WARMUP_FACTOR
+        self.warmup_iters = cfg.SOLVER.WARMUP_SIZE * self.num_iter_per_epoch
+        self.patience = cfg.SOLVER.PLATEAU_SIZE * self.num_iter_per_epoch 
+
+        self._model_analysis(params)
+
+        if self.opt_name == 'SGD':
+            self.opt = torch.optim.SGD(self.params, momentum=cfg.SOLVER.MOMENTUM)
+        elif self.opt_name == 'Adam':
+            self.opt = torch.optim.Adam(self.params)
+        
+        if self.lr_policy == "plateau":
+            self.scheduler = WarmupReduceLROnPlateau(optimizer=self.opt, 
+                                                            mode="min",
+                                                            gamma=self.gamma,
+                                                            patience=self.patience,
+                                                            warmup_factor=self.warmup_factor,
+                                                            warmup_iters=self.warmup_iters,
+                                                            )
+        elif self.lr_policy == "none":
+            self.scheduler = None
         else:
-            if self.lr_policy == 'cosine':
-                self.annealing_mult, self.epoch_to_num_cycles = self.cosineLR(float(self.steps), self.cycle_len, self.cycle_mult, self.num_iter_per_epoch)
+            glog.info("{} policy is not supported".format(self.lr_policy))
 
-                if cur_epoch == self.cum_epoch:
-                    self.cum_epoch += self.epoch_to_num_cycles / self.num_iter_per_epoch
-                    glog.info("Next lr restart is at {}th epoch".format(int(self.cum_epoch)))
-                    if self.lr_decay :
-                        lr_decay, _ = self.cosineLR(float(self.steps), self.max_epoch, 1, self.num_iter_per_epoch)
-                        self.lr *= lr_decay
-                        glog.info("Base lr decays, next decay at {}th epoch".format(int(self.cum_epoch)))
 
-            if self.lr_policy == 'cyclic':
-                self.cyclicalLR()      
+    def _model_analysis(self, params):
+        self.params = []
+        self.params = [{"params": params, "lr": self.lr, "weight_decay": self.wd}]
+        num_params = sum([p.numel() for _, p in params if p.requires_grad])
         
+        for key, value in params:
+            if not value.requires_grad:
+                continue
+            lr = self.lr
+            wd = self.wd
+            if "bias" in key:
+                lr = self.lr * self.bias_lr_factor
+                wd = self.wd * self.wd_factor                
+            self.params += [{"params": value, "lr": lr, "weight_decay": wd}]
+        
+        glog.info("Trainable parameters: {:.2f}M".format(num_params / 1000000.0))
 
-        for param_group in self.opt.param_groups:
-            param_group['lr'] = self.lr * self.annealing_mult
-            if self.WD_NORMALIZED:
-                param_group['weight_decay'] = (self.nwd / np.sqrt(self.num_iter_per_epoch * self.epoch_to_num_cycles)) * self.annealing_mult
-            else:
-                param_group['weight_decay'] = self.nwd
     
-    def before_backward(self):        
+    def lr_adjust(self, metrics, iters):
+        if self.scheduler is not None:
+            self.scheduler.step(metrics, iters)        
+    
+    def zero_grad(self):        
         self.opt.zero_grad()
 
-    def after_backward(self):
+    def step(self):
         self.opt.step()
 
-    @staticmethod
-    def cosineLR(batch_idx, cycle_len, cycle_mult, num_iter_per_epoch):      
-               
-        restart_period = cycle_len * num_iter_per_epoch
 
-        while batch_idx/restart_period > 1.:
-            batch_idx = batch_idx - restart_period
-            restart_period = restart_period * cycle_mult
-
-        radians = math.pi*(batch_idx/restart_period)
-
-        return 0.5*(1.0 + math.cos(radians)), restart_period
-
-
-    def cyclicalLR(self):
-        # Scaler: we can adapt this if we do not want the triangular CLR
-        scaler = lambda x: 1.
-
-        # Additional function to see where on the cycle we are
-        def relative(it, stepsize):
-            cycle = math.floor(1 + it / (2 * stepsize))
-            x = abs(it / stepsize - 2 * cycle + 1)
-            return max(0, (1 - x)) * scaler(cycle)
-
-        self.lr = self.cyclic_min_lr + (self.cyclic_max_lr - self.cyclic_min_lr) * relative(self.steps, 4 * self.num_iter_per_epoch)
 
         
 

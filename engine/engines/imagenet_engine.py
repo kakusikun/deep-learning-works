@@ -16,9 +16,8 @@ class ImageNetEngine():
 
         self.iter = 0
         self.epoch = 0
-        self.max_epoch = cfg.OPTIMIZER.MAX_EPOCHS
+        self.max_epoch = cfg.SOLVER.MAX_EPOCHS
         self.use_gpu = False   
-        self.train = True  
         self.loss = 0.0
         self.train_accu = 0.0
         self.best_accu = 0.0
@@ -30,41 +29,47 @@ class ImageNetEngine():
             glog.info("LR range test start")
         else:
             glog.info("Training start")
-        self.iter = self.cfg.OPTIMIZER.START_EPOCH * len(self.tdata)
-        self.epoch = self.cfg.OPTIMIZER.START_EPOCH
+        self.iter = self.cfg.SOLVER.START_EPOCH * len(self.tdata)
+        self.epoch = self.cfg.SOLVER.START_EPOCH
         self._check_gpu()        
 
-    def _epoch_start(self):      
-        if self.train:
-            self.epoch += 1
-            glog.info("Epoch {} start".format(self.epoch))
+    def _train_epoch_start(self): 
+        self.epoch += 1
+        glog.info("Epoch {} start".format(self.epoch))
 
-            for core in self.cores.keys():
-                self.cores[core].train()               
-        else:
-            for core in self.cores.keys():
-                self.cores[core].eval()         
+        for core in self.cores.keys():
+            self.cores[core].train()  
 
-    def _iter_start(self):
-        if self.train:
-            self.iter += 1
-            self.opt._iter_start(self.iter, self.epoch)
+    def _eval_epoch_start(self): 
+        for core in self.cores.keys():
+            self.cores[core].eval()         
+
+    def _train_iter_start(self):
+        self.iter += 1
+        self.opt._iter_start(self.iter, self.epoch)
+
+    def _eval_iter_start(self):
+        raise NotImplementedError
             
-    def _iter_end(self):
-        if self.train:            
-            self.show.add_scalar('train/loss', self.loss.item(), self.iter)
-            self.show.add_scalar('train/lr', self.opt.lr * self.opt.annealing_mult, self.iter)
-            self.show.add_scalar('train/accuracy', self.train_accu, self.iter)            
+    def _train_iter_end(self):           
+        self.show.add_scalar('train/loss', self.loss, self.iter)
+        self.show.add_scalar('train/lr', self.opt.lr * self.opt.annealing_mult, self.iter)
+        self.show.add_scalar('train/accuracy', self.train_accu, self.iter)      
 
-    def _epoch_end(self):
-        if not self.train:
-            if True:#self.accu > self.best_accu:
-                glog.info("Epoch {} evaluation ends, save checkpoint with accuracy {:.4f}".format(self.epoch, self.accu))
-                self.manager.save_model(self.epoch, self.opt, self.best_accu)
-                self.best_accu = self.accu
-            self.show.add_scalar('val/loss', self.loss.item(), self.epoch)
-            self.show.add_scalar('val/accuracy', self.best_accu, self.epoch)
-            self.train = True
+    def _eval_iter_end(self):           
+        raise NotImplementedError
+
+    def _train_epoch_end(self):
+        raise NotImplementedError
+
+    def _eval_epoch_end(self):
+        glog.info("Epoch {} evaluation ends, accuracy {:.4f}".format(self.epoch, self.accu))
+        if self.accu > self.best_accu:
+            glog.info("Save checkpoint, with {:.4f} improvement".format(self.accu - self.best_accu))
+            self.manager.save_model(self.epoch, self.opt, self.accu)
+            self.best_accu = self.accu
+        self.show.add_scalar('val/loss', self.loss, self.epoch)
+        self.show.add_scalar('val/accuracy', self.best_accu, self.epoch)
 
     def _train_once(self):
         for batch in tqdm(self.tdata, desc="Epoch[{}/{}]".format(self.epoch, self.max_epoch)):
@@ -72,67 +77,85 @@ class ImageNetEngine():
             if self.terminate:
                 break
 
-            self._iter_start()
+            self._train_iter_start()
 
             images, labels = batch
-
             if self.use_gpu:
                 images, labels = images.cuda(), labels.cuda()
             
             outputs = self.cores['main'](images)
-
             for core in self.cores.keys():
                 if core != 'main':
                     outputs = self.cores[core](outputs)
             
             loss = self.criteria(outputs, labels)
 
-            if torch.isnan(self.loss):
+            if torch.isnan(loss):
                 self.terminate = True                
 
-            self.opt.before_backward()
-
+            self.opt.zero_grad()
             loss.backward()
-
-            self.opt.after_backward()
+            self.opt.step()
 
             _, prediction = outputs.max(1)
-
             count = outputs.size(0)
-
             correct = prediction.eq(labels).sum().item()  
 
-            self.loss = loss.item()      
+            self.loss = loss.item()
+            self.train_accu = correct * 100.0 / count 
 
-            self.train_accu = correct * 1.0 / count 
+            self._train_iter_end()
 
-            self._iter_end()
-
-    def Train(self):
+    def Train(self):            
         self._start()
+
         for i in range(self.max_epoch):
             if self.terminate:
                 glog.info("Engine stops")
                 break
-            self._epoch_start()
+            self._train_epoch_start()
             self._train_once()
-            self._epoch_end()
+
             if not self.opt.findLR:
                 self._evaluate()
 
     def Inference(self):
-        raise NotImplementedError
+        glog.info("Epoch {} evaluation start".format(self.epoch))
+        count = 0
+        correct = 0
+        
+        with torch.no_grad():
+            self._eval_epoch_start()
+            for batch in tqdm(self.vdata, desc="Validation"): 
+                images, labels = batch
+
+                if self.use_gpu:
+                    images, labels = images.cuda(), labels.cuda()
+                
+                outputs = self.cores['main'](images)
+
+                for core in self.cores.keys():
+                    if core != 'main':
+                        outputs = self.cores[core](outputs)
+
+                _, prediction = outputs.max(1)
+
+                count += outputs.size(0)
+
+                correct += prediction.eq(labels).sum().item() 
+          
+        self.accu = correct * 100.0 / count
+
+        glog.info("Evaluation ends, accuracy {:.4f}".format(self.accu))
 
     def _evaluate(self):
         glog.info("Epoch {} evaluation start".format(self.epoch))
-        self.train = False   
         count = 0
         correct = 0
-        self._epoch_start()
-             
-        for batch in tqdm(self.vdata, desc="Validation"):
-            self._iter_start()
-            with torch.no_grad():
+        
+        with torch.no_grad():
+            self._eval_epoch_start()
+            for batch in tqdm(self.vdata, desc="Validation"): 
                 images, labels = batch
 
                 if self.use_gpu:
@@ -154,9 +177,9 @@ class ImageNetEngine():
 
                 self.loss = loss.item()
           
-        self.accu = correct * 1.0 / count
+        self.accu = correct * 100.0 / count
 
-        self._epoch_end()
+        self._eval_epoch_end()
         
 
     def _check_gpu(self):

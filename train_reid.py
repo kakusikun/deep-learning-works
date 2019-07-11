@@ -11,7 +11,7 @@ from data.build_loader import build_reid_loader
 from engine.reid_engine_ResNet import ReIDEngine
 from solver.optimizer import Solver
 from visualizer.visualizer import Visualizer
-from model.model_manager import ModelManager
+from model.model_manager import TrainingManager
 import glog
 import torch.nn as nn
 
@@ -20,16 +20,16 @@ def train(cfg):
 
     train_loader, query_loader, gallery_loader = build_reid_loader(cfg)
 
-    model_manager = ModelManager(cfg)
+    model_manager = TrainingManager(cfg)
 
     if cfg.EVALUATE != "":
         engine = ReIDEngine(cfg, None, None, train_loader, query_loader, gallery_loader, None, model_manager) 
         engine.Inference()
         sys.exit(1) 
 
-    cfg.OPTIMIZER.ITERATIONS_PER_EPOCH = len(train_loader)
+    cfg.SOLVER.ITERATIONS_PER_EPOCH = len(train_loader)
     
-    opt = Solver(cfg, model_manager.params)
+    opt = Solver(cfg, model_manager)
 
     visualizer = Visualizer(cfg)
     

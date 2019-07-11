@@ -11,8 +11,8 @@ from data.build_loader import build_imagenet_loader
 from engine.imagenet_engine import ImageNetEngine
 from solver.optimizer import Solver
 from visualizer.visualizer import Visualizer
-from model.model_manager import ModelManager
-from model.utility import CrossEntropyLossLSR
+from model.model_manager import TrainingManager
+from model.utility import CrossEntropyLossLS
 import glog
 import torch.nn as nn
 
@@ -21,16 +21,16 @@ def train(cfg):
 
     train_loader, val_loader = build_imagenet_loader(cfg)
 
-    model_manager = ModelManager(cfg)
+    model_manager = TrainingManager(cfg)
 
-    cfg.OPTIMIZER.ITERATIONS_PER_EPOCH = len(train_loader)
+    cfg.SOLVER.ITERATIONS_PER_EPOCH = len(train_loader)
 
     opt = Solver(cfg, model_manager.params)
 
     visualizer = Visualizer(cfg)
     
     # engine = ImageNetEngine(cfg, nn.CrossEntropyLoss(), opt, train_loader, val_loader, visualizer, model_manager)
-    engine = ImageNetEngine(cfg, CrossEntropyLossLSR(cfg.MODEL.NUM_CLASSES), opt, train_loader, val_loader, visualizer, model_manager)
+    engine = ImageNetEngine(cfg, CrossEntropyLossLS(cfg.MODEL.NUM_CLASSES), opt, train_loader, val_loader, visualizer, model_manager)
     engine.Train()
 
 

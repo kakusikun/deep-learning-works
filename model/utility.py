@@ -6,7 +6,88 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from solver.solvers import *
+# from solver.solvers import *
+
+def normalize(x, axis=-1):
+    """Normalizing to unit length along the specified dimension.
+    Args:
+      x: pytorch Variable
+    Returns:
+      x: pytorch Variable, same shape as input
+    """
+    x = 1. * x / (torch.norm(x, 2, axis, keepdim=True).expand_as(x) + 1e-12)
+    return x
+
+def euclidean_dist(x, y):
+    """
+    Args:
+      x: pytorch Variable, with shape [m, d]
+      y: pytorch Variable, with shape [n, d]
+    Returns:
+      dist: pytorch Variable, with shape [m, n]
+    """
+    m, n = x.size(0), y.size(0)
+    xx = torch.pow(x, 2).sum(1, keepdim=True).expand(m, n)
+    yy = torch.pow(y, 2).sum(1, keepdim=True).expand(n, m).t()
+    dist = xx + yy
+    dist.addmm_(1, -2, x, y.t())
+    dist = dist.clamp(min=1e-12).sqrt()  # for numerical stability
+    return dist
+
+def hard_example_mining(dist_mat, labels, return_inds=False):
+    """For each anchor, find the hardest positive and negative sample.
+    Args:
+      dist_mat: pytorch Variable, pair wise distance between samples, shape [N, N]
+      labels: pytorch LongTensor, with shape [N]
+      return_inds: whether to return the indices. Save time if `False`(?)
+    Returns:
+      dist_ap: pytorch Variable, distance(anchor, positive); shape [N]
+      dist_an: pytorch Variable, distance(anchor, negative); shape [N]
+      p_inds: pytorch LongTensor, with shape [N];
+        indices of selected hard positive samples; 0 <= p_inds[i] <= N - 1
+      n_inds: pytorch LongTensor, with shape [N];
+        indices of selected hard negative samples; 0 <= n_inds[i] <= N - 1
+    NOTE: Only consider the case in which all labels have same num of samples,
+      thus we can cope with all anchors in parallel.
+    """
+
+    assert len(dist_mat.size()) == 2
+    assert dist_mat.size(0) == dist_mat.size(1)
+    N = dist_mat.size(0)
+
+    # shape [N, N]
+    is_pos = labels.expand(N, N).eq(labels.expand(N, N).t())
+    is_neg = labels.expand(N, N).ne(labels.expand(N, N).t())
+
+    # `dist_ap` means distance(anchor, positive)
+    # both `dist_ap` and `relative_p_inds` with shape [N, 1]
+    dist_ap, relative_p_inds = torch.max(
+        dist_mat[is_pos].contiguous().view(N, -1), 1, keepdim=True)
+    # `dist_an` means distance(anchor, negative)
+    # both `dist_an` and `relative_n_inds` with shape [N, 1]
+    dist_an, relative_n_inds = torch.min(
+        dist_mat[is_neg].contiguous().view(N, -1), 1, keepdim=True)
+    # shape [N]
+    dist_ap = dist_ap.squeeze(1)
+    dist_an = dist_an.squeeze(1)
+
+    if return_inds:
+        # shape [N, N]
+        ind = (labels.new().resize_as_(labels)
+               .copy_(torch.arange(0, N).long())
+               .unsqueeze(0).expand(N, N))
+        # shape [N, 1]
+        p_inds = torch.gather(
+            ind[is_pos].contiguous().view(N, -1), 1, relative_p_inds.data)
+        n_inds = torch.gather(
+            ind[is_neg].contiguous().view(N, -1), 1, relative_n_inds.data)
+        # shape [N]
+        p_inds = p_inds.squeeze(1)
+        n_inds = n_inds.squeeze(1)
+        return dist_ap, dist_an, p_inds, n_inds
+
+    return dist_ap, dist_an
+
 
 class Flatten(nn.Module):
   def forward(self, input):
@@ -56,98 +137,45 @@ class ArcMarginProduct(nn.Module):
 
         return output
 
-class FC(nn.Module):
-    def __init__(self, in_features, num_classes, bias=True):
-        super(FC, self).__init__()
-        glog.check_gt(num_classes, 0)
-        self.fc = nn.Linear(in_features, num_classes, bias)
-        
+class ConvFC(nn.Module):
+    def __init__(self, in_planes, out_planes, bias=False):
+        super(ConvFC, self).__init__()
+        self.fc = nn.Conv2d(in_channels=in_planes, out_channels=out_planes, kernel_size=(1,1), stride=(1,1), padding=(0,0), groups=1, bias=bias)
+
     def forward(self, x):
-        return self.fc(x)
+        x = self.fc(x)
+        return x
 
-class CrossEntropyLossLSR(nn.Module):
-    def __init__(self, num_classes, eps=0.1):
-        super(CrossEntropyLossLSR, self).__init__()
-        glog.check_gt(num_classes, 0)
-        self.eps = eps
-        self.prior = eps/num_classes
+class CrossEntropyLossLS(nn.Module):
+    """Cross entropy loss with label smoothing regularizer.
 
-    def forward(self, inputs, labels):
-        device = inputs.get_device()
+    Reference:
+    Szegedy et al. Rethinking the Inception Architecture for Computer Vision. CVPR 2016.
+    Equation: y = (1 - epsilon) * y + epsilon / K.
 
-        target = labels.view(-1,1).long()
-        p = torch.ones(inputs.size()) * self.prior
-        if device > -1:
-            target = target.to(device)
-            p = p.to(device)
-
-        p.scatter_(1, target, (1 - self.eps + self.prior))
-        log_q = F.log_softmax(inputs, 1)
-
-        cross_entropy = -1 * (p * log_q).sum(1).mean()
-
-        return cross_entropy
-
-class CenterPushLoss(nn.Module):
-    r"""Implement of global push, center, push loss in RMNet: :
     Args:
-        in_features: size of features
-        num_classes: number of identity in dataset
-        K: number of image per identity
-        m: margin
-        center, global push, push with size N, batch size
+        num_classes (int): number of classes.
+        epsilon (float): weight.
     """
-    def __init__(self, in_features, num_classes, m=0.50, K=8):
-        super(CenterPushLoss, self).__init__()
-        self.m = m
-        self.K = K
-        self.center = nn.Parameter(torch.FloatTensor(num_classes, in_features))
-        self.ranking_loss = nn.MarginRankingLoss(margin=self.m, reduction="none")
-        nn.init.xavier_uniform_(self.center)
-        
+    def __init__(self, num_classes, epsilon=0.1):
+        super(CrossEntropyLossLS, self).__init__()
+        self.num_classes = num_classes
+        self.epsilon = epsilon
+        self.logsoftmax = nn.LogSoftmax(dim=1)
 
-    def forward(self, inputs, labels):
+    def forward(self, inputs, targets):
+        """
+        Args:
+            inputs: prediction matrix (before softmax) with shape (batch_size, num_classes)
+            targets: ground truth labels with shape (num_classes)
+        """
         device = inputs.get_device()
-        n = inputs.size(0)
-        m = self.center.size(0)  
-        center_feature = F.normalize(self.center)  
-
-        #  cdist = F.linear(inputs, center_feature)         
-        cdist = torch.pow(inputs, 2).sum(dim=1, keepdim=True).expand(n, m) + \
-             torch.pow(center_feature, 2).sum(dim=1, keepdim=True).expand(m ,n).t()
-        cdist.addmm_(1, -2, inputs, center_feature.t())
-        cdist = cdist.clamp(min=1e-12).sqrt()   
-        
-        #  dist = F.linear(inputs, inputs)
-        dist = torch.pow(inputs, 2).sum(dim=1, keepdim=True).expand(n, n)
-        dist = dist + dist.t()
-        dist.addmm_(1, -2, inputs, inputs.t())        
-        dist = dist.clamp(min=1e-12).sqrt()              
-
-        target = labels.view(-1,1).long()
-        p = torch.zeros(cdist.size())
-        cy = torch.ones(m-1)
-        y = torch.ones(n-self.K)
-
-        if device > -1:
-            target = target.to(device)
-            p = p.to(device)
-            cy = cy.to(device)
-            y = y.to(device)
-
-        p.scatter_(1, target, 1)
-        cdist_p = cdist[p==1].expand(m-1, n).t()
-        cdist_n = cdist[p==0].reshape(n, -1)       
-        gpush = self.ranking_loss(cdist_n, cdist_p, cy).mean(1) 
-
-        mask = labels.expand(n, n).eq(labels.expand(n, n).t())
-        dist_p = cdist[p==1].expand(n-self.K, n).t()
-        dist_n = dist[mask==0].reshape(n, -1)        
-        push = self.ranking_loss(dist_n, dist_p, y).mean(1)
-
-        center = torch.pow(cdist[p==1], 2) * 0.5 * 1e-5
-        
-        return center, gpush, push
+        log_probs = self.logsoftmax(inputs)
+        targets = torch.zeros(log_probs.size()).scatter_(1, targets.unsqueeze(1).data.cpu(), 1)
+        if device > -1: targets = targets.cuda()
+        targets = (1 - self.epsilon) * targets + self.epsilon / self.num_classes
+        loss = (- targets * log_probs).mean(0).sum()
+        return loss
 
 class CenterLoss(nn.Module):
     r"""Implement of global push, center, push loss in RMNet: :
@@ -160,11 +188,12 @@ class CenterLoss(nn.Module):
     """
     def __init__(self, in_features, num_classes):
         super(CenterLoss, self).__init__()
-        self.center = nn.Parameter(torch.FloatTensor(num_classes, in_features))
+        self.center = nn.Parameter(torch.randn(num_classes, in_features))
         #  nn.init.xavier_uniform_(self.center)        
 
     def forward(self, inputs, labels):
         device = inputs.get_device()
+        if device > -1: self.center = self.center.cuda()
             
         n = inputs.size(0)
         m = self.center.size(0)  
@@ -186,6 +215,43 @@ class CenterLoss(nn.Module):
         center_loss = cdist[p==1].clamp(min = 1e-12, max = 1e+12).mean()
         
         return center_loss
+
+# class PushLoss(nn.Module):
+#     r"""Implement of global push, center, push loss in RMNet: :
+#     Args:
+#         in_features: size of features
+#         num_classes: number of identity in dataset
+#         K: number of image per identity
+#         m: margin
+#         center, global push, push with size N, batch size
+#     """
+#     def __init__(self, in_features, num_classes):
+#         super(PushLoss, self).__init__()
+#         self.center = nn.Parameter(torch.randn(num_classes, in_features))
+#         #  nn.init.xavier_uniform_(self.center)        
+
+#     def forward(self, inputs, labels):
+#         device = inputs.get_device()
+            
+#         n = inputs.size(0)
+#         m = self.center.size(0)  
+
+#         dist_mat = euclidean_dist(inputs, inputs)  
+#         c_dist_mat = euclidean_dist(inputs, normalize(self.center))  
+              
+
+#         target = labels.view(-1,1).long()
+#         p = torch.zeros(cdist.size())
+
+#         if device > -1:
+#             target = target.to(device)
+#             p = p.to(device)
+
+#         p.scatter_(1, target, 1)
+
+#         center_loss = cdist[p==1].clamp(min = 1e-12, max = 1e+12).mean()
+        
+#         return center_loss
 
 class TupletLoss(nn.Module):
     r"""Implement of global push, center, push loss in RMNet: :
@@ -232,64 +298,30 @@ class TupletLoss(nn.Module):
         
         return push, acc.item()
 
-class TripletLoss(nn.Module):
-    r"""Implement of triplet loss with hardest positive and negative: :
-    Args:
-        m: margin
-        thresh: similarity for hard negative
-    """
-    def __init__(self, m=0.3, normalize_feat=False):
-        super(TripletLoss, self).__init__()
-        self.m = m
-        self.normalize_feat = normalize_feat
-        self.ranking_loss = nn.MarginRankingLoss(margin = self.m)
+class TripletLoss(object):
+    """Modified from Tong Xiao's open-reid (https://github.com/Cysu/open-reid).
+    Related Triplet Loss theory can be found in paper 'In Defense of the Triplet
+    Loss for Person Re-Identification'."""
 
-    def forward(self, inputs, labels):
-        if self.normalize_feat:
-            inputs = F.normalize(inputs)
+    def __init__(self, margin=None):
+        self.margin = margin
+        if margin is not None:
+            self.ranking_loss = nn.MarginRankingLoss(margin=margin)
+        else:
+            self.ranking_loss = nn.SoftMarginLoss()
 
-        device = inputs.get_device()
-
-        n = inputs.size(0)
-       
-        dist = torch.pow(inputs, 2).sum(dim=1, keepdim=True).expand(n, n)
-        dist = dist + dist.t()
-        dist.addmm_(1, -2, inputs, inputs.t())        
-        dist = dist.clamp(min=1e-12).sqrt()
-
-        rank_mask = 1 - torch.eye(n)
-        mask = labels.expand(n, n).eq(labels.expand(n, n).t())
-        y = torch.ones(1)
-        indice = torch.arange(dist.size(1))
-
-        if device > -1:
-            rank_mask = rank_mask.to(device)
-            indice = indice.cuda()
-            y = y.cuda()
-            
-        true = mask[rank_mask==1].reshape(n,-1)
-        rank1 = dist[rank_mask==1].reshape(n,-1).min(1)[1]
-        match = true.gather(1, rank1.long().view(-1,1))
-
-        push = []
-        
-
-        for i in range(n):
-            dist_p, dist_p_idx = dist[i][mask[i]==1].max(0, True)
-            dist_n, dist_n_idx = dist[i][mask[i]==0].min(0, True) 
-            loss = self.ranking_loss(dist_n, dist_p, y)
-            push.append(loss)
-
-        dist_q_idx = dist[n-1][mask[n-1]==1].min(0, True)[1]
-        q_idx = indice[mask[n-1]==1][dist_q_idx]
-        p_idx = indice[mask[n-1]==1][dist_p_idx]
-        n_idx = indice[mask[n-1]==0][dist_n_idx]
-
-        push = torch.stack(push).mean()
-        
-        acc = match.float().mean()
-        
-        return push, acc.item(), q_idx, p_idx, n_idx
+    def __call__(self, global_feat, labels, normalize_feature=False):
+        if normalize_feature:
+            global_feat = normalize(global_feat, axis=-1)
+        dist_mat = euclidean_dist(global_feat, global_feat)
+        dist_ap, dist_an = hard_example_mining(
+            dist_mat, labels)
+        y = dist_an.new().resize_as_(dist_an).fill_(1)
+        if self.margin is not None:
+            loss = self.ranking_loss(dist_an, dist_ap, y)
+        else:
+            loss = self.ranking_loss(dist_an - dist_ap, y)
+        return loss, dist_ap, dist_an
 
 class AMSoftmax(nn.Module):
     r"""Implement of large margin cosine distance in cross entropy with label smoothing: :
@@ -329,133 +361,13 @@ class AMSoftmax(nn.Module):
 
         return output
 
-class FocalWeight():
-    def __init__(self, length, alpha=0.25, gamma=2.0, use_gpu=False):
-        self.a = alpha
-        self.r = gamma
-        self.use_gpu = use_gpu
-        self.length = length
-        # 1st column -> previous
-        # 2nd column -> current
-        self.k = torch.zeros(self.length, 2)  
-
-        if self.use_gpu:
-            self.k = self.k.cuda()
-    
-    def get_loss_weight(self, loss):
-
-        self.k[:,0] = self.k[:,1]
-
-        self.k[:,1] = self.a * loss.detach() + (1 - self.a) * self.k[:,0]
-
-        p = (1 - self.k.min(1)[0] / self.k[:,0]).clamp(min = 0.01)
-
-        focal_weight = F.normalize(-1 * torch.pow(1 - p, self.r) * torch.log(p), p = 1, dim = 0) * self.length
-
-        return focal_weight
-    
-    def weight_initialize(self, cores, data, criteria1, criteria2):
-        glog.info("FocalWeight initialize ...")
-        batch = next(iter(data))
-        images, labels, _ = batch
-        if self.use_gpu:
-            images, labels = images.cuda(), labels.cuda()
-        
-        local, glob = cores['main'](images)
-
-        local_loss, _ = criteria1(local, labels)
-        glob_output = cores['id_feat'](glob, labels)
-        glob_loss, _ = criteria2(glob_output, labels[labels > 0])
-        loss = torch.stack([glob_loss, local_loss])    
-
-        self.k[:,1] = loss.detach()
-
-class GradNorm():
-    def __init__(self, cfg, shared_weight, alpha=0.16, device=-1):
-        self.shared_weight = shared_weight
-        self.alpha = alpha
-        self.length = cfg.OPTIMIZER.NUM_LOSSES
-        self.need_initial = True
-
-        self.fc = nn.Linear(self.length, 1, bias=False)
-        self.g_weights = self.fc.weight
-        nn.init.constant_(self.g_weights, 1.0)
-        
-        self.l1_loss = nn.L1Loss(size_average=False)
-        self.initial_loss = None
-        self.opt = NovoGrad(self.fc.parameters(), amsgrad=True)
-
-        if device != -1:
-            self.fc = self.fc.cuda()
-    @property
-    def weights(self):
-        self.g_weights.data = F.normalize(self.g_weights.detach(), p=1) * self.length        
-        return self.g_weights.detach().squeeze()
-    
-    def loss_weight_backward(self, loss):
-        w = self.g_weights.squeeze()
-        GWt_norms = []
-        for i in range(loss.size(0)):
-            shared_weight_grad = torch.autograd.grad(loss[i],
-                                                     self.shared_weight,
-                                                     retain_graph=True)  
-           
-            GWt = w[i] * shared_weight_grad[0].detach()
-            GWt_norms.append(GWt.norm())
-        
-        GWt_norms = torch.stack(GWt_norms)
-
-        loss_ratios = loss.detach() / self.initial_loss
-        inverse_training_rates = loss_ratios / loss_ratios.mean()
-
-        desired_GWt_norm = GWt_norms.mean().detach() * torch.pow(inverse_training_rates, self.alpha)
-
-        L_grad = self.l1_loss(GWt_norms, desired_GWt_norm)
-        self.opt.zero_grad()
-        L_grad.backward()
-        self.opt.step()
-
-    def weight_initialize(self, cores, data, use_gpu=False):
-        glog.info("GradNorm initialize ...")
-        losses = []
-        for idx, batch in enumerate(data):
-            if idx > 5:
-                break
-            images, labels, _ = batch
-            if use_gpu:
-                images, labels = images.cuda(), labels.cuda()
-            
-            local, glob = cores['main'](images)
-
-            local_loss = list(cores['local_loss'](local, labels))
-            glob_loss = cores['glob_loss'](glob, labels)
-            loss = torch.stack([glob_loss] + local_loss)
-            losses.append(loss)
-            glog.info(idx)
-        
-        esitmated_loss = torch.stack(losses).mean(0).detach()
-        lg, bs = esitmated_loss.size()
-        _, indice = esitmated_loss[:3].sum(0).sort(descending=True)
-        if use_gpu:
-            mask = torch.zeros(esitmated_loss.size(1)).cuda()
-        else:
-            mask = torch.zeros(esitmated_loss.size(1))
-
-        effective_idx = mask.scatter(0, indice[:bs//2], 1).expand_as(esitmated_loss)   
-        esitmated_loss = esitmated_loss[effective_idx == 1].view(lg, bs//2)
-        self.initial_loss = esitmated_loss.mean(1)
-        self.need_initial = False
-
-
 if __name__ == '__main__':
-    loss = CenterPushLoss(10, 10, m=0.5, K=2)
-    amcellsr = AMCrossEntropyLossLSR(10, 10)
-    loss = loss.cuda()
-    amcellsr = amcellsr.cuda()
-    inputs = torch.rand(10,10).cuda()
-    targets = torch.LongTensor([1,1,2,2,3,3,7,7,6,6]).cuda()
-    print(loss(inputs, targets))
-    print(amcellsr(inputs, targets))
+    center_loss = CenterLoss(2048, 751)
+    features = torch.ones(16, 2048)
+    targets = torch.Tensor([0, 1, 2, 3, 2, 3, 1, 4, 5, 3, 2, 1, 0, 0, 5, 4]).long()
+
+    c_loss = center_loss(features, targets)
+    print(c_loss)
 
 
 

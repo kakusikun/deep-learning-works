@@ -7,37 +7,36 @@ import datetime
 import shutil
 
 from config.config_manager import _C as cfg
-from data.build_loader import build_cifar10_loader
-from engine.imagenet_engine import ImageNetEngine
+from data.build_loader import build_reid_loader
+from engine.engines.reid_engine_trick import ReIDEngine
 from solver.optimizer import Solver
 from visualizer.visualizer import Visualizer
-from model.model_manager import TrainingManager
-from model.utility import CrossEntropyLossLS
+from model.managers.trick_manager import TrickManager
 import glog
 import torch.nn as nn
 
-
 def train(cfg):
 
-    train_loader, val_loader = build_cifar10_loader(cfg)
+    train_loader, query_loader, gallery_loader = build_reid_loader(cfg)
 
-    model_manager = TrainingManager(cfg)
+    model_manager = TrickManager(cfg)
 
-    if cfg.EVALUATE:
-        engine = ImageNetEngine(cfg, None, None, None, val_loader, None, model_manager)
+    if cfg.EVALUATE != "":
+        engine = ReIDEngine(cfg, None, train_loader, query_loader, gallery_loader, None, model_manager) 
         engine.Inference()
-        sys.exit(1)
+        sys.exit(1) 
 
     cfg.SOLVER.ITERATIONS_PER_EPOCH = len(train_loader)
 
-    opt = Solver(cfg, model_manager.params)
+    opts = []    
+    for _loss in model_manager.loss_has_param:
+        opts.append(Solver(cfg, _loss.named_parameters(), _lr=cfg.SOLVER.CENTER_LOSS_LR, _name="SGD", _lr_policy="none"))
+    opts.append(Solver(cfg, model_manager.model.named_parameters()))
 
     visualizer = Visualizer(cfg)
     
-    engine = ImageNetEngine(cfg, CrossEntropyLossLS(cfg.MODEL.NUM_CLASSES), opt, train_loader, val_loader, visualizer, model_manager)
+    engine = ReIDEngine(cfg, opts, train_loader, query_loader, gallery_loader, visualizer, model_manager) 
     engine.Train()
-
-
 
 def main():
     parser = argparse.ArgumentParser(description="PyTorch Template MNIST Training")
