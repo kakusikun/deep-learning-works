@@ -80,7 +80,7 @@ class Model(nn.Module):
             self.backbone = RMNet(b=[4,8,10,11], cifar10=False, reid=True, trick=True)
         elif cfg.MODEL.NAME == 'osnet':
             self.in_planes = 512
-            if self.cfg.MODEL.PRETRAIN == "outside":
+            if cfg.MODEL.PRETRAIN == "outside":
                 self.backbone = osnet_x1_0(1000, loss='trick')
             else:
                 self.backbone = osnet_x1_0(cfg.MODEL.NUM_CLASSES, loss='trick')
