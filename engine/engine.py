@@ -65,15 +65,12 @@ class Engine():
         raise NotImplementedError
 
     def _eval_epoch_end(self):
-        if self.cfg.EVALUATE == "":
-            logger.info("Epoch {} evaluation ends, accuracy {:.4f}".format(self.epoch, self.accu))
-            if self.accu > self.best_accu:
-                logger.info("Save checkpoint, with {:.4f} improvement".format(self.accu - self.best_accu))
-                self.manager.save_model(self.epoch, self.opts, self.accu)
-                self.best_accu = self.accu
-            self.show.add_scalar('val/accuracy', self.best_accu, self.epoch)
-        else:
-            logger.info("Evaluation ends, accuracy {:.4f}".format(self.accu))
+        logger.info("Epoch {} evaluation ends, accuracy {:.4f}".format(self.epoch, self.accu))
+        if self.accu > self.best_accu:
+            logger.info("Save checkpoint, with {:.4f} improvement".format(self.accu - self.best_accu))
+            self.manager.save_model(self.epoch, self.opts, self.accu)
+            self.best_accu = self.accu
+        self.show.add_scalar('val/accuracy', self.best_accu, self.epoch)
 
     def _train_once(self):
         raise NotImplementedError
