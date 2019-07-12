@@ -1,197 +1,69 @@
 import os
 from tqdm import tqdm
 import torch
+import torch.nn.functional as F
+import torchvision.transforms as T
+import torchvision
+from engine.engine import Engine
+import numpy as np
 import logging
+logger = logging.getLogger("logger")
 
-class ImageNetEngine():
-    def __init__(self, cfg, criteria, opt, tdata, vdata, show, manager):
-        self.cfg = cfg
-        self.cores = manager.models
-        self.criteria = criteria
-        self.opt = opt
-        self.tdata = tdata
-        self.vdata = vdata
-        self.show = show
-        self.manager = manager
-
-        self.iter = 0
-        self.epoch = 0
-        self.max_epoch = cfg.SOLVER.MAX_EPOCHS
-        self.use_gpu = False   
-        self.loss = 0.0
-        self.train_accu = 0.0
-        self.best_accu = 0.0
-        self.accu = 0.0
-        self.terminate = False
-
-    def _start(self):
-        if self.opt.findLR:
-            logger.info("LR range test start")
-        else:
-            logger.info("Training start")
-        self.iter = self.cfg.SOLVER.START_EPOCH * len(self.tdata)
-        self.epoch = self.cfg.SOLVER.START_EPOCH
-        self._check_gpu()        
-
-    def _train_epoch_start(self): 
-        self.epoch += 1
-        logger.info("Epoch {} start".format(self.epoch))
-
-        for core in self.cores.keys():
-            self.cores[core].train()  
-
-    def _eval_epoch_start(self): 
-        for core in self.cores.keys():
-            self.cores[core].eval()         
-
+class ImageNetEngine(Engine):
+    def __init__(self, cfg, opts, tdata, vdata, show, manager):
+        super(ImageNetEngine, self).__init__(cfg, opts, tdata, vdata, None, None, show, manager)
+                    
     def _train_iter_start(self):
         self.iter += 1
-        self.opt._iter_start(self.iter, self.epoch)
-
-    def _eval_iter_start(self):
-        raise NotImplementedError
-            
+        for opt in self.opts:
+            opt.lr_adjust(self.total_loss, self.iter)
+            opt.zero_grad()
+   
     def _train_iter_end(self):           
-        self.show.add_scalar('train/loss', self.loss, self.iter)
-        self.show.add_scalar('train/lr', self.opt.lr * self.opt.annealing_mult, self.iter)
-        self.show.add_scalar('train/accuracy', self.train_accu, self.iter)      
+        for opt in self.opts:
+            opt.step()
 
-    def _eval_iter_end(self):           
-        raise NotImplementedError
-
-    def _train_epoch_end(self):
-        raise NotImplementedError
-
-    def _eval_epoch_end(self):
-        logger.info("Epoch {} evaluation ends, accuracy {:.4f}".format(self.epoch, self.accu))
-        if self.accu > self.best_accu:
-            logger.info("Save checkpoint, with {:.4f} improvement".format(self.accu - self.best_accu))
-            self.manager.save_model(self.epoch, self.opt, self.accu)
-            self.best_accu = self.accu
-        self.show.add_scalar('val/loss', self.loss, self.epoch)
-        self.show.add_scalar('val/accuracy', self.best_accu, self.epoch)
+        self.show.add_scalar('train/total_loss', self.total_loss, self.iter)              
+        for i in range(len(self.each_loss)):
+            self.show.add_scalar('train/loss/{}'.format(self.manager.loss_name[i]), self.each_loss[i], self.iter)
+        self.show.add_scalar('train/accuracy', self.train_accu, self.iter)   
+        for i in range(len(self.opts)):
+            self.show.add_scalar('train/opt/{}/lr'.format(i), self.opts[i].monitor_lr, self.iter) 
 
     def _train_once(self):
         for batch in tqdm(self.tdata, desc="Epoch[{}/{}]".format(self.epoch, self.max_epoch)):
-
-            if self.terminate:
-                break
-
             self._train_iter_start()
 
-            images, labels = batch
-            if self.use_gpu:
-                images, labels = images.cuda(), labels.cuda()
+            images, target = batch
+            if self.use_gpu: images, target = images.cuda(), target.cuda()
             
-            outputs = self.cores['main'](images)
-            for core in self.cores.keys():
-                if core != 'main':
-                    outputs = self.cores[core](outputs)
-            
-            loss = self.criteria(outputs, labels)
+            outputs = self.core(images)
 
-            if torch.isnan(loss):
-                self.terminate = True                
+            self.total_loss, self.each_loss = self.manager.loss_func(outputs, target)
+            self.total_loss.backward()
 
-            self.opt.zero_grad()
-            loss.backward()
-            self.opt.step()
+            self._train_iter_end()     
 
-            _, prediction = outputs.max(1)
-            count = outputs.size(0)
-            correct = prediction.eq(labels).sum().item()  
+            self.total_loss = self.tensor_to_scalar(self.total_loss)
+            self.each_loss = self.tensor_to_scalar(self.each_loss)
 
-            self.loss = loss.item()
-            self.train_accu = correct * 100.0 / count 
-
-            self._train_iter_end()
-
-    def Train(self):            
-        self._start()
-
-        for i in range(self.max_epoch):
-            if self.terminate:
-                logger.info("Engine stops")
-                break
-            self._train_epoch_start()
-            self._train_once()
-
-            if not self.opt.findLR:
-                self._evaluate()
-
-    def Inference(self):
-        logger.info("Epoch {} evaluation start".format(self.epoch))
-        count = 0
-        correct = 0
-        
-        with torch.no_grad():
-            self._eval_epoch_start()
-            for batch in tqdm(self.vdata, desc="Validation"): 
-                images, labels = batch
-
-                if self.use_gpu:
-                    images, labels = images.cuda(), labels.cuda()
-                
-                outputs = self.cores['main'](images)
-
-                for core in self.cores.keys():
-                    if core != 'main':
-                        outputs = self.cores[core](outputs)
-
-                _, prediction = outputs.max(1)
-
-                count += outputs.size(0)
-
-                correct += prediction.eq(labels).sum().item() 
-          
-        self.accu = correct * 100.0 / count
-
-        logger.info("Evaluation ends, accuracy {:.4f}".format(self.accu))
+            self.train_accu = (outputs.max(1)[1] == target).float().mean() 
+           
 
     def _evaluate(self):
         logger.info("Epoch {} evaluation start".format(self.epoch))
-        count = 0
-        correct = 0
-        
+        accus = []        
         with torch.no_grad():
             self._eval_epoch_start()
             for batch in tqdm(self.vdata, desc="Validation"): 
-                images, labels = batch
-
-                if self.use_gpu:
-                    images, labels = images.cuda(), labels.cuda()
+                images, target = batch
+                if self.use_gpu: images, target = images.cuda(), target.cuda()
                 
-                outputs = self.cores['main'](images)
+                outputs = self.core(images)
 
-                for core in self.cores.keys():
-                    if core != 'main':
-                        outputs = self.cores[core](outputs)
-
-                loss = self.criteria(outputs, labels)
-
-                _, prediction = outputs.max(1)
-
-                count += outputs.size(0)
-
-                correct += prediction.eq(labels).sum().item() 
-
-                self.loss = loss.item()
+                accus.append((outputs.max(1)[1] == target).float().mean())
           
-        self.accu = correct * 100.0 / count
+        self.accu = torch.stack(accus).mean()
 
-        self._eval_epoch_end()
-        
-
-    def _check_gpu(self):
-
-        if self.cfg.MODEL.NUM_GPUS > 0 and torch.cuda.is_available():
-            self.use_gpu = True
-            logger.info("{} GPUs available".format(torch.cuda.device_count()))
-        
-            if self.cfg.MODEL.NUM_GPUS > 1 and torch.cuda.device_count() > 1:
-                for core in self.cores.keys():
-                    self.cores[core] = torch.nn.DataParallel(self.cores[core]).cuda()
-            else:
-                for core in self.cores.keys():
-                    self.cores[core] = self.cores[core].cuda()
+        self._eval_epoch_end()        
 

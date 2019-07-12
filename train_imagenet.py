@@ -8,33 +8,31 @@ import shutil
 
 from config.config_manager import _C as cfg
 from data.build_loader import build_imagenet_loader
-from engine.imagenet_engine import ImageNetEngine
+from engine.engines.imagenet_engine import ImageNetEngine
 from solver.optimizer import Solver
 from visualizer.visualizer import Visualizer
-from model.model_manager import TrainingManager
+from model.managers.imagenet_manager import ImageNetManager
 from model.utility import CrossEntropyLossLS
-import logging
-logger = logging.getLogger("logger")
+from tools.logger import setup_logger
 import torch.nn as nn
 
 
-def train(cfg):
+def train(cfg): 
 
     train_loader, val_loader = build_imagenet_loader(cfg)
 
-    model_manager = TrainingManager(cfg)
+    model_manager = ImageNetManager(cfg)
 
     cfg.SOLVER.ITERATIONS_PER_EPOCH = len(train_loader)
 
-    opt = Solver(cfg, model_manager.params)
+    opts = []    
+    opts.append(Solver(cfg, model_manager.model.named_parameters()))
 
     visualizer = Visualizer(cfg)
     
     # engine = ImageNetEngine(cfg, nn.CrossEntropyLoss(), opt, train_loader, val_loader, visualizer, model_manager)
-    engine = ImageNetEngine(cfg, CrossEntropyLossLS(cfg.MODEL.NUM_CLASSES), opt, train_loader, val_loader, visualizer, model_manager)
+    engine = ImageNetEngine(cfg, opts, train_loader, val_loader, visualizer, model_manager)  
     engine.Train()
-
-
 
 def main():
     parser = argparse.ArgumentParser(description="PyTorch Template MNIST Training")
@@ -52,9 +50,10 @@ def main():
     
     time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     cfg.OUTPUT_DIR = "{}_{}_{}".format(cfg.OUTPUT_DIR, cfg.EXPERIMENT, time)
-    if cfg.OUTPUT_DIR and not os.path.exists(cfg.OUTPUT_DIR) and not cfg.EVALUATE:
-        mkdir(cfg.OUTPUT_DIR)
+    logger = setup_logger(cfg.OUTPUT_DIR)
 
+    if cfg.OUTPUT_DIR and not os.path.exists(cfg.OUTPUT_DIR):
+        mkdir(cfg.OUTPUT_DIR)
         if args.config_file != "":
             shutil.copy(args.config_file, os.path.join(cfg.OUTPUT_DIR, args.config_file.split("/")[-1]))
             logger.info("Loaded configuration file {}".format(args.config_file))

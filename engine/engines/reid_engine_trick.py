@@ -7,7 +7,6 @@ import torchvision.transforms as T
 import torchvision
 from engine.engine import Engine
 from tools.eval_reid_metrics import evaluate
-from model.utility import TripletLoss, CrossEntropyLossLS
 import numpy as np
 import logging
 logger = logging.getLogger("logger")
@@ -16,7 +15,6 @@ logger = logging.getLogger("logger")
 class ReIDEngine(Engine):
     def __init__(self, cfg, opts, tdata, qdata, gdata, show, manager):
         super(ReIDEngine, self).__init__(cfg, opts, tdata, None, qdata, gdata, show, manager)
-        self.q_p_n = None
             
     def _train_iter_start(self):
         self.iter += 1
@@ -37,7 +35,6 @@ class ReIDEngine(Engine):
 
     def _train_once(self):
         for batch in tqdm(self.tdata, desc="Epoch[{}/{}]".format(self.epoch, self.max_epoch)):
-
             self._train_iter_start()
 
             images, target, _ = batch

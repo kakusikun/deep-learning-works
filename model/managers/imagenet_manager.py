@@ -4,10 +4,10 @@ import torch
 import math
 import torch.nn as nn
 from collections import OrderedDict
-from model.OSNetv2 import OSNet
+from model.OSNetv2 import osnet_x1_0
 from model.RMNet import RMNet
 from model.ResNet import ResNet, BasicBlock
-from model.utility import ConvFC, CenterLoss, AMSoftmax, CrossEntropyLossLS, TripletLoss
+from model.utility import ConvFC, CrossEntropyLossLS
 from model.model_manager import TrainingManager
 import logging
 logger = logging.getLogger("logger")
@@ -31,20 +31,13 @@ class ImageNetManager(TrainingManager):
         self.model = Model(self.cfg.MODEL.NUM_CLASSES, self.cfg.MODEL.NAME)
 
     def _make_loss(self):
-        if self.cfg.MODEL.NAME == 'osnet':
-            feat_dim = 512
-        elif self.cfg.MODEL.NAME == 'rmnet':
-            feat_dim = 256        
-
-        center_loss = CenterLoss(feat_dim, self.cfg.MODEL.NUM_CLASSES, self.cfg.MODEL.NUM_GPUS > 0 and torch.cuda.is_available())
         ce_ls = CrossEntropyLossLS(self.cfg.MODEL.NUM_CLASSES)
-        triplet_loss = TripletLoss()
 
-        self.loss_has_param = [center_loss]
+        self.loss_has_param = []
 
-        def loss_func(l_feat, g_feat, target):
-            each_loss = [ce_ls(g_feat, target), triplet_loss(l_feat, target)[0], center_loss(l_feat, target)]            
-            loss = each_loss[0] + each_loss[1] + self.cfg.SOLVER.CENTER_LOSS_WEIGHT * each_loss[2]
+        def loss_func(g_feat, target):
+            each_loss = [ce_ls(g_feat, target)]            
+            loss = each_loss[0]
             return loss, each_loss
 
         self.loss_func = loss_func
@@ -79,22 +72,18 @@ class Model(nn.Module):
         elif model_name == 'rmnet':
             self.in_planes = 256
             self.backbone = RMNet(b=[4,8,10,11], cifar10=False, reid=True, trick=True)
+        elif model_name == 'osnet':
+            self.in_planes = 512
+            self.backbone = osnet_x1_0(num_classes, loss='trick')
         else:
             logger.info("{} is not supported".format(model_name))
 
-        self.gap = nn.AdaptiveAvgPool2d(1)
         self.num_classes = num_classes
-        self.BNNeck = nn.BatchNorm2d(self.in_planes)
-        self.BNNeck.bias.requires_grad_(False)  # no shift
         self.fc = nn.Linear(self.in_planes, self.num_classes, bias=False)
-
-        self.BNNeck.apply(weights_init_kaiming)
         self.fc.apply(weights_init_classifier)
     
     def forward(self, x):
-        x = self.gap(self.backbone(x))
-        local_feat = x.view(x.size(0), -1)
-        x = self.BNNeck(x)
-        x = x.view(x.size(0), -1)
+        x = self.backbone(x)
+        x = x.view(x.size(0), -1)      
         global_feat = self.fc(x)
-        return local_feat, global_feat
+        return global_feat

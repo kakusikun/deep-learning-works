@@ -7,8 +7,6 @@ def setup_logger(save_dir):
     logger = logging.getLogger("logger")
     logger.setLevel(logging.DEBUG)
     # don't log results for the non-master process
-    if distributed_rank > 0:
-        return logger
     ch = logging.StreamHandler(stream=sys.stdout)
     ch.setLevel(logging.DEBUG)
     formatter = logging.Formatter("%(asctime)s %(name)s %(levelname)s: %(message)s")
