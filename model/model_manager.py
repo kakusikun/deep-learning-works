@@ -67,7 +67,6 @@ class TrainingManager():
                     for k, v in checkpoint.items():
                         if k in model_state and torch.isnan(v).sum() == 0:
                             checkpointRefine[k] = v
-                            glog.info("{:60} ...... loaded".format(k))
                         else:
                             glog.info("{:60} ...... skipped".format(k))
                         

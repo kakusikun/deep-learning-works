@@ -55,16 +55,18 @@ class Solver():
         num_params = 0.0
         
         for layer, p in params:
-            if not p.requires_grad:
-                continue
-            glog.info("{:50} ...... added".format(layer))
-            lr = self.lr
-            wd = self.wd
-            if "bias" in layer:
-                lr = self.lr * self.bias_lr_factor
-                wd = self.wd * self.wd_factor                
-            self.params += [{"params": p, "lr": lr, "weight_decay": wd}]
-            num_params += p.numel()
+            try:
+                if not p.requires_grad:
+                    continue
+                lr = self.lr
+                wd = self.wd
+                if "bias" in layer:
+                    lr = self.lr * self.bias_lr_factor
+                    wd = self.wd * self.wd_factor                
+                self.params += [{"params": p, "lr": lr, "weight_decay": wd}]
+                num_params += p.numel()
+            except:
+                glog.info("{:50} ...... skipped".format(layer))
         
         glog.info("Trainable parameters: {:.2f}M".format(num_params / 1000000.0))
 
