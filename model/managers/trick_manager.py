@@ -99,6 +99,6 @@ class Model(nn.Module):
         x = self.BNNeck(x)
         x = x.view(x.size(0), -1)
         global_feat = self.fc(x)
-        if self.training:
+        if not self.training:
             return x
         return local_feat, global_feat
