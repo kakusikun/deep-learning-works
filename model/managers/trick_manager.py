@@ -80,7 +80,7 @@ class Model(nn.Module):
             self.backbone = RMNet(b=[4,8,10,11], cifar10=False, reid=True, trick=True)
         elif model_name == 'osnet':
             self.in_planes = 512
-            self.backbone = osnet_x1_0(self.cfg.MODEL.NUM_CLASSES, loss='trick')
+            self.backbone = osnet_x1_0(num_classes, loss='trick')
         else:
             glog.info("{} is not supported".format(model_name))
 
