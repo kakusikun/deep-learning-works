@@ -138,7 +138,7 @@ class ArcMarginProduct(nn.Module):
         return output
 
 class ConvFC(nn.Module):
-    def __init__(self, in_planes, out_planes, bias=False):
+    def __init__(self, in_planes, out_planes, bias=True):
         super(ConvFC, self).__init__()
         self.fc = nn.Conv2d(in_channels=in_planes, out_channels=out_planes, kernel_size=(1,1), stride=(1,1), padding=(0,0), groups=1, bias=bias)
 

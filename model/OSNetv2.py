@@ -6,6 +6,7 @@ __all__ = ['osnet_x1_0', 'osnet_x0_75', 'osnet_x0_5', 'osnet_x0_25', 'osnet_ibn_
 import torch
 from torch import nn
 from torch.nn import functional as F
+from model.utility import ConvFC
 import torchvision
 
 
@@ -249,11 +250,11 @@ class OSNet(nn.Module):
         
         if isinstance(fc_dims, int):
             fc_dims = [fc_dims]
-        
+
         layers = []
         for dim in fc_dims:
-            layers.append(nn.Linear(input_dim, dim))
-            layers.append(nn.BatchNorm1d(dim))
+            layers.append(ConvFC(input_dim, dim))
+            layers.append(nn.BatchNorm2d(dim))
             layers.append(nn.ReLU(inplace=True))
             if dropout_p is not None:
                 layers.append(nn.Dropout(p=dropout_p))
@@ -296,12 +297,12 @@ class OSNet(nn.Module):
         x = self.featuremaps(x)
         v = self.global_avgpool(x)
         
-        v = v.view(v.size(0), -1)
+        # v = v.view(v.size(0), -1)
         if self.fc is not None:
             v = self.fc(v)
 
         if self.loss == 'trick':
-            v = v.view(v.size(0), -1, 1, 1)
+            # v = v.view(v.size(0), -1, 1, 1)
             return v
 
         if not self.training:
