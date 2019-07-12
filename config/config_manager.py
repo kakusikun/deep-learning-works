@@ -86,6 +86,7 @@ _C.TRANSFORM.RANDOMCROP = False
 _C.TRANSFORM.NORMALIZE = False
 _C.TRANSFORM.RESIZE = False
 _C.TRANSFORM.COLORJIT = False
+_C.TRANSFORM.RANDOMERASING = False
 
 # -----------------------------------------------------------------------------
 # DataLoader
