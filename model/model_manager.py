@@ -54,34 +54,47 @@ class TrainingManager():
 
     def load_model(self): 
         state = torch.load(self.loadPath)
-        for key in state.keys():            
-            if 'model' in key:
-                checkpoint = state[key]
-                if self.cfg.MODEL.PRETRAIN == "outside":
-                    model_state = self.model.backbone.state_dict()
-                else:
-                    model_state = self.model.state_dict()
-
-                checkpointRefine = {}             
-                for k, v in checkpoint.items():
-                    if k in model_state and torch.isnan(v).sum() == 0:
-                        checkpointRefine[k] = v
-                        glog.info("{:60} ...... loaded".format(k))
+        if len(state.keys()) < 10:
+            for key in state.keys():            
+                if 'model' in key:
+                    checkpoint = state[key]
+                    if self.cfg.MODEL.PRETRAIN == "outside":
+                        model_state = self.model.backbone.state_dict()
                     else:
-                        glog.info("{:60} ...... skipped".format(k))
+                        model_state = self.model.state_dict()
+
+                    checkpointRefine = {}             
+                    for k, v in checkpoint.items():
+                        if k in model_state and torch.isnan(v).sum() == 0:
+                            checkpointRefine[k] = v
+                            glog.info("{:60} ...... loaded".format(k))
+                        else:
+                            glog.info("{:60} ...... skipped".format(k))
+                        
+                    model_state.update(checkpointRefine)
+                    if self.cfg.MODEL.PRETRAIN == "imagenet":
+                        self.model.backbone.load_state_dict(model_state)
+                    else:
+                        self.model.load_state_dict(model_state)
                     
-                model_state.update(checkpointRefine)
-                if self.cfg.MODEL.PRETRAIN == "imagenet":
-                    self.model.backbone.load_state_dict(model_state)
+                elif 'loss' in key:
+                    idx = int(key.split("_")[-1])
+                    self.loss_has_param[idx].load_state_dict(state[key])
                 else:
-                    self.model.load_state_dict(model_state)
-                
-            elif 'loss' in key:
-                idx = int(key.split("_")[-1])
-                self.loss_has_param[idx].load_state_dict(state[key])
-            else:
-                glog.info("{} is skipped".format(key))
-            
+                    glog.info("{} is skipped".format(key))
+        else:
+            checkpoint = state
+            model_state = self.model.backbone.state_dict()
+            checkpointRefine = {}             
+            for k, v in checkpoint.items():
+                if k in model_state and torch.isnan(v).sum() == 0:
+                    checkpointRefine[k] = v
+                    glog.info("{:60} ...... loaded".format(k))
+                else:
+                    glog.info("{:60} ...... skipped".format(k))                
+            model_state.update(checkpointRefine)
+            self.model.backbone.load_state_dict(model_state)
+
     def _initialize_weights(self):
         raise NotImplementedError
                         
