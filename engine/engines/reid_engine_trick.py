@@ -72,7 +72,7 @@ class ReIDEngine(Engine):
                 imgs, pids, camids = batch
                 if self.use_gpu: imgs = imgs.cuda()
                 
-                _, features = self.core(imgs)
+                features = self.core(imgs)
 
                 features = F.normalize(features)
                 
@@ -91,7 +91,7 @@ class ReIDEngine(Engine):
                 imgs, pids, camids = batch
                 if self.use_gpu: imgs = imgs.cuda()
                 
-                _, features = self.core(imgs)
+                features = self.core(imgs)
 
                 features = F.normalize(features)
                 
@@ -106,7 +106,7 @@ class ReIDEngine(Engine):
 
         distmat =  1 - F.linear(qf, gf)
         distmat = distmat.numpy()
-        
+
         print("Computing CMC and mAP")
         cmc, mAP = evaluate(distmat, q_pids, g_pids, q_camids, g_camids)
 
