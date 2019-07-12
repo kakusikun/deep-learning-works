@@ -33,6 +33,7 @@ _C.INPUT = CN()
 
 _C.INPUT.IMAGE_PAD = 0
 _C.INPUT.IMAGE_SIZE = (0, 0)
+_C.INPUT.IMAGE_CROP_SIZE = (0, 0)
 # Size of the image during training
 _C.INPUT.SIZE_TRAIN = 32
 # Size of the image during test
@@ -87,7 +88,7 @@ _C.TRANSFORM.NORMALIZE = False
 _C.TRANSFORM.RESIZE = False
 _C.TRANSFORM.COLORJIT = False
 _C.TRANSFORM.RANDOMERASING = False
-
+_C.TRANSFORM.SINGLE_CROP = False
 # -----------------------------------------------------------------------------
 # DataLoader
 # -----------------------------------------------------------------------------

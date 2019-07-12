@@ -1,4 +1,5 @@
-
+import random
+import math
 import torchvision.transforms as T
 
 def build_transform(cfg, isTrain=True):
@@ -12,23 +13,29 @@ def build_transform(cfg, isTrain=True):
             bagTransforms.append(T.RandomHorizontalFlip(p=cfg.INPUT.PROB))
             
         if cfg.TRANSFORM.RANDOMCROP:
-            bagTransforms.append(T.RandomCrop(size=cfg.INPUT.IMAGE_SIZE, padding=cfg.INPUT.IMAGE_PAD))   
+            bagTransforms.append(T.RandomCrop(size=cfg.INPUT.IMAGE_CROP_SIZE, padding=cfg.INPUT.IMAGE_PAD))   
         
+        bagTransforms.append(T.ToTensor())
+
+        if cfg.TRANSFORM.NORMALIZE:
+            bagTransforms.append(T.Normalize(mean=cfg.INPUT.PIXEL_MEAN, std=cfg.INPUT.PIXEL_STD))
+
         if cfg.TRANSFORM.RANDOMERASING:
-            bagTransforms.append(RandomErasing())
-           
+            bagTransforms.append(RandomErasing())     
+                   
     else:
-        if cfg.TRANSFORM.RESIZE:
-            bagTransforms.append(T.Resize(size=cfg.INPUT.IMAGE_SIZE))
-        # if cfg.TRANSFORM.RANDOMCROP:
-        #     bagTransforms.append(T.RandomCrop(size=cfg.INPUT.IMAGE_SIZE, padding=cfg.INPUT.IMAGE_PAD))   
+        if cfg.TRANSFORM.SINGLE_CROP:
+            if cfg.TRANSFORM.RESIZE:
+                bagTransforms.append(T.Resize(size=cfg.INPUT.IMAGE_SIZE))
+            bagTransforms.append(T.CenterCrop(size=cfg.INPUT.IMAGE_CROP_SIZE))
+        else:            
+            if cfg.TRANSFORM.RESIZE:
+                bagTransforms.append(T.Resize(size=cfg.INPUT.IMAGE_CROP_SIZE))
         
-    bagTransforms.append(T.ToTensor())
-
-    if cfg.TRANSFORM.NORMALIZE:
-        bagTransforms.append(T.Normalize(mean=cfg.INPUT.PIXEL_MEAN, std=cfg.INPUT.PIXEL_STD))
-
-            
+        bagTransforms.append(T.ToTensor())
+        if cfg.TRANSFORM.NORMALIZE:
+            bagTransforms.append(T.Normalize(mean=cfg.INPUT.PIXEL_MEAN, std=cfg.INPUT.PIXEL_STD))
+                
     transform = T.Compose(bagTransforms)
 
     return transform
