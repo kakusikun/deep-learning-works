@@ -49,7 +49,7 @@ def main():
     
     time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     cfg.OUTPUT_DIR = "{}_{}_{}".format(cfg.OUTPUT_DIR, cfg.EXPERIMENT, time)
-    logger = setup_logger(cfg.TASK, cfg.OUTPUT_DIR, 0)
+    logger = setup_logger(cfg.OUTPUT_DIR)
 
     if cfg.OUTPUT_DIR and not os.path.exists(cfg.OUTPUT_DIR):
         mkdir(cfg.OUTPUT_DIR)
