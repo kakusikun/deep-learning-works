@@ -42,11 +42,7 @@ class build_reid_dataset(data.Dataset):
         self.transform = transform
     
     def __getitem__(self, index):
-        if index < 0:
-            img_path, pids, camids = self.dataset[0]
-            pids = -1
-        else:
-            img_path, pids, camids = self.dataset[index]
+        img_path, pids, camids = self.dataset[index]
             
         img = Image.open(img_path)
 

@@ -2,42 +2,68 @@ import random
 
 from torch.utils.data import dataset, sampler
 from collections import defaultdict
+import numpy as np
+import copy
 
 class IdBasedSampler(sampler.Sampler):
+    """
+    Randomly sample N identities, then for each identity,
+    randomly sample K instances, therefore batch size is N*K.
+    Args:
+    - data_source (list): list of (img_path, pid, camid).
+    - num_instances (int): number of instances per identity in a batch.
+    - batch_size (int): number of examples in a batch.
+    """
 
-    @staticmethod
-    def _sample(population, k):
-        if len(population) < k:
-            patch = [-1] * (k - len(population))
-            return population + patch
-        return random.sample(population, k)
+    def __init__(self, data_source, batch_size, num_instances):
+        self.data_source = data_source
+        self.batch_size = batch_size
+        self.num_instances = num_instances
+        self.num_pids_per_batch = self.batch_size // self.num_instances
+        self.index_dic = defaultdict(list)
+        for index, (_, pid, _) in enumerate(self.data_source):
+            self.index_dic[pid].append(index)
+        self.pids = list(self.index_dic.keys())
 
-    def __init__(self, dataset, K=8):
-        """
-        :param data_source: Market1501 dataset
-        :param batch_image: batch image size for one person id
-        """
-        super(IdBasedSampler, self).__init__(dataset)
-        self.dataset = dataset.dataset
-        self.id_map = defaultdict(list)
-        self._build_id_map()  
-
-        self.pids = list(self.id_map.keys())
-        self.K = K
-            
+        # estimate number of examples in an epoch
+        self.length = 0
+        for pid in self.pids:
+            idxs = self.index_dic[pid]
+            num = len(idxs)
+            if num < self.num_instances:
+                num = self.num_instances
+            self.length += num - num % self.num_instances
 
     def __iter__(self):
-        self.indice = [] 
-        random.shuffle(self.pids)        
+        batch_idxs_dict = defaultdict(list)
+
         for pid in self.pids:
-            self.indice.extend(self._sample(self.id_map[pid], self.K))
-        return iter(self.indice)
+            idxs = copy.deepcopy(self.index_dic[pid])
+            if len(idxs) < self.num_instances:
+                idxs = np.random.choice(idxs, size=self.num_instances, replace=True)
+            random.shuffle(idxs)
+            batch_idxs = []
+            for idx in idxs:
+                batch_idxs.append(idx)
+                if len(batch_idxs) == self.num_instances:
+                    batch_idxs_dict[pid].append(batch_idxs)
+                    batch_idxs = []
+
+        avai_pids = copy.deepcopy(self.pids)
+        final_idxs = []
+
+        while len(avai_pids) >= self.num_pids_per_batch:
+            selected_pids = random.sample(avai_pids, self.num_pids_per_batch)
+            for pid in selected_pids:
+                batch_idxs = batch_idxs_dict[pid].pop(0)
+                final_idxs.extend(batch_idxs)
+                if len(batch_idxs_dict[pid]) == 0:
+                    avai_pids.remove(pid)
+
+        self.length = len(final_idxs)
+        return iter(final_idxs)
 
     def __len__(self):
-        return len(self.pids) * self.K
-
-    def _build_id_map(self):
-        for i, (_, pid, _) in enumerate(self.dataset):
-            self.id_map[pid].append(i)
+        return self.length
 
 

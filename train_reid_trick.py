@@ -35,7 +35,7 @@ def train(cfg):
 
     visualizer = Visualizer(cfg)
     
-    engine = ReIDEngine(cfg, opts, train_loader, query_loader, gallery_loader, visualizer, model_manager) 
+    engine = ReIDEngine(cfg, opts, train_loader, query_loader, gallery_loader, visualizer, model_manager)  
     engine.Train()
 
 def main():

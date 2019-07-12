@@ -30,7 +30,7 @@ class ReIDEngine(Engine):
 
         self.show.add_scalar('train/total_loss', self.total_loss, self.iter)              
         for i in range(len(self.each_loss)):
-            self.show.add_scalar('train/loss/{}'.format(i), self.each_loss[i], self.iter)
+            self.show.add_scalar('train/loss/{}'.format(self.manager.loss_name[i]), self.each_loss[i], self.iter)
         self.show.add_scalar('train/accuracy', self.train_accu, self.iter)   
         for i in range(len(self.opts)):
             self.show.add_scalar('train/opt/{}/lr'.format(i), self.opts[i].monitor_lr, self.iter)
@@ -42,7 +42,6 @@ class ReIDEngine(Engine):
 
             images, target, _ = batch
             if self.use_gpu: images, target = images.cuda(), target.cuda()
-            images, target = images[target > 0,:], target[target > 0]
             
             local, glob = self.core(images)
             self.total_loss, self.each_loss = self.manager.loss_func(local, glob, target)
@@ -106,7 +105,8 @@ class ReIDEngine(Engine):
             print("Extracted features for gallery set, obtained {}-by-{} matrix".format(gf.size(0), gf.size(1)))
 
         distmat =  1 - F.linear(qf, gf)
-
+        distmat = distmat.numpy()
+        
         print("Computing CMC and mAP")
         cmc, mAP = evaluate(distmat, q_pids, g_pids, q_camids, g_camids)
 

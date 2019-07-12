@@ -40,36 +40,41 @@ class Solver():
                                                             mode="min",
                                                             gamma=self.gamma,
                                                             patience=self.patience,
-                                                            warmup_factor=self.warmup_factor,
+                                                            warmup_factor=1.0/3,#self.warmup_factor,
                                                             warmup_iters=self.warmup_iters,
                                                             )
-        elif self.lr_policy == "none":
-            self.scheduler = None
         else:
-            glog.info("{} policy is not supported".format(self.lr_policy))
+            self.scheduler = None
+        
+        glog.info("{} policy is used".format(self.lr_policy))
 
 
     def _model_analysis(self, params):
         self.params = []
-        self.params = [{"params": params, "lr": self.lr, "weight_decay": self.wd}]
-        num_params = sum([p.numel() for _, p in params if p.requires_grad])
+        # self.params = [{"params": params, "lr": self.lr, "weight_decay": self.wd}]
+        num_params = 0.0
         
-        for key, value in params:
-            if not value.requires_grad:
+        for layer, p in params:
+            if not p.requires_grad:
                 continue
+            glog.info("{:50} ...... added".format(layer))
             lr = self.lr
             wd = self.wd
-            if "bias" in key:
+            if "bias" in layer:
                 lr = self.lr * self.bias_lr_factor
                 wd = self.wd * self.wd_factor                
-            self.params += [{"params": value, "lr": lr, "weight_decay": wd}]
+            self.params += [{"params": p, "lr": lr, "weight_decay": wd}]
+            num_params += p.numel()
         
         glog.info("Trainable parameters: {:.2f}M".format(num_params / 1000000.0))
 
     
     def lr_adjust(self, metrics, iters):
         if self.scheduler is not None:
-            self.scheduler.step(metrics, iters)        
+            self.scheduler.step(metrics, iters)   
+            self.monitor_lr = self.scheduler.monitor_lrs[0]
+        else:
+            self.monitor_lr = self.lr
     
     def zero_grad(self):        
         self.opt.zero_grad()

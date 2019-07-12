@@ -1,12 +1,12 @@
-EXPERIMENT: "RMNet_cels_triplet_center_Adam"
+EXPERIMENT: "OSNet_cels_triplet_center_Adam"
 
 TASK: "reid"
 
 MODEL:
   NUM_GPUS: 1
   NUM_CLASSES: 751
-  NAME: "rmnet"
-  PRETRAIN: "imagenet"
+  NAME: "osnet"
+  PRETRAIN: "outside"
 
 INPUT:
   IMAGE_PAD: 10
@@ -30,7 +30,7 @@ TRANSFORM:
   HFLIP: True
   RANDOMCROP: True
   NORMALIZE: True
-  RESIZE: True
+  RESIZE: True 
 
 SOLVER:
   OPTIMIZER_NAME: "Adam"
@@ -50,7 +50,8 @@ SOLVER:
   WARMUP_FACTOR: 0.01
   WARMUP_SIZE: 10
   PLATEAU_SIZE: 10
-RESUME: "/home/allen/RMNet_ImageNet_64.16.pth"
+# RESUME: "/home/allen/RMNet_ImageNet_64.16.pth"
+EVALUATE: "/media/allen/mass/deep-learning-works/result_RMNet_cels_triplet_center_Adam_2019-07-11_10-45-09/weights/model_140_0.8477.pth"
 # EVALUATE: ["main", "/home/allen.jc.lin/deep-learning-works/result_ResNet18_SGD_REID_Phase2_TupletLoss_CELSR_Trick_scratch_2019-07-08_22-35-03/weights/model_main_220_0.7732.pth"]
 # RESUME: ["main", "/home/allen.jc.lin/deep-learning-works/result_RMNet_Novo_Reid_Phase1_2019-07-05_16-16-25/weights/model_main_290_0.6790.pth", "glob_loss", "/home/allen.jc.lin/deep-learning-works/result_RMNet_Novo_Reid_Phase1_2019-07-05_16-16-25/weights/model_glob_loss_290_0.6790.pth"] 
 # RESUME: ["main", "/home/allen.jc.lin/deep-learning-works/result_RMNet_Novo_Reid_Phase2_2019-07-06_11-44-51/weights/model_main_300_0.7758.pth", "glob_loss", "/home/allen.jc.lin/deep-learning-works/result_RMNet_Novo_Reid_Phase2_2019-07-06_11-44-51/weights/model_glob_loss_300_0.7758.pth", "local_loss", "/home/allen.jc.lin/deep-learning-works/result_RMNet_Novo_Reid_Phase2_2019-07-06_11-44-51/weights/model_local_loss_300_0.7758.pth"] 

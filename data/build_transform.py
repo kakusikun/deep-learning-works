@@ -17,8 +17,8 @@ def build_transform(cfg, isTrain=True):
     else:
         if cfg.TRANSFORM.RESIZE:
             bagTransforms.append(T.Resize(size=cfg.INPUT.IMAGE_SIZE))
-        if cfg.TRANSFORM.RANDOMCROP:
-            bagTransforms.append(T.RandomCrop(size=cfg.INPUT.IMAGE_SIZE, padding=cfg.INPUT.IMAGE_PAD))   
+        # if cfg.TRANSFORM.RANDOMCROP:
+        #     bagTransforms.append(T.RandomCrop(size=cfg.INPUT.IMAGE_SIZE, padding=cfg.INPUT.IMAGE_PAD))   
         
     bagTransforms.append(T.ToTensor())
 

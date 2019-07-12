@@ -178,22 +178,20 @@ class CrossEntropyLossLS(nn.Module):
         return loss
 
 class CenterLoss(nn.Module):
-    r"""Implement of global push, center, push loss in RMNet: :
+    r"""Implement of center loss: :
     Args:
         in_features: size of features
         num_classes: number of identity in dataset
-        K: number of image per identity
-        m: margin
-        center, global push, push with size N, batch size
     """
-    def __init__(self, in_features, num_classes):
+    def __init__(self, in_features, num_classes, use_gpu=True):
         super(CenterLoss, self).__init__()
-        self.center = nn.Parameter(torch.randn(num_classes, in_features))
-        #  nn.init.xavier_uniform_(self.center)        
+        if use_gpu:
+            self.center = nn.Parameter(torch.randn(num_classes, in_features).cuda())
+        else:
+            self.center = nn.Parameter(torch.randn(num_classes, in_features))
 
     def forward(self, inputs, labels):
         device = inputs.get_device()
-        if device > -1: self.center = self.center.cuda()
             
         n = inputs.size(0)
         m = self.center.size(0)  

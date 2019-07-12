@@ -4,18 +4,18 @@ import torch
 import math
 import torch.nn as nn
 from collections import OrderedDict
-from model.OSNetv2 import osnet_x1_0
+from model.OSNetv2 import OSNet
 from model.RMNet import RMNet
 from model.ResNet import ResNet, BasicBlock
 from model.utility import ConvFC, CenterLoss, AMSoftmax, CrossEntropyLossLS, TripletLoss
 from model.model_manager import TrainingManager
 import glog
 
-class TrickManager(TrainingManager):
+class ImageNetManager(TrainingManager):
     def __init__(self, cfg):
-        super(TrickManager, self).__init__(cfg)        
+        super(ImageNetManager, self).__init__(cfg)        
 
-        if cfg.TASK == "reid":
+        if cfg.TASK == "imagenet":
             self._make_model()
             self._make_loss()
         else:
@@ -23,14 +23,14 @@ class TrickManager(TrainingManager):
             sys.exit(1)
 
         self._check_model()    
-
-        self.loss_name = ["cels", "triplet", "center"]
+        
+        self.loss_name = ["cels"]
                         
     def _make_model(self):
         self.model = Model(self.cfg.MODEL.NUM_CLASSES, self.cfg.MODEL.NAME)
 
     def _make_loss(self):
-        if self.cfg.MODEL.NAME == 'resnet18' or self.cfg.MODEL.NAME == 'osnet':
+        if self.cfg.MODEL.NAME == 'osnet':
             feat_dim = 512
         elif self.cfg.MODEL.NAME == 'rmnet':
             feat_dim = 256        
@@ -78,9 +78,6 @@ class Model(nn.Module):
         elif model_name == 'rmnet':
             self.in_planes = 256
             self.backbone = RMNet(b=[4,8,10,11], cifar10=False, reid=True, trick=True)
-        elif model_name == 'osnet':
-            self.in_planes = 512
-            self.backbone = osnet_x1_0(self.cfg.MODEL.NUM_CLASSES, loss='trick')
         else:
             glog.info("{} is not supported".format(model_name))
 
@@ -99,6 +96,4 @@ class Model(nn.Module):
         x = self.BNNeck(x)
         x = x.view(x.size(0), -1)
         global_feat = self.fc(x)
-        if self.training:
-            return x
         return local_feat, global_feat

@@ -35,7 +35,7 @@ class TrainingManager():
         state = {}
         for i, opt in enumerate(opts):
             opt_name = "opt_{}".format(i)
-            opt_state = opt.state_dict()
+            opt_state = opt.opt.state_dict()
             state[opt_name] = opt_state
 
         if isinstance(self.model, torch.nn.DataParallel):
@@ -57,7 +57,7 @@ class TrainingManager():
         for key in state.keys():            
             if 'model' in key:
                 checkpoint = state[key]
-                if self.cfg.MODEL.PRETRAIN == "imagenet":
+                if self.cfg.MODEL.PRETRAIN == "outside":
                     model_state = self.model.backbone.state_dict()
                 else:
                     model_state = self.model.state_dict()

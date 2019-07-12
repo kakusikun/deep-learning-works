@@ -97,15 +97,14 @@ def build_reid_loader(cfg):
 
     num_workers = cfg.DATALOADER.NUM_WORKERS
 
-    sampler = IdBasedSampler(train_dataset, K=cfg.REID.SIZE_PERSON)
+    sampler = IdBasedSampler(train_dataset, batch_size=cfg.INPUT.SIZE_TRAIN, num_instances=cfg.REID.SIZE_PERSON)
 
     t_loader = data.DataLoader(
         train_dataset, 
         batch_size=cfg.INPUT.SIZE_TRAIN, 
         sampler=sampler, 
         num_workers=num_workers, 
-        pin_memory=True, 
-        drop_last=True,
+        pin_memory=True
     )
 
     q_loader = data.DataLoader(
