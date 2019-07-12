@@ -27,7 +27,7 @@ class TrickManager(TrainingManager):
         self.loss_name = ["cels", "triplet", "center"]
                         
     def _make_model(self):
-        self.model = Model(self.cfg.MODEL.NUM_CLASSES, self.cfg.MODEL.NAME)
+        self.model = Model(self.cfg)
 
     def _make_loss(self):
         if self.cfg.MODEL.NAME == 'resnet18' or self.cfg.MODEL.NAME == 'osnet':
@@ -70,22 +70,25 @@ def weights_init_classifier(m):
             nn.init.constant_(m.bias, 0.0)
             
 class Model(nn.Module):
-    def __init__(self, num_classes, model_name):
+    def __init__(self, cfg):
         super(Model, self).__init__()
-        if model_name == 'resnet18':
+        if cfg.MODEL.NAME == 'resnet18':
             self.in_planes = 512
             self.backbone = ResNet(last_stride=1, block=BasicBlock, layers=[2,2,2,2])
-        elif model_name == 'rmnet':
+        elif cfg.MODEL.NAME == 'rmnet':
             self.in_planes = 256
             self.backbone = RMNet(b=[4,8,10,11], cifar10=False, reid=True, trick=True)
-        elif model_name == 'osnet':
+        elif cfg.MODEL.NAME == 'osnet':
             self.in_planes = 512
-            self.backbone = osnet_x1_0(num_classes, loss='trick')
+            if self.cfg.MODEL.PRETRAIN == "outside":
+                self.backbone = osnet_x1_0(1000, loss='trick')
+            else:
+                self.backbone = osnet_x1_0(cfg.MODEL.NUM_CLASSES, loss='trick')
         else:
-            glog.info("{} is not supported".format(model_name))
+            glog.info("{} is not supported".format(cfg.MODEL.NAME))
 
         self.gap = nn.AdaptiveAvgPool2d(1)
-        self.num_classes = num_classes
+        self.num_classes = cfg.MODEL.NUM_CLASSES
         self.BNNeck = nn.BatchNorm2d(self.in_planes)
         self.BNNeck.bias.requires_grad_(False)  # no shift
         self.fc = nn.Linear(self.in_planes, self.num_classes, bias=False)
