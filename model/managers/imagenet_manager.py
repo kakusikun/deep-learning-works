@@ -9,7 +9,8 @@ from model.RMNet import RMNet
 from model.ResNet import ResNet, BasicBlock
 from model.utility import ConvFC, CenterLoss, AMSoftmax, CrossEntropyLossLS, TripletLoss
 from model.model_manager import TrainingManager
-import glog
+import logging
+logger = logging.getLogger("logger")
 
 class ImageNetManager(TrainingManager):
     def __init__(self, cfg):
@@ -19,7 +20,7 @@ class ImageNetManager(TrainingManager):
             self._make_model()
             self._make_loss()
         else:
-            glog.info("Task {} is not supported".format(cfg.TASK))  
+            logger.info("Task {} is not supported".format(cfg.TASK))  
             sys.exit(1)
 
         self._check_model()    
@@ -79,7 +80,7 @@ class Model(nn.Module):
             self.in_planes = 256
             self.backbone = RMNet(b=[4,8,10,11], cifar10=False, reid=True, trick=True)
         else:
-            glog.info("{} is not supported".format(model_name))
+            logger.info("{} is not supported".format(model_name))
 
         self.gap = nn.AdaptiveAvgPool2d(1)
         self.num_classes = num_classes

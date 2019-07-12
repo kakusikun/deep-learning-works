@@ -9,8 +9,8 @@ from engine.engine import Engine
 from tools.eval_reid_metrics import evaluate
 from model.utility import TripletLoss, CrossEntropyLossLS
 import numpy as np
-import glog
-
+import logging
+logger = logging.getLogger("logger")
 # recover = T.Compose([T.Normalize(mean = [-0.485/0.229, -0.456/0.224, -0.406/0.225], std = [1/0.229,1/0.224,1/0.225])])
 
 class ReIDEngine(Engine):
@@ -58,12 +58,8 @@ class ReIDEngine(Engine):
 
             self.train_accu = (glob.max(1)[1] == target).float().mean()          
 
-    def Inference(self):
-        self._check_gpu()      
-        self._evaluate()
-
     def _evaluate(self):
-        glog.info("Epoch {} evaluation start".format(self.epoch))
+        logger.info("Epoch {} evaluation start".format(self.epoch))
         self._eval_epoch_start()
         with torch.no_grad():
             qf, q_pids, q_camids = [], [], []

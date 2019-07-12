@@ -1,6 +1,6 @@
 import sys
 import math
-import glog
+import logging
 
 import torch
 import torch.nn as nn

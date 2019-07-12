@@ -3,7 +3,8 @@ import torch
 import math
 import torch.nn as nn
 from collections import OrderedDict
-import glog
+import logging
+logger = logging.getLogger("logger")
 
 class TrainingManager():
     def __init__(self, cfg):
@@ -17,11 +18,11 @@ class TrainingManager():
 
     def _check_model(self):
         if self.cfg.RESUME:
-            glog.info("Resuming model from {}".format(self.cfg.RESUME))
+            logger.info("Resuming model from {}".format(self.cfg.RESUME))
             self.loadPath = self.cfg.RESUME
             self.load_model()
         elif self.cfg.EVALUATE:
-            glog.info("Evaluating model from {}".format(self.cfg.EVALUATE))
+            logger.info("Evaluating model from {}".format(self.cfg.EVALUATE))
             self.loadPath = self.cfg.EVALUATE
             self.load_model()
         else:
@@ -68,7 +69,7 @@ class TrainingManager():
                         if k in model_state and torch.isnan(v).sum() == 0:
                             checkpointRefine[k] = v
                         else:
-                            glog.info("{:60} ...... skipped".format(k))
+                            logger.info("{:60} ...... skipped".format(k))
                         
                     model_state.update(checkpointRefine)
                     if self.cfg.MODEL.PRETRAIN == "imagenet":
@@ -80,7 +81,7 @@ class TrainingManager():
                     idx = int(key.split("_")[-1])
                     self.loss_has_param[idx].load_state_dict(state[key])
                 else:
-                    glog.info("{} is skipped".format(key))
+                    logger.info("{} is skipped".format(key))
         else:
             checkpoint = state
             model_state = self.model.backbone.state_dict()
@@ -88,9 +89,9 @@ class TrainingManager():
             for k, v in checkpoint.items():
                 if k in model_state and torch.isnan(v).sum() == 0:
                     checkpointRefine[k] = v
-                    glog.info("{:60} ...... loaded".format(k))
+                    logger.info("{:60} ...... loaded".format(k))
                 else:
-                    glog.info("{:60} ...... skipped".format(k))                
+                    logger.info("{:60} ...... skipped".format(k))                
             model_state.update(checkpointRefine)
             self.model.backbone.load_state_dict(model_state)
 

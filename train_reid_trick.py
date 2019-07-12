@@ -12,7 +12,7 @@ from engine.engines.reid_engine_trick import ReIDEngine
 from solver.optimizer import Solver
 from visualizer.visualizer import Visualizer
 from model.managers.trick_manager import TrickManager
-import glog
+from tools.logger import setup_logger
 import torch.nn as nn
 
 def train(cfg):
@@ -20,11 +20,6 @@ def train(cfg):
     train_loader, query_loader, gallery_loader = build_reid_loader(cfg)
 
     model_manager = TrickManager(cfg)
-
-    if cfg.EVALUATE != "":
-        engine = ReIDEngine(cfg, None, train_loader, query_loader, gallery_loader, None, model_manager) 
-        engine.Inference()
-        sys.exit(1) 
 
     cfg.SOLVER.ITERATIONS_PER_EPOCH = len(train_loader)
 
@@ -54,20 +49,21 @@ def main():
     
     time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     cfg.OUTPUT_DIR = "{}_{}_{}".format(cfg.OUTPUT_DIR, cfg.EXPERIMENT, time)
-    if cfg.OUTPUT_DIR and not os.path.exists(cfg.OUTPUT_DIR) and not cfg.EVALUATE:
-        mkdir(cfg.OUTPUT_DIR)
+    logger = setup_logger(cfg.TASK, cfg.OUTPUT_DIR, 0)
 
+    if cfg.OUTPUT_DIR and not os.path.exists(cfg.OUTPUT_DIR):
+        mkdir(cfg.OUTPUT_DIR)
         if args.config_file != "":
             shutil.copy(args.config_file, os.path.join(cfg.OUTPUT_DIR, args.config_file.split("/")[-1]))
-            glog.info("Loaded configuration file {}".format(args.config_file))
+            logger.info("Loaded configuration file {}".format(args.config_file))
 
-    glog.info("Running with config:\n{}".format(cfg))
+    logger.info("Running with config:\n{}".format(cfg))
     action = input("Config Confirmed ? (Y/N)").lower().strip()
     if action == 'y':
         train(cfg)    
     else:
         shutil.rmtree(cfg.OUTPUT_DIR)
-        glog.info("Training stopped")
+        logger.info("Training stopped")
         sys.exit(1)
     
 

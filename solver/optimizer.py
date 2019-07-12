@@ -3,7 +3,8 @@ import math
 import numpy as np 
 from solver.solvers import *
 from solver.lr_schedulers import *
-import glog
+import logging
+logger = logging.getLogger("logger")
 
 class Solver(): 
     def __init__(self, cfg, params, _lr=None, _wd=None, _name=None, _lr_policy=None):   
@@ -46,7 +47,7 @@ class Solver():
         else:
             self.scheduler = None
         
-        glog.info("{} policy is used".format(self.lr_policy))
+        logger.info("{} policy is used".format(self.lr_policy))
 
 
     def _model_analysis(self, params):
@@ -66,9 +67,9 @@ class Solver():
                 self.params += [{"params": p, "lr": lr, "weight_decay": wd}]
                 num_params += p.numel()
             except:
-                glog.info("{:50} ...... skipped".format(layer))
+                logger.info("{:50} ...... skipped".format(layer))
         
-        glog.info("Trainable parameters: {:.2f}M".format(num_params / 1000000.0))
+        logger.info("Trainable parameters: {:.2f}M".format(num_params / 1000000.0))
 
     
     def lr_adjust(self, metrics, iters):

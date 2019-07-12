@@ -6,7 +6,8 @@ import torch.nn.functional as F
 import torchvision.transforms as T
 import torchvision
 import numpy as np
-import glog
+import logging
+logger = logging.getLogger("logger")
 
 class Engine():
     def __init__(self, cfg, opts, tdata, vdata, qdata, gdata, show, manager):
@@ -33,7 +34,7 @@ class Engine():
         self.accu = 0.0
 
     def _start(self):
-        glog.info("Training start")
+        logger.info("Training start")
         self.iter = self.cfg.SOLVER.START_EPOCH * len(self.tdata)
         self.epoch = self.cfg.SOLVER.START_EPOCH
 
@@ -41,7 +42,7 @@ class Engine():
 
     def _train_epoch_start(self): 
         self.epoch += 1
-        glog.info("Epoch {} start".format(self.epoch))
+        logger.info("Epoch {} start".format(self.epoch))
 
         self.core.train() 
   
@@ -65,14 +66,14 @@ class Engine():
 
     def _eval_epoch_end(self):
         if self.cfg.EVALUATE == "":
-            glog.info("Epoch {} evaluation ends, accuracy {:.4f}".format(self.epoch, self.accu))
+            logger.info("Epoch {} evaluation ends, accuracy {:.4f}".format(self.epoch, self.accu))
             if self.accu > self.best_accu:
-                glog.info("Save checkpoint, with {:.4f} improvement".format(self.accu - self.best_accu))
+                logger.info("Save checkpoint, with {:.4f} improvement".format(self.accu - self.best_accu))
                 self.manager.save_model(self.epoch, self.opts, self.accu)
                 self.best_accu = self.accu
             self.show.add_scalar('val/accuracy', self.best_accu, self.epoch)
         else:
-            glog.info("Evaluation ends, accuracy {:.4f}".format(self.accu))
+            logger.info("Evaluation ends, accuracy {:.4f}".format(self.accu))
 
     def _train_once(self):
         raise NotImplementedError
@@ -94,7 +95,7 @@ class Engine():
     def _check_gpu(self):
         if self.cfg.MODEL.NUM_GPUS > 0 and torch.cuda.is_available():
             self.use_gpu = True
-            glog.info("{} GPUs available".format(torch.cuda.device_count()))
+            logger.info("{} GPUs available".format(torch.cuda.device_count()))
         
             if self.cfg.MODEL.NUM_GPUS > 1 and torch.cuda.device_count() > 1:
                 self.core = torch.nn.DataParallel(self.core).cuda()

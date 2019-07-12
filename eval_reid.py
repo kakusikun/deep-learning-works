@@ -5,28 +5,35 @@ from tools.eval_reid_metrics import evaluate
 from model.OSNetv2 import osnet_x1_0
 from config.config_manager import _C as cfg
 from data.build_loader import build_reid_loader
+from model.managers.trick_manager import TrickManager
+from tools.logger import setup_logger
+from engine.engines.reid_engine_trick import ReIDEngine
 import numpy as np
 
 cfg.merge_from_file("./reid.yml")
-cfg.EVALUATE = "/home/allen/Downloads/osnet_x1_0_market_256x128_amsgrad_ep150_stp60_lr0.0015_b64_fb10_softmax_labelsmooth_flip.pth"
+# cfg.EVALUATE = "/home/allen/Downloads/osnet_x1_0_market_256x128_amsgrad_ep150_stp60_lr0.0015_b64_fb10_softmax_labelsmooth_flip.pth"
 use_gpu = True
-metric = 'euclidean'
-unitnorm_feat = False
+metric = 'cosine'
+unitnorm_feat = True
 
 _, qdata, gdata = build_reid_loader(cfg)
+if cfg.MODEL.PRETRAIN == "outside":
+    core = osnet_x1_0(cfg.MODEL.NUM_CLASSES)
+    checkpoint = torch.load(cfg.EVALUATE)
+    model_state = core.state_dict()
+    checkpointRefine = {}             
+    for k, v in checkpoint.items():
+        if k in model_state and torch.isnan(v).sum() == 0:
+            checkpointRefine[k] = v
+            print("{:60} ...... loaded".format(k))
+        else:
+            print("{:60} ...... skipped".format(k))    
+    model_state.update(checkpointRefine)
+    core.load_state_dict(model_state)
+else:
+    model_manager = TrickManager(cfg)
+    core = model_manager.model
 
-core = osnet_x1_0(cfg.MODEL.NUM_CLASSES)
-checkpoint = torch.load(cfg.EVALUATE)
-model_state = core.state_dict()
-checkpointRefine = {}             
-for k, v in checkpoint.items():
-    if k in model_state and torch.isnan(v).sum() == 0:
-        checkpointRefine[k] = v
-        print("{:60} ...... loaded".format(k))
-    else:
-        print("{:60} ...... skipped".format(k))    
-model_state.update(checkpointRefine)
-core.load_state_dict(model_state)
 core = core.cuda()
 core.eval()
 

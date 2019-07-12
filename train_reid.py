@@ -12,7 +12,7 @@ from engine.reid_engine_ResNet import ReIDEngine
 from solver.optimizer import Solver
 from visualizer.visualizer import Visualizer
 from model.model_manager import TrainingManager
-import glog
+import logging
 import torch.nn as nn
 
 
@@ -60,15 +60,15 @@ def main():
 
         if args.config_file != "":
             shutil.copy(args.config_file, os.path.join(cfg.OUTPUT_DIR, args.config_file.split("/")[-1]))
-            glog.info("Loaded configuration file {}".format(args.config_file))
+            logger.info("Loaded configuration file {}".format(args.config_file))
 
-    glog.info("Running with config:\n{}".format(cfg))
+    logger.info("Running with config:\n{}".format(cfg))
     action = input("Config Confirmed ? (Y/N)").lower().strip()
     if action == 'y':
         train(cfg)    
     else:
         shutil.rmtree(cfg.OUTPUT_DIR)
-        glog.info("Training stopped")
+        logger.info("Training stopped")
         sys.exit(1)
     
 

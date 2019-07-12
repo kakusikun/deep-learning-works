@@ -9,7 +9,8 @@ from model.RMNet import RMNet
 from model.ResNet import ResNet, BasicBlock
 from model.utility import ConvFC, CenterLoss, AMSoftmax, CrossEntropyLossLS, TripletLoss
 from model.model_manager import TrainingManager
-import glog
+import logging
+logger = logging.getLogger("logger")
 
 class TrickManager(TrainingManager):
     def __init__(self, cfg):
@@ -19,7 +20,7 @@ class TrickManager(TrainingManager):
             self._make_model()
             self._make_loss()
         else:
-            glog.info("Task {} is not supported".format(cfg.TASK))  
+            logger.info("Task {} is not supported".format(cfg.TASK))  
             sys.exit(1)
 
         self._check_model()    
@@ -85,7 +86,7 @@ class Model(nn.Module):
             else:
                 self.backbone = osnet_x1_0(cfg.MODEL.NUM_CLASSES, loss='trick')
         else:
-            glog.info("{} is not supported".format(cfg.MODEL.NAME))
+            logger.info("{} is not supported".format(cfg.MODEL.NAME))
 
         self.gap = nn.AdaptiveAvgPool2d(1)
         self.num_classes = cfg.MODEL.NUM_CLASSES

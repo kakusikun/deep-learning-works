@@ -7,7 +7,7 @@
 import os
 import sys
 
-import glog as logger
+import logging as logger
 from tensorboardX import SummaryWriter
 
 def Visualizer(cfg):

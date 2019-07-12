@@ -10,7 +10,7 @@ from model.ResNet import ResNet18
 from model.RMNet import RMNet
 from model.utility import FC, CenterLoss, AMSoftmax, CrossEntropyLossLS
 from model.model_manager import TrainingManager
-import glog
+import logging
 
 # class RMNetManager(TrainingManager):
 #     def __init__(self, cfg):
@@ -28,7 +28,7 @@ import glog
 #                                         "amsoftmax": AMSoftmax(256, cfg.MODEL.NUM_CLASSES),
 #                                         "push_loss": })    
 #         else:
-#             glog.info("Task {} is not supported".format(cfg.TASK))  
+#             logger.info("Task {} is not supported".format(cfg.TASK))  
 #             sys.exit(1)
 
 #         self._check_model()

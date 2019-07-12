@@ -11,7 +11,8 @@ from scipy.io import loadmat
 import numpy as np
 import h5py
 import cv2
-import glog
+import logging
+logger = logging.getLogger("logger")
 
 from tools.utils import mkdir_if_missing, write_json, read_json
 
@@ -57,8 +58,8 @@ class ImageNet():
             raise RuntimeError("'{}' is not available".format(self.val_gt_list))
         if osp.exists(self.train_lmdb) and osp.exists(self.val_lmdb):
             self.use_lmdb = True
-            glog.info("Training LMDB is used: {}".format(self.train_lmdb))
-            glog.info("Validation LMDB is used: {}".format(self.val_lmdb))
+            logger.info("Training LMDB is used: {}".format(self.train_lmdb))
+            logger.info("Validation LMDB is used: {}".format(self.val_lmdb))
         else:
             self.train_lmdb = None
             self.val_lmdb = None

@@ -4,7 +4,7 @@ from data.build_data import build_image_dataset, build_reid_dataset
 from data.build_transform import build_transform
 from data.sampler import IdBasedSampler
 from torchvision.datasets.cifar import CIFAR10
-import glog
+import logging
 
 def build_imagenet_loader(cfg):
 

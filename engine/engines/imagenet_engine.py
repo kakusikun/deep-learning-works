@@ -1,7 +1,7 @@
 import os
 from tqdm import tqdm
 import torch
-import glog
+import logging
 
 class ImageNetEngine():
     def __init__(self, cfg, criteria, opt, tdata, vdata, show, manager):
@@ -26,16 +26,16 @@ class ImageNetEngine():
 
     def _start(self):
         if self.opt.findLR:
-            glog.info("LR range test start")
+            logger.info("LR range test start")
         else:
-            glog.info("Training start")
+            logger.info("Training start")
         self.iter = self.cfg.SOLVER.START_EPOCH * len(self.tdata)
         self.epoch = self.cfg.SOLVER.START_EPOCH
         self._check_gpu()        
 
     def _train_epoch_start(self): 
         self.epoch += 1
-        glog.info("Epoch {} start".format(self.epoch))
+        logger.info("Epoch {} start".format(self.epoch))
 
         for core in self.cores.keys():
             self.cores[core].train()  
@@ -63,9 +63,9 @@ class ImageNetEngine():
         raise NotImplementedError
 
     def _eval_epoch_end(self):
-        glog.info("Epoch {} evaluation ends, accuracy {:.4f}".format(self.epoch, self.accu))
+        logger.info("Epoch {} evaluation ends, accuracy {:.4f}".format(self.epoch, self.accu))
         if self.accu > self.best_accu:
-            glog.info("Save checkpoint, with {:.4f} improvement".format(self.accu - self.best_accu))
+            logger.info("Save checkpoint, with {:.4f} improvement".format(self.accu - self.best_accu))
             self.manager.save_model(self.epoch, self.opt, self.accu)
             self.best_accu = self.accu
         self.show.add_scalar('val/loss', self.loss, self.epoch)
@@ -111,7 +111,7 @@ class ImageNetEngine():
 
         for i in range(self.max_epoch):
             if self.terminate:
-                glog.info("Engine stops")
+                logger.info("Engine stops")
                 break
             self._train_epoch_start()
             self._train_once()
@@ -120,7 +120,7 @@ class ImageNetEngine():
                 self._evaluate()
 
     def Inference(self):
-        glog.info("Epoch {} evaluation start".format(self.epoch))
+        logger.info("Epoch {} evaluation start".format(self.epoch))
         count = 0
         correct = 0
         
@@ -146,10 +146,10 @@ class ImageNetEngine():
           
         self.accu = correct * 100.0 / count
 
-        glog.info("Evaluation ends, accuracy {:.4f}".format(self.accu))
+        logger.info("Evaluation ends, accuracy {:.4f}".format(self.accu))
 
     def _evaluate(self):
-        glog.info("Epoch {} evaluation start".format(self.epoch))
+        logger.info("Epoch {} evaluation start".format(self.epoch))
         count = 0
         correct = 0
         
@@ -186,7 +186,7 @@ class ImageNetEngine():
 
         if self.cfg.MODEL.NUM_GPUS > 0 and torch.cuda.is_available():
             self.use_gpu = True
-            glog.info("{} GPUs available".format(torch.cuda.device_count()))
+            logger.info("{} GPUs available".format(torch.cuda.device_count()))
         
             if self.cfg.MODEL.NUM_GPUS > 1 and torch.cuda.device_count() > 1:
                 for core in self.cores.keys():
