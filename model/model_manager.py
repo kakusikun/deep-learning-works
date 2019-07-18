@@ -59,7 +59,7 @@ class TrainingManager():
             for key in state.keys():            
                 if 'model' in key:
                     checkpoint = state[key]
-                    if self.cfg.MODEL.PRETRAIN == "outside":
+                    if self.cfg.MODEL.PRETRAIN == "backbone":
                         model_state = self.model.backbone.state_dict()
                     else:
                         model_state = self.model.state_dict()
@@ -72,7 +72,7 @@ class TrainingManager():
                             logger.info("{:60} ...... skipped".format(k))
                         
                     model_state.update(checkpointRefine)
-                    if self.cfg.MODEL.PRETRAIN == "imagenet":
+                    if self.cfg.MODEL.PRETRAIN == "backbone":
                         self.model.backbone.load_state_dict(model_state)
                     else:
                         self.model.load_state_dict(model_state)
