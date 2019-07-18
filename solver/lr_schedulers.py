@@ -104,7 +104,7 @@ class WarmupReduceLROnPlateau(object):
         for group in self.optimizer.param_groups:
             group.setdefault('initial_lr', group['lr'])
         self.base_lrs = list(map(lambda group: group['initial_lr'], self.optimizer.param_groups))
-        self.monitor_lrs = []
+        self.monitor_lrs = self.base_lrs
 
     def _reset(self):
         """Resets num_bad_epochs counter and cooldown counter."""

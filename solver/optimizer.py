@@ -37,6 +37,8 @@ class Solver():
             self.opt = torch.optim.Adam(self.params)
         
         if self.lr_policy == "plateau":
+            if not self.warmup:
+                self.warmup_iters = 0
             self.scheduler = WarmupReduceLROnPlateau(optimizer=self.opt, 
                                                             mode="min",
                                                             gamma=self.gamma,

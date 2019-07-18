@@ -1,4 +1,4 @@
-EXPERIMENT: "OSNet_cels_SGD_ImageNet"
+EXPERIMENT: "OSNet_ce_SGD_ImageNet"
 
 TASK: "imagenet"
 
@@ -18,11 +18,11 @@ INPUT:
   PIXEL_STD: [0.229, 0.224, 0.225]
   
 DATALOADER:
-  NUM_WORKERS: 16
+  NUM_WORKERS: 60
 
 DATASET:
   NAME: "imagenet"
-  TRAIN_PATH: "/home/allen/Downloads/reid"
+  TRAIN_PATH: "/home/allen.jc.lin/imagenet"
 
 TRANSFORM:
   HFLIP: True
@@ -35,23 +35,23 @@ SOLVER:
   OPTIMIZER_NAME: "SGD"
   START_EPOCH: 0
   MAX_EPOCHS: 1000
-  BASE_LR: 0.4
+  BASE_LR: 0.05
   BIAS_LR_FACTOR: 1.0
   # CENTER_LOSS_LR: 0.5
   # CENTER_LOSS_WEIGHT: 0.0005
   WEIGHT_DECAY: 0.0005
   WEIGHT_DECAY_BIAS_FACTOR: 1.0
-  EVALUATE_FREQ: 5
+  EVALUATE_FREQ: 1
 
   LR_POLICY: "plateau"
   WARMUP: True
   GAMMA: 0.1
-  WARMUP_FACTOR: 0.01
-  WARMUP_SIZE: 10
-  PLATEAU_SIZE: 10
+  # WARMUP_FACTOR: 0.01
+  WARMUP_SIZE: 1.0
+  PLATEAU_SIZE: 5.0
 # RESUME: "/home/allen/RMNet_ImageNet_64.16.pth"
 # EVALUATE: "/media/allen/mass/deep-learning-works/result_RMNet_cels_triplet_center_Adam_2019-07-11_10-45-09/weights/model_140_0.8477.pth"
-EVALUATE: "/home/allen/Downloads/osnet_x1_0_market_256x128_amsgrad_ep150_stp60_lr0.0015_b64_fb10_softmax_labelsmooth_flip.pth"
+# EVALUATE: "/home/allen/Downloads/osnet_x1_0_market_256x128_amsgrad_ep150_stp60_lr0.0015_b64_fb10_softmax_labelsmooth_flip.pth"
 # EVALUATE: ["main", "/home/allen.jc.lin/deep-learning-works/result_ResNet18_SGD_REID_Phase2_TupletLoss_CELSR_Trick_scratch_2019-07-08_22-35-03/weights/model_main_220_0.7732.pth"]
 # RESUME: ["main", "/home/allen.jc.lin/deep-learning-works/result_RMNet_Novo_Reid_Phase1_2019-07-05_16-16-25/weights/model_main_290_0.6790.pth", "glob_loss", "/home/allen.jc.lin/deep-learning-works/result_RMNet_Novo_Reid_Phase1_2019-07-05_16-16-25/weights/model_glob_loss_290_0.6790.pth"] 
 # RESUME: ["main", "/home/allen.jc.lin/deep-learning-works/result_RMNet_Novo_Reid_Phase2_2019-07-06_11-44-51/weights/model_main_300_0.7758.pth", "glob_loss", "/home/allen.jc.lin/deep-learning-works/result_RMNet_Novo_Reid_Phase2_2019-07-06_11-44-51/weights/model_glob_loss_300_0.7758.pth", "local_loss", "/home/allen.jc.lin/deep-learning-works/result_RMNet_Novo_Reid_Phase2_2019-07-06_11-44-51/weights/model_local_loss_300_0.7758.pth"] 
