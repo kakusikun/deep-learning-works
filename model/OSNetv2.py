@@ -221,8 +221,6 @@ class OSNet(nn.Module):
         self.global_avgpool = nn.AdaptiveAvgPool2d(1)
         # fully connected layer
         self.fc = self._construct_fc_layer(feature_dim, channels[3], dropout_p=None)
-        # identity classification layer
-        self.classifier = nn.Linear(self.feature_dim, num_classes)
         
         self._init_params()
 
@@ -301,19 +299,8 @@ class OSNet(nn.Module):
         if self.fc is not None:
             v = self.fc(v)
 
-        if self.loss == 'trick':
-            # v = v.view(v.size(0), -1, 1, 1)
-            return v
+        return v
 
-        if not self.training:
-            return v
-        y = self.classifier(v)
-        if self.loss == 'softmax':
-            return y
-        elif self.loss == 'triplet':
-            return y, v
-        else:
-            raise KeyError("Unsupported loss: {}".format(self.loss))
 
 
 ##########
