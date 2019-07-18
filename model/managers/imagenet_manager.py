@@ -31,16 +31,21 @@ class ImageNetManager(TrainingManager):
         self.model = Model(self.cfg.MODEL.NUM_CLASSES, self.cfg.MODEL.NAME)
 
     def _make_loss(self):
-        ce_ls = CrossEntropyLossLS(self.cfg.MODEL.NUM_CLASSES)
+        #  ce_ls = CrossEntropyLossLS(self.cfg.MODEL.NUM_CLASSES)
+        ce = nn.CrossEntropyLoss()
 
         self.loss_has_param = []
 
         def loss_func(g_feat, target):
-            each_loss = [ce_ls(g_feat, target)]            
+            #  each_loss = [ce_ls(g_feat, target)]            
+            each_loss = [ce(g_feat, target)]            
             loss = each_loss[0]
             return loss, each_loss
 
         self.loss_func = loss_func
+
+    def _initialize_weights(self):
+        pass
 
 def weights_init_kaiming(m):
     classname = m.__class__.__name__

@@ -92,17 +92,17 @@ class Model(nn.Module):
         self.num_classes = cfg.MODEL.NUM_CLASSES
         self.BNNeck = nn.BatchNorm2d(self.in_planes)
         self.BNNeck.bias.requires_grad_(False)  # no shift
-        self.fc = nn.Linear(self.in_planes, self.num_classes, bias=False)
+        self.id_fc = nn.Linear(self.in_planes, self.num_classes, bias=False)
 
         self.BNNeck.apply(weights_init_kaiming)
-        self.fc.apply(weights_init_classifier)
+        self.id_fc.apply(weights_init_classifier)
     
     def forward(self, x):
         x = self.gap(self.backbone(x))
         local_feat = x.view(x.size(0), -1)
         x = self.BNNeck(x)
         x = x.view(x.size(0), -1)
-        global_feat = self.fc(x)
+        global_feat = self.id_fc(x)
         if not self.training:
             return x
         return local_feat, global_feat
