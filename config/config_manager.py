@@ -131,8 +131,8 @@ _C.SOLVER.LR_STEPS = []
 _C.SOLVER.WARMUP = False 
 _C.SOLVER.GAMMA = 0.1
 _C.SOLVER.WARMUP_FACTOR = 1.0 / 3
-_C.SOLVER.WARMUP_SIZE = 10
-_C.SOLVER.PLATEAU_SIZE = 10
+_C.SOLVER.WARMUP_SIZE = 10.0
+_C.SOLVER.PLATEAU_SIZE = 10.0
 
 # ---------------------------------------------------------------------------- #
 # Misc options
