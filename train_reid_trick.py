@@ -47,8 +47,8 @@ def main():
         cfg.merge_from_file(args.config_file)
     cfg.merge_from_list(args.opts)
     
-    time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    cfg.OUTPUT_DIR = "{}_{}_{}".format(cfg.OUTPUT_DIR, cfg.EXPERIMENT, time)
+    #  time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    cfg.OUTPUT_DIR = "{}_{}".format(cfg.OUTPUT_DIR, cfg.EXPERIMENT)
     if cfg.OUTPUT_DIR and not os.path.exists(cfg.OUTPUT_DIR):
         mkdir(cfg.OUTPUT_DIR)
         if args.config_file != "":
