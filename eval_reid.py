@@ -17,6 +17,7 @@ metric = 'cosine'
 unitnorm_feat = True
 
 _, qdata, gdata = build_reid_loader(cfg)
+
 if cfg.MODEL.PRETRAIN == "outside":
     core = osnet_x1_0(cfg.MODEL.NUM_CLASSES)
     checkpoint = torch.load(cfg.EVALUATE)
@@ -25,7 +26,7 @@ if cfg.MODEL.PRETRAIN == "outside":
     for k, v in checkpoint.items():
         if k in model_state and torch.isnan(v).sum() == 0:
             checkpointRefine[k] = v
-            print("{:60} ...... loaded".format(k))
+            # print("{:60} ...... loaded".format(k))
         else:
             print("{:60} ...... skipped".format(k))    
     model_state.update(checkpointRefine)

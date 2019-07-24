@@ -2,6 +2,7 @@ import os
 import sys
 from tqdm import tqdm
 import torch
+from torch.backends import cudnn
 import torch.nn.functional as F
 import torchvision.transforms as T
 import torchvision
@@ -92,6 +93,7 @@ class Engine():
     def _check_gpu(self):
         if self.cfg.MODEL.NUM_GPUS > 0 and torch.cuda.is_available():
             self.use_gpu = True
+            cudnn.benchmark = True
             logger.info("{} GPUs available".format(torch.cuda.device_count()))
         
             if self.cfg.MODEL.NUM_GPUS > 1 and torch.cuda.device_count() > 1:

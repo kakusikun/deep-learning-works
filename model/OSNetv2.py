@@ -251,8 +251,8 @@ class OSNet(nn.Module):
 
         layers = []
         for dim in fc_dims:
-            layers.append(ConvFC(input_dim, dim))
-            layers.append(nn.BatchNorm2d(dim))
+            layers.append(nn.Linear(input_dim, dim))
+            layers.append(nn.BatchNorm1d(dim))
             layers.append(nn.ReLU(inplace=True))
             if dropout_p is not None:
                 layers.append(nn.Dropout(p=dropout_p))
@@ -295,7 +295,7 @@ class OSNet(nn.Module):
         x = self.featuremaps(x)
         v = self.global_avgpool(x)
         
-        # v = v.view(v.size(0), -1)
+        v = v.view(v.size(0), -1)
         if self.fc is not None:
             v = self.fc(v)
 
