@@ -36,13 +36,13 @@ class TrickManager(TrainingManager):
 
         ce_ls = CrossEntropyLossLS(self.cfg.MODEL.NUM_CLASSES)
 
-        if self.cfg.STRATEGY == 'trick':
+        if self.cfg.REID.STRATEGY == 'trick':
             center_loss = CenterLoss(feat_dim, self.cfg.MODEL.NUM_CLASSES, self.cfg.MODEL.NUM_GPUS > 0 and torch.cuda.is_available())        
             triplet_loss = TripletLoss()
             self.loss_has_param = [center_loss]
             self.loss_name = ["cels", "triplet", "center"]
 
-        elif self.cfg.STRATEGY == 'normal':
+        elif self.cfg.REID.STRATEGY == 'normal':
             self.loss_has_param = []
             self.loss_name = ["cels"]
         else:
@@ -51,10 +51,10 @@ class TrickManager(TrainingManager):
 
         def loss_func(l_feat, g_feat, target):
             each_loss = [ce_ls(g_feat, target)]
-            if self.cfg.STRATEGY == 'trick':
+            if self.cfg.REID.STRATEGY == 'trick':
                 each_loss.append([triplet_loss(l_feat, target)[0], center_loss(l_feat, target)])
                 loss = each_loss[0] + each_loss[1] + self.cfg.SOLVER.CENTER_LOSS_WEIGHT * each_loss[2]
-            elif self.cfg.STRATEGY == 'normal':
+            elif self.cfg.REID.STRATEGY == 'normal':
                 loss = each_loss[0]
             else:
                 logger.info("Unsupported strategy")
@@ -87,7 +87,7 @@ def weights_init_classifier(m):
 class Model(nn.Module):
     def __init__(self, cfg):
         super(Model, self).__init__()
-        self.strategy = cfg.STRATEGY
+        self.strategy = cfg.REID.STRATEGY
         if cfg.MODEL.NAME == 'resnet18':
             self.in_planes = 512
             self.backbone = ResNet(last_stride=1, block=BasicBlock, layers=[2,2,2,2])
