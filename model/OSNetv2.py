@@ -292,13 +292,14 @@ class OSNet(nn.Module):
         return x
 
     def forward(self, x):
-        x = self.featuremaps(x)
-        v = self.global_avgpool(x)
+        v = self.featuremaps(x)
+        if self.loss == 'trick':
+            return v
         
+        v = self.global_avgpool(x)        
         v = v.view(v.size(0), -1)
         if self.fc is not None:
             v = self.fc(v)
-
         return v
 
 
