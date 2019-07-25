@@ -1,3 +1,4 @@
+import argparse
 from tqdm import tqdm
 import torch
 import torch.nn.functional as F
@@ -10,8 +11,19 @@ from tools.logger import setup_logger
 from engine.engines.reid_engine_trick import ReIDEngine
 import numpy as np
 
-cfg.merge_from_file("./reid.yml")
-# cfg.EVALUATE = "/home/allen/Downloads/osnet_x1_0_market_256x128_amsgrad_ep150_stp60_lr0.0015_b64_fb10_softmax_labelsmooth_flip.pth"
+parser = argparse.ArgumentParser(description="PyTorch Template MNIST Training")
+parser.add_argument(
+    "--config_file", default="", help="path to config file", type=str
+)
+parser.add_argument("--opts", help="Modify config options using the command-line", default=None,
+                    nargs=argparse.REMAINDER)
+
+args = parser.parse_args()
+
+if args.config_file != "":
+    cfg.merge_from_file(args.config_file)
+cfg.merge_from_list(args.opts)
+
 use_gpu = True
 metric = 'cosine'
 unitnorm_feat = True
