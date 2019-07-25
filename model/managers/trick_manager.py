@@ -35,30 +35,14 @@ class TrickManager(TrainingManager):
             feat_dim = 256        
 
         ce_ls = CrossEntropyLossLS(self.cfg.MODEL.NUM_CLASSES)
-
-        if self.cfg.REID.STRATEGY == 'trick':
-            center_loss = CenterLoss(feat_dim, self.cfg.MODEL.NUM_CLASSES, self.cfg.MODEL.NUM_GPUS > 0 and torch.cuda.is_available())        
-            triplet_loss = TripletLoss()
-            self.loss_has_param = [center_loss]
-            self.loss_name = ["cels", "triplet", "center"]
-
-        elif self.cfg.REID.STRATEGY == 'normal':
-            self.loss_has_param = []
-            self.loss_name = ["cels"]
-        else:
-            logger.info("Unsupported strategy")
-            sys.exit(1)
+        center_loss = CenterLoss(feat_dim, self.cfg.MODEL.NUM_CLASSES, self.cfg.MODEL.NUM_GPUS > 0 and torch.cuda.is_available())        
+        triplet_loss = TripletLoss()
+        self.loss_has_param = [center_loss]
+        self.loss_name = ["cels", "triplet", "center"]
 
         def loss_func(l_feat, g_feat, target):
-            each_loss = [ce_ls(g_feat, target)]
-            if self.cfg.REID.STRATEGY == 'trick':
-                each_loss.append([triplet_loss(l_feat, target)[0], center_loss(l_feat, target)])
-                loss = each_loss[0] + each_loss[1] + self.cfg.SOLVER.CENTER_LOSS_WEIGHT * each_loss[2]
-            elif self.cfg.REID.STRATEGY == 'normal':
-                loss = each_loss[0]
-            else:
-                logger.info("Unsupported strategy")
-                sys.exit(1)
+            each_loss = [ce_ls(g_feat, target), triplet_loss(l_feat, target)[0], center_loss(l_feat, target)]
+            loss = each_loss[0] + each_loss[1] + self.cfg.SOLVER.CENTER_LOSS_WEIGHT * each_loss[2]
             return loss, each_loss
 
         self.loss_func = loss_func
@@ -87,7 +71,6 @@ def weights_init_classifier(m):
 class Model(nn.Module):
     def __init__(self, cfg):
         super(Model, self).__init__()
-        self.strategy = cfg.REID.STRATEGY
         if cfg.MODEL.NAME == 'resnet18':
             self.in_planes = 512
             self.backbone = ResNet(last_stride=1, block=BasicBlock, layers=[2,2,2,2])
@@ -97,17 +80,16 @@ class Model(nn.Module):
         elif cfg.MODEL.NAME == 'osnet':
             self.in_planes = 512
             if cfg.MODEL.PRETRAIN == "outside":
-                self.backbone = osnet_x1_0(1000, loss=self.strategy)
+                self.backbone = osnet_x1_0(1000, loss='trick')
             else:
-                self.backbone = osnet_x1_0(cfg.MODEL.NUM_CLASSES, loss=self.strategy)
+                self.backbone = osnet_x1_0(cfg.MODEL.NUM_CLASSES, loss='trick')
         else:
             logger.info("{} is not supported".format(cfg.MODEL.NAME))
 
-        if self.strategy == 'trick':
-            self.gap = nn.AdaptiveAvgPool2d(1)        
-            self.BNNeck = nn.BatchNorm2d(self.in_planes)
-            self.BNNeck.bias.requires_grad_(False)  # no shift
-            self.BNNeck.apply(weights_init_kaiming)
+        self.gap = nn.AdaptiveAvgPool2d(1)        
+        self.BNNeck = nn.BatchNorm2d(self.in_planes)
+        self.BNNeck.bias.requires_grad_(False)  # no shift
+        self.BNNeck.apply(weights_init_kaiming)
 
         self.num_classes = cfg.MODEL.NUM_CLASSES
         self.id_fc = nn.Linear(self.in_planes, self.num_classes, bias=False)        
@@ -115,17 +97,11 @@ class Model(nn.Module):
     
     def forward(self, x):
         feat = self.backbone(x)
-        if self.strategy == 'trick':
-            x = self.gap(feat)
-            local_feat = x.view(x.size(0), -1)
-            x = self.BNNeck(x)
-            x = x.view(x.size(0), -1)
-            global_feat = self.id_fc(x)
-            if not self.training:
-                return x        
-            return local_feat, global_feat
-
+        x = self.gap(feat)
+        local_feat = x.view(x.size(0), -1)
+        x = self.BNNeck(x)
+        x = x.view(x.size(0), -1)
+        global_feat = self.id_fc(x)
         if not self.training:
-            return feat
-        id_feat = self.id_fc(feat)        
-        return id_feat
+            return x        
+        return local_feat, global_feat

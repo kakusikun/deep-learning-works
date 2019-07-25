@@ -40,7 +40,7 @@ class ReIDEngine(Engine):
             images, target, _ = batch
             if self.use_gpu: images, target = images.cuda(), target.cuda()
             
-            local, glob = self.core(images)
+            local, glob = self.core(images) 
             self.total_loss, self.each_loss = self.manager.loss_func(local, glob, target)
             self.total_loss.backward()
 

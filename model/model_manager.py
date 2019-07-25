@@ -68,8 +68,9 @@ class TrainingManager():
                     for k, v in checkpoint.items():
                         if k in model_state and torch.isnan(v).sum() == 0:
                             checkpointRefine[k] = v
+                            logger.info("{:60} ...... loaded".format(k))
                         else:
-                            logger.info("{:60} ...... skipped".format(k))
+                            logger.info("{:60} ......... skipped".format(k))
                         
                     model_state.update(checkpointRefine)
                     if self.cfg.MODEL.PRETRAIN == "backbone":
@@ -89,6 +90,7 @@ class TrainingManager():
             for k, v in checkpoint.items():
                 if k in model_state and torch.isnan(v).sum() == 0:
                     checkpointRefine[k] = v
+                    logger.info("{:60} ...... loaded".format(k))
                 else:
                     logger.info("{:60} ...... skipped".format(k))                
             model_state.update(checkpointRefine)
