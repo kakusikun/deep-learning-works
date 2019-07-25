@@ -252,8 +252,8 @@ class OSNet(nn.Module):
         layers = []
         for dim in fc_dims:
             layers.append(nn.Linear(input_dim, dim))
-            layers.append(nn.BatchNorm1d(dim))
-            layers.append(nn.ReLU(inplace=True))
+            # layers.append(nn.BatchNorm1d(dim))
+            # layers.append(nn.ReLU(inplace=True))
             if dropout_p is not None:
                 layers.append(nn.Dropout(p=dropout_p))
             input_dim = dim
@@ -293,10 +293,11 @@ class OSNet(nn.Module):
 
     def forward(self, x):
         v = self.featuremaps(x)
+        
         if self.loss == 'trick':
             return v
         
-        v = self.global_avgpool(x)        
+        v = self.global_avgpool(v)        
         v = v.view(v.size(0), -1)
         if self.fc is not None:
             v = self.fc(v)
