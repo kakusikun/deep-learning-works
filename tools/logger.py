@@ -3,7 +3,7 @@ import os
 import sys
 
 
-def setup_logger(save_dir):
+def setup_logger(save_dir, log_name="log.txt"):
     logger = logging.getLogger("logger")
     logger.setLevel(logging.DEBUG)
     # don't log results for the non-master process
@@ -14,7 +14,7 @@ def setup_logger(save_dir):
     logger.addHandler(ch)
 
     if save_dir:
-        fh = logging.FileHandler(os.path.join(save_dir, "log.txt"), mode='w')
+        fh = logging.FileHandler(os.path.join(save_dir, log_name), mode='w')
         fh.setLevel(logging.DEBUG)
         fh.setFormatter(formatter)
         logger.addHandler(fh)
