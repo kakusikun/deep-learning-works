@@ -29,7 +29,7 @@ class TrickManager(TrainingManager):
         self.model = Model(self.cfg)
 
     def _make_loss(self):
-        if self.cfg.MODEL.NAME == 'resnet18' or self.cfg.MODEL.NAME == 'osnet':
+        if self.cfg.MODEL.NAME == 'resnet18' or self.cfg.MODEL.NAME == 'osnet' or self.cfg.MODEL.NAME == 'osnetibn':
             feat_dim = 512
         elif self.cfg.MODEL.NAME == 'rmnet':
             feat_dim = 256        
