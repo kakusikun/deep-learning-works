@@ -4,7 +4,7 @@ import torch
 import math
 import torch.nn as nn
 from collections import OrderedDict
-from model.OSNetv2 import osnet_x1_0
+from model.OSNetv2 import osnet_x1_0, osnet_ibn_x1_0
 from model.RMNet import RMNet
 from model.ResNet import ResNet, BasicBlock
 from model.utility import ConvFC, CenterLoss, AMSoftmax, CrossEntropyLossLS, TripletLoss
@@ -80,9 +80,15 @@ class Model(nn.Module):
         elif cfg.MODEL.NAME == 'osnet':
             self.in_planes = 512
             if cfg.MODEL.PRETRAIN == "outside":
-                self.backbone = osnet_x1_0(1000, loss='trick')
+                self.backbone = osnet_x1_0(1000, loss='trick') 
             else:
                 self.backbone = osnet_x1_0(cfg.MODEL.NUM_CLASSES, loss='trick')
+        elif cfg.MODEL.NAME == 'osnetibn':
+            self.in_planes = 512
+            if cfg.MODEL.PRETRAIN == "outside":
+                self.backbone = osnet_ibn_x1_0(1000, loss='trick') 
+            else:
+                self.backbone = osnet_ibn_x1_0(cfg.MODEL.NUM_CLASSES, loss='trick')
         else:
             logger.info("{} is not supported".format(cfg.MODEL.NAME))
 
