@@ -1,13 +1,13 @@
-EXPERIMENT: "OSNet_market_cels_triplet_center_Adam_lr_0.00035_warmup_10_0.01_plateau_10_flip_crop_erase_imagenet"
+EXPERIMENT: "OSNetIBN_total_cels_triplet_center_Adam_lr_0.00035_warmup_10_0.01_plateau_10_flip_crop_erase_imagenet"
 # [modelname]_[task]_[loss]_[opt]_[lr]_[trick]_[pretrain]
 
 TASK: "reid"
 
 MODEL:
   NUM_GPUS: 2
-  NUM_CLASSES: 767
-  NAME: "osnet"
-  PRETRAIN: "own"
+  NUM_CLASSES: 2220
+  NAME: "osnetibn"
+  PRETRAIN: "outside"
 
 INPUT:
   IMAGE_PAD: 10
@@ -25,7 +25,7 @@ DATALOADER:
   NUM_WORKERS: 32
 
 DATASET:
-  NAME: "market1501"
+  NAME: "total"
   TRAIN_PATH: "/home/allen/Downloads/reid"
 
 TRANSFORM:
@@ -54,8 +54,10 @@ SOLVER:
   WARMUP_SIZE: 10.0
   PLATEAU_SIZE: 10.0
 
-RESUME: "/home/allen/Downloads/osnet_x1_0_imagenet.pth"
-# EVALUATE: "./result_2019-07-24_22-24-44_OSNet_cuhk03_cels_triplet_center_Adam_lr_0.00035_warmup_10_0.01_plateau_10_flip_crop_erase_imagenet/weights/model_220_0.7429.pth"
+# osnet_ibn_x1_0_imagenet.pth 
+
+# RESUME: "/home/allen/Downloads/osnet_x1_0_imagenet.pth"
+EVALUATE: "/home/allen/OSNet_duke_cels_triplet_center_Adam_lr_0.00035_warmup_10_0.01_plateau_10_flip_crop_erase_imagenet_0.8932.pth"
 # EVALUATE: "/home/allen/Downloads/osnet_x1_0_market_256x128_amsgrad_ep150_stp60_lr0.0015_b64_fb10_softmax_labelsmooth_flip.pth"
 # EVALUATE: ["main", "/home/allen.jc.lin/deep-learning-works/result_ResNet18_SGD_REID_Phase2_TupletLoss_CELSR_Trick_scratch_2019-07-08_22-35-03/weights/model_main_220_0.7732.pth"]
 # RESUME: ["main", "/home/allen.jc.lin/deep-learning-works/result_RMNet_Novo_Reid_Phase1_2019-07-05_16-16-25/weights/model_main_290_0.6790.pth", "glob_loss", "/home/allen.jc.lin/deep-learning-works/result_RMNet_Novo_Reid_Phase1_2019-07-05_16-16-25/weights/model_glob_loss_290_0.6790.pth"] 
