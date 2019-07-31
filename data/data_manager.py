@@ -11,6 +11,8 @@ from scipy.io import loadmat
 import numpy as np
 import h5py
 import cv2
+import pandas as pd
+from collections import defaultdict
 import logging
 logger = logging.getLogger("logger")
 
@@ -33,14 +35,14 @@ class ImageNet():
         train, train_num_images, train_num_classes = self._process_train_dir()
         val, val_num_images, val_num_classes = self._process_val_dir()
 
-        print("=> ImageNet loaded")
-        print("Dataset statistics:")
-        print("  ------------------------------")
-        print("  subset   | # class | # images")
-        print("  ------------------------------")
-        print("  train    | {:7d} | {:8d}".format(train_num_classes, train_num_images))
-        print("  val      | {:7d} | {:8d}".format(val_num_classes, val_num_images))
-        print("  ------------------------------")
+        logger.info("=> ImageNet loaded")
+        logger.info("Dataset statistics:")
+        logger.info("  ------------------------------")
+        logger.info("  subset   | # class | # images")
+        logger.info("  ------------------------------")
+        logger.info("  train    | {:7d} | {:8d}".format(train_num_classes, train_num_images))
+        logger.info("  val      | {:7d} | {:8d}".format(val_num_classes, val_num_images))
+        logger.info("  ------------------------------")
 
         self.train = train
         self.val = val
@@ -153,17 +155,17 @@ class Market1501(object):
         num_total_pids = num_train_pids + num_query_pids
         num_total_imgs = num_train_imgs + num_query_imgs + num_gallery_imgs
 
-        print("=> Market1501 loaded")
-        print("Dataset statistics:")
-        print("  ------------------------------")
-        print("  subset   | # ids | # images")
-        print("  ------------------------------")
-        print("  train    | {:5d} | {:8d}".format(num_train_pids, num_train_imgs))
-        print("  query    | {:5d} | {:8d}".format(num_query_pids, num_query_imgs))
-        print("  gallery  | {:5d} | {:8d}".format(num_gallery_pids, num_gallery_imgs))
-        print("  ------------------------------")
-        print("  total    | {:5d} | {:8d}".format(num_total_pids, num_total_imgs))
-        print("  ------------------------------")
+        logger.info("=> Market1501 loaded")
+        logger.info("Dataset statistics:")
+        logger.info("  ------------------------------")
+        logger.info("  subset   | # ids | # images")
+        logger.info("  ------------------------------")
+        logger.info("  train    | {:5d} | {:8d}".format(num_train_pids, num_train_imgs))
+        logger.info("  query    | {:5d} | {:8d}".format(num_query_pids, num_query_imgs))
+        logger.info("  gallery  | {:5d} | {:8d}".format(num_gallery_pids, num_gallery_imgs))
+        logger.info("  ------------------------------")
+        logger.info("  total    | {:5d} | {:8d}".format(num_total_pids, num_total_imgs))
+        logger.info("  ------------------------------")
 
         self.train = train
         self.query = query
@@ -238,17 +240,17 @@ class Market1501_Partial(object):
         num_total_pids = num_train_pids + num_query_pids
         num_total_imgs = num_train_imgs + num_query_imgs + num_gallery_imgs
 
-        print("=> Market1501 loaded")
-        print("Dataset statistics:")
-        print("  ------------------------------")
-        print("  subset   | # ids | # images")
-        print("  ------------------------------")
-        print("  train    | {:5d} | {:8d}".format(num_train_pids, num_train_imgs))
-        print("  query    | {:5d} | {:8d}".format(num_query_pids, num_query_imgs))
-        print("  gallery  | {:5d} | {:8d}".format(num_gallery_pids, num_gallery_imgs))
-        print("  ------------------------------")
-        print("  total    | {:5d} | {:8d}".format(num_total_pids, num_total_imgs))
-        print("  ------------------------------")
+        logger.info("=> Market1501 loaded")
+        logger.info("Dataset statistics:")
+        logger.info("  ------------------------------")
+        logger.info("  subset   | # ids | # images")
+        logger.info("  ------------------------------")
+        logger.info("  train    | {:5d} | {:8d}".format(num_train_pids, num_train_imgs))
+        logger.info("  query    | {:5d} | {:8d}".format(num_query_pids, num_query_imgs))
+        logger.info("  gallery  | {:5d} | {:8d}".format(num_gallery_pids, num_gallery_imgs))
+        logger.info("  ------------------------------")
+        logger.info("  total    | {:5d} | {:8d}".format(num_total_pids, num_total_imgs))
+        logger.info("  ------------------------------")
 
         self.train = train
         self.query = query
@@ -346,7 +348,7 @@ class CUHK03(object):
         splits = read_json(split_path)
         assert split_id < len(splits), "Condition split_id ({}) < len(splits) ({}) is false".format(split_id, len(splits))
         split = splits[split_id]
-        print("Split index = {}".format(split_id))
+        logger.info("Split index = {}".format(split_id))
 
         train = split['train']
         query = split['query']
@@ -362,17 +364,17 @@ class CUHK03(object):
         num_gallery_imgs = split['num_gallery_imgs']
         num_total_imgs = num_train_imgs + num_query_imgs
 
-        print("=> CUHK03 ({}) loaded".format(image_type))
-        print("Dataset statistics:")
-        print("  ------------------------------")
-        print("  subset   | # ids | # images")
-        print("  ------------------------------")
-        print("  train    | {:5d} | {:8d}".format(num_train_pids, num_train_imgs))
-        print("  query    | {:5d} | {:8d}".format(num_query_pids, num_query_imgs))
-        print("  gallery  | {:5d} | {:8d}".format(num_gallery_pids, num_gallery_imgs))
-        print("  ------------------------------")
-        print("  total    | {:5d} | {:8d}".format(num_total_pids, num_total_imgs))
-        print("  ------------------------------")
+        logger.info("=> CUHK03 ({}) loaded".format(image_type))
+        logger.info("Dataset statistics:")
+        logger.info("  ------------------------------")
+        logger.info("  subset   | # ids | # images")
+        logger.info("  ------------------------------")
+        logger.info("  train    | {:5d} | {:8d}".format(num_train_pids, num_train_imgs))
+        logger.info("  query    | {:5d} | {:8d}".format(num_query_pids, num_query_imgs))
+        logger.info("  gallery  | {:5d} | {:8d}".format(num_gallery_pids, num_gallery_imgs))
+        logger.info("  ------------------------------")
+        logger.info("  total    | {:5d} | {:8d}".format(num_total_pids, num_total_imgs))
+        logger.info("  ------------------------------")
 
         self.train = train
         self.query = query
@@ -402,7 +404,7 @@ class CUHK03(object):
         2. Create 20 classic splits. (Li et al. CVPR'14)
         3. Create new split. (Zhong et al. CVPR'17)
         """
-        print("Note: if root path is changed, the previously generated json files need to be re-generated (delete them first)")
+        logger.info("Note: if root path is changed, the previously generated json files need to be re-generated (delete them first)")
         if osp.exists(self.imgs_labeled_dir) and \
            osp.exists(self.imgs_detected_dir) and \
            osp.exists(self.split_classic_det_json_path) and \
@@ -414,7 +416,7 @@ class CUHK03(object):
         mkdir_if_missing(self.imgs_detected_dir)
         mkdir_if_missing(self.imgs_labeled_dir)
 
-        print("Extract image data from {} and save as png".format(self.raw_mat_path))
+        logger.info("Extract image data from {} and save as png".format(self.raw_mat_path))
         mat = h5py.File(self.raw_mat_path, 'r')
 
         def _deref(ref):
@@ -440,7 +442,7 @@ class CUHK03(object):
             return img_paths
 
         def _extract_img(name):
-            print("Processing {} images (extract and save) ...".format(name))
+            logger.info("Processing {} images (extract and save) ...".format(name))
             meta_data = []
             imgs_dir = self.imgs_detected_dir if name == 'detected' else self.imgs_labeled_dir
             for campid, camp_ref in enumerate(mat[name][0]):
@@ -450,7 +452,7 @@ class CUHK03(object):
                     img_paths = _process_images(camp[pid,:], campid, pid, imgs_dir)
                     assert len(img_paths) > 0, "campid{}-pid{} has no images".format(campid, pid)
                     meta_data.append((campid+1, pid+1, img_paths))
-                print("done camera pair {} with {} identities".format(campid+1, num_pids))
+                logger.info("done camera pair {} with {} identities".format(campid+1, num_pids))
             return meta_data
 
         meta_detected = _extract_img('detected')
@@ -476,7 +478,7 @@ class CUHK03(object):
                     num_train_imgs += len(img_paths)
             return train, num_train_pids, num_train_imgs, test, num_test_pids, num_test_imgs
 
-        print("Creating classic splits (# = 20) ...")
+        logger.info("Creating classic splits (# = 20) ...")
         splits_classic_det, splits_classic_lab = [], []
         for split_ref in mat['testsets'][0]:
             test_split = _deref(split_ref).tolist()
@@ -530,7 +532,7 @@ class CUHK03(object):
             gallery_info = _extract_set(filelist, pids, pid2label, gallery_idxs, img_dir, relabel=False)
             return train_info, query_info, gallery_info
 
-        print("Creating new splits for detected images (767/700) ...")
+        logger.info("Creating new splits for detected images (767/700) ...")
         train_info, query_info, gallery_info = _extract_new_split(
             loadmat(self.split_new_det_mat_path),
             self.imgs_detected_dir,
@@ -543,7 +545,7 @@ class CUHK03(object):
         }]
         write_json(splits, self.split_new_det_json_path)
 
-        print("Creating new splits for labeled images (767/700) ...")
+        logger.info("Creating new splits for labeled images (767/700) ...")
         train_info, query_info, gallery_info = _extract_new_split(
             loadmat(self.split_new_lab_mat_path),
             self.imgs_labeled_dir,
@@ -588,17 +590,17 @@ class DukeMTMCreID(object):
         num_total_pids = num_train_pids + num_query_pids
         num_total_imgs = num_train_imgs + num_query_imgs + num_gallery_imgs
 
-        print("=> DukeMTMC-reID loaded")
-        print("Dataset statistics:")
-        print("  ------------------------------")
-        print("  subset   | # ids | # images")
-        print("  ------------------------------")
-        print("  train    | {:5d} | {:8d}".format(num_train_pids, num_train_imgs))
-        print("  query    | {:5d} | {:8d}".format(num_query_pids, num_query_imgs))
-        print("  gallery  | {:5d} | {:8d}".format(num_gallery_pids, num_gallery_imgs))
-        print("  ------------------------------")
-        print("  total    | {:5d} | {:8d}".format(num_total_pids, num_total_imgs))
-        print("  ------------------------------")
+        logger.info("=> DukeMTMC-reID loaded")
+        logger.info("Dataset statistics:")
+        logger.info("  ------------------------------")
+        logger.info("  subset   | # ids | # images")
+        logger.info("  ------------------------------")
+        logger.info("  train    | {:5d} | {:8d}".format(num_train_pids, num_train_imgs))
+        logger.info("  query    | {:5d} | {:8d}".format(num_query_pids, num_query_imgs))
+        logger.info("  gallery  | {:5d} | {:8d}".format(num_gallery_pids, num_gallery_imgs))
+        logger.info("  ------------------------------")
+        logger.info("  total    | {:5d} | {:8d}".format(num_total_pids, num_total_imgs))
+        logger.info("  ------------------------------")
 
         self.train = train
         self.query = query
@@ -672,17 +674,17 @@ class MSMT17(object):
         num_total_pids = num_train_pids + num_query_pids
         num_total_imgs = num_train_imgs + num_query_imgs + num_gallery_imgs
 
-        print("=> Market1501 loaded")
-        print("Dataset statistics:")
-        print("  ------------------------------")
-        print("  subset   | # ids | # images")
-        print("  ------------------------------")
-        print("  train    | {:5d} | {:8d}".format(num_train_pids, num_train_imgs))
-        print("  query    | {:5d} | {:8d}".format(num_query_pids, num_query_imgs))
-        print("  gallery  | {:5d} | {:8d}".format(num_gallery_pids, num_gallery_imgs))
-        print("  ------------------------------")
-        print("  total    | {:5d} | {:8d}".format(num_total_pids, num_total_imgs))
-        print("  ------------------------------")
+        logger.info("=> MSMT17 loaded")
+        logger.info("Dataset statistics:")
+        logger.info("  ------------------------------")
+        logger.info("  subset   | # ids | # images")
+        logger.info("  ------------------------------")
+        logger.info("  train    | {:5d} | {:8d}".format(num_train_pids, num_train_imgs))
+        logger.info("  query    | {:5d} | {:8d}".format(num_query_pids, num_query_imgs))
+        logger.info("  gallery  | {:5d} | {:8d}".format(num_gallery_pids, num_gallery_imgs))
+        logger.info("  ------------------------------")
+        logger.info("  total    | {:5d} | {:8d}".format(num_total_pids, num_total_imgs))
+        logger.info("  ------------------------------")
 
         self.train = train
         self.query = query
@@ -718,8 +720,6 @@ class MSMT17(object):
         for img_path in img_paths:
             pid, camid = map(int, pattern.search(img_path).groups())
             if pid == -1: continue  # junk images are just ignored
-            assert 0 <= pid <= 1501  # pid == 0 means background
-            assert 1 <= camid <= 6
             camid -= 1 # index starts from 0
             if relabel: pid = pid2label[pid]
             dataset.append((img_path, pid, camid))
@@ -746,7 +746,8 @@ class Mars(object):
     """
     dataset_dir = 'mars'
 
-    def __init__(self, root='data', min_seq_len=0, **kwargs):
+    def __init__(self, cfg, min_seq_len=0, **kwargs):
+        root = cfg.DATASET.TRAIN_PATH
         self.dataset_dir = osp.join(root, self.dataset_dir)
         self.train_name_path = osp.join(self.dataset_dir, 'info/train_name.txt')
         self.test_name_path = osp.join(self.dataset_dir, 'info/test_name.txt')
@@ -784,18 +785,18 @@ class Mars(object):
         num_total_pids = num_train_pids + num_query_pids
         num_total_tracklets = num_train_tracklets + num_query_tracklets + num_gallery_tracklets
 
-        print("=> MARS loaded")
-        print("Dataset statistics:")
-        print("  ------------------------------")
-        print("  subset   | # ids | # tracklets")
-        print("  ------------------------------")
-        print("  train    | {:5d} | {:8d}".format(num_train_pids, num_train_tracklets))
-        print("  query    | {:5d} | {:8d}".format(num_query_pids, num_query_tracklets))
-        print("  gallery  | {:5d} | {:8d}".format(num_gallery_pids, num_gallery_tracklets))
-        print("  ------------------------------")
-        print("  total    | {:5d} | {:8d}".format(num_total_pids, num_total_tracklets))
-        print("  number of images per tracklet: {} ~ {}, average {:.1f}".format(min_num, max_num, avg_num))
-        print("  ------------------------------")
+        logger.info("=> MARS loaded")
+        logger.info("Dataset statistics:")
+        logger.info("  ------------------------------")
+        logger.info("  subset   | # ids | # tracklets")
+        logger.info("  ------------------------------")
+        logger.info("  train    | {:5d} | {:8d}".format(num_train_pids, num_train_tracklets))
+        logger.info("  query    | {:5d} | {:8d}".format(num_query_pids, num_query_tracklets))
+        logger.info("  gallery  | {:5d} | {:8d}".format(num_gallery_pids, num_gallery_tracklets))
+        logger.info("  ------------------------------")
+        logger.info("  total    | {:5d} | {:8d}".format(num_total_pids, num_total_tracklets))
+        logger.info("  number of images per tracklet: {} ~ {}, average {:.1f}".format(min_num, max_num, avg_num))
+        logger.info("  ------------------------------")
 
         self.train = train
         self.query = query
@@ -901,7 +902,7 @@ class iLIDSVID(object):
             raise ValueError("split_id exceeds range, received {}, but expected between 0 and {}".format(split_id, len(splits)-1))
         split = splits[split_id]
         train_dirs, test_dirs = split['train'], split['test']
-        print("# train identites: {}, # test identites {}".format(len(train_dirs), len(test_dirs)))
+        logger.info("# train identites: {}, # test identites {}".format(len(train_dirs), len(test_dirs)))
 
         train, num_train_tracklets, num_train_pids, num_imgs_train = \
           self._process_data(train_dirs, cam1=True, cam2=True)
@@ -918,18 +919,18 @@ class iLIDSVID(object):
         num_total_pids = num_train_pids + num_query_pids
         num_total_tracklets = num_train_tracklets + num_query_tracklets + num_gallery_tracklets
 
-        print("=> iLIDS-VID loaded")
-        print("Dataset statistics:")
-        print("  ------------------------------")
-        print("  subset   | # ids | # tracklets")
-        print("  ------------------------------")
-        print("  train    | {:5d} | {:8d}".format(num_train_pids, num_train_tracklets))
-        print("  query    | {:5d} | {:8d}".format(num_query_pids, num_query_tracklets))
-        print("  gallery  | {:5d} | {:8d}".format(num_gallery_pids, num_gallery_tracklets))
-        print("  ------------------------------")
-        print("  total    | {:5d} | {:8d}".format(num_total_pids, num_total_tracklets))
-        print("  number of images per tracklet: {} ~ {}, average {:.1f}".format(min_num, max_num, avg_num))
-        print("  ------------------------------")
+        logger.info("=> iLIDS-VID loaded")
+        logger.info("Dataset statistics:")
+        logger.info("  ------------------------------")
+        logger.info("  subset   | # ids | # tracklets")
+        logger.info("  ------------------------------")
+        logger.info("  train    | {:5d} | {:8d}".format(num_train_pids, num_train_tracklets))
+        logger.info("  query    | {:5d} | {:8d}".format(num_query_pids, num_query_tracklets))
+        logger.info("  gallery  | {:5d} | {:8d}".format(num_gallery_pids, num_gallery_tracklets))
+        logger.info("  ------------------------------")
+        logger.info("  total    | {:5d} | {:8d}".format(num_total_pids, num_total_tracklets))
+        logger.info("  number of images per tracklet: {} ~ {}, average {:.1f}".format(min_num, max_num, avg_num))
+        logger.info("  ------------------------------")
 
         self.train = train
         self.query = query
@@ -941,17 +942,17 @@ class iLIDSVID(object):
 
     def _download_data(self):
         if osp.exists(self.dataset_dir):
-            print("This dataset has been downloaded.")
+            logger.info("This dataset has been downloaded.")
             return
 
         mkdir_if_missing(self.dataset_dir)
         fpath = osp.join(self.dataset_dir, osp.basename(self.dataset_url))
 
-        print("Downloading iLIDS-VID dataset")
+        logger.info("Downloading iLIDS-VID dataset")
         url_opener = urllib.URLopener()
         url_opener.retrieve(self.dataset_url, fpath)
 
-        print("Extracting files")
+        logger.info("Extracting files")
         tar = tarfile.open(fpath)
         tar.extractall(path=self.dataset_dir)
         tar.close()
@@ -967,7 +968,7 @@ class iLIDSVID(object):
 
     def _prepare_split(self):
         if not osp.exists(self.split_path):
-            print("Creating splits")
+            logger.info("Creating splits")
             mat_split_data = loadmat(self.split_mat_path)['ls_set']
             
             num_splits = mat_split_data.shape[0]
@@ -1000,11 +1001,11 @@ class iLIDSVID(object):
                 split = {'train': train_dirs, 'test': test_dirs}
                 splits.append(split)
 
-            print("Totally {} splits are created, following Wang et al. ECCV'14".format(len(splits)))
-            print("Split file is saved to {}".format(self.split_path))
+            logger.info("Totally {} splits are created, following Wang et al. ECCV'14".format(len(splits)))
+            logger.info("Split file is saved to {}".format(self.split_path))
             write_json(splits, self.split_path)
 
-        print("Splits created")
+        logger.info("Splits created")
 
     def _process_data(self, dirnames, cam1=True, cam2=True):
         tracklets = []
@@ -1064,7 +1065,7 @@ class PRID(object):
             raise ValueError("split_id exceeds range, received {}, but expected between 0 and {}".format(split_id, len(splits)-1))
         split = splits[split_id]
         train_dirs, test_dirs = split['train'], split['test']
-        print("# train identites: {}, # test identites {}".format(len(train_dirs), len(test_dirs)))
+        logger.info("# train identites: {}, # test identites {}".format(len(train_dirs), len(test_dirs)))
 
         train, num_train_tracklets, num_train_pids, num_imgs_train = \
           self._process_data(train_dirs, cam1=True, cam2=True)
@@ -1081,18 +1082,18 @@ class PRID(object):
         num_total_pids = num_train_pids + num_query_pids
         num_total_tracklets = num_train_tracklets + num_query_tracklets + num_gallery_tracklets
 
-        print("=> PRID-2011 loaded")
-        print("Dataset statistics:")
-        print("  ------------------------------")
-        print("  subset   | # ids | # tracklets")
-        print("  ------------------------------")
-        print("  train    | {:5d} | {:8d}".format(num_train_pids, num_train_tracklets))
-        print("  query    | {:5d} | {:8d}".format(num_query_pids, num_query_tracklets))
-        print("  gallery  | {:5d} | {:8d}".format(num_gallery_pids, num_gallery_tracklets))
-        print("  ------------------------------")
-        print("  total    | {:5d} | {:8d}".format(num_total_pids, num_total_tracklets))
-        print("  number of images per tracklet: {} ~ {}, average {:.1f}".format(min_num, max_num, avg_num))
-        print("  ------------------------------")
+        logger.info("=> PRID-2011 loaded")
+        logger.info("Dataset statistics:")
+        logger.info("  ------------------------------")
+        logger.info("  subset   | # ids | # tracklets")
+        logger.info("  ------------------------------")
+        logger.info("  train    | {:5d} | {:8d}".format(num_train_pids, num_train_tracklets))
+        logger.info("  query    | {:5d} | {:8d}".format(num_query_pids, num_query_tracklets))
+        logger.info("  gallery  | {:5d} | {:8d}".format(num_gallery_pids, num_gallery_tracklets))
+        logger.info("  ------------------------------")
+        logger.info("  total    | {:5d} | {:8d}".format(num_total_pids, num_total_tracklets))
+        logger.info("  number of images per tracklet: {} ~ {}, average {:.1f}".format(min_num, max_num, avg_num))
+        logger.info("  ------------------------------")
 
         self.train = train
         self.query = query
@@ -1163,7 +1164,7 @@ class DukeMTMCVidReID(object):
 
         self.min_seq_len = min_seq_len
         self._check_before_run()
-        print("Note: if root path is changed, the previously generated json files need to be re-generated (so delete them first)")
+        logger.info("Note: if root path is changed, the previously generated json files need to be re-generated (so delete them first)")
 
         train, num_train_tracklets, num_train_pids, num_imgs_train = \
           self._process_dir(self.train_dir, self.split_train_json_path, relabel=True)
@@ -1180,18 +1181,18 @@ class DukeMTMCVidReID(object):
         num_total_pids = num_train_pids + num_query_pids
         num_total_tracklets = num_train_tracklets + num_query_tracklets + num_gallery_tracklets
 
-        print("=> DukeMTMC-VideoReID loaded")
-        print("Dataset statistics:")
-        print("  ------------------------------")
-        print("  subset   | # ids | # tracklets")
-        print("  ------------------------------")
-        print("  train    | {:5d} | {:8d}".format(num_train_pids, num_train_tracklets))
-        print("  query    | {:5d} | {:8d}".format(num_query_pids, num_query_tracklets))
-        print("  gallery  | {:5d} | {:8d}".format(num_gallery_pids, num_gallery_tracklets))
-        print("  ------------------------------")
-        print("  total    | {:5d} | {:8d}".format(num_total_pids, num_total_tracklets))
-        print("  number of images per tracklet: {} ~ {}, average {:.1f}".format(min_num, max_num, avg_num))
-        print("  ------------------------------")
+        logger.info("=> DukeMTMC-VideoReID loaded")
+        logger.info("Dataset statistics:")
+        logger.info("  ------------------------------")
+        logger.info("  subset   | # ids | # tracklets")
+        logger.info("  ------------------------------")
+        logger.info("  train    | {:5d} | {:8d}".format(num_train_pids, num_train_tracklets))
+        logger.info("  query    | {:5d} | {:8d}".format(num_query_pids, num_query_tracklets))
+        logger.info("  gallery  | {:5d} | {:8d}".format(num_gallery_pids, num_gallery_tracklets))
+        logger.info("  ------------------------------")
+        logger.info("  total    | {:5d} | {:8d}".format(num_total_pids, num_total_tracklets))
+        logger.info("  number of images per tracklet: {} ~ {}, average {:.1f}".format(min_num, max_num, avg_num))
+        logger.info("  ------------------------------")
 
         self.train = train
         self.query = query
@@ -1214,13 +1215,13 @@ class DukeMTMCVidReID(object):
 
     def _process_dir(self, dir_path, json_path, relabel):
         if osp.exists(json_path):
-            print("=> {} generated before, awesome!".format(json_path))
+            logger.info("=> {} generated before, awesome!".format(json_path))
             split = read_json(json_path)
             return split['tracklets'], split['num_tracklets'], split['num_pids'], split['num_imgs_per_tracklet']
 
-        print("=> Automatically generating split (might take a while for the first time, have a coffe)")
+        logger.info("=> Automatically generating split (might take a while for the first time, have a coffe)")
         pdirs = glob.glob(osp.join(dir_path, '*')) # avoid .DS_Store
-        print("Processing {} with {} person identities".format(dir_path, len(pdirs)))
+        logger.info("Processing {} with {} person identities".format(dir_path, len(pdirs)))
 
         pid_container = set()
         for pdir in pdirs:
@@ -1248,7 +1249,7 @@ class DukeMTMCVidReID(object):
                     img_idx_name = 'F' + str(img_idx+1).zfill(4)
                     res = glob.glob(osp.join(tdir, '*' + img_idx_name + '*.jpg'))
                     if len(res) == 0:
-                        print("Warn: index name {} in {} is missing, jump to next".format(img_idx_name, tdir))
+                        logger.info("Warn: index name {} in {} is missing, jump to next".format(img_idx_name, tdir))
                         continue
                     img_paths.append(res[0])
                 img_name = osp.basename(img_paths[0])
@@ -1259,7 +1260,7 @@ class DukeMTMCVidReID(object):
         num_pids = len(pid_container)
         num_tracklets = len(tracklets)
 
-        print("Saving split to {}".format(json_path))
+        logger.info("Saving split to {}".format(json_path))
         split_dict = {
             'tracklets': tracklets,
             'num_tracklets': num_tracklets,
@@ -1294,10 +1295,13 @@ def get_names():
 def init_img_dataset(cfg):
     name = cfg.DATASET.NAME
     if name not in __img_factory.keys():
-        raise KeyError("Invalid dataset, got '{}', but expected to be one of {}".format(name, __img_factory.keys()))
-    return __img_factory[name](cfg)
+        raise KeyError("Invalid dataset, got '{}', but expected to be one of {}".format(name, __img_factory.keys()))   
+    dataset = __img_factory[name](cfg)
+    return dataset
 
-def init_vid_dataset(name, cfg):
+def init_vid_dataset(cfg):
+    name = cfg.DATASET.NAME
     if name not in __vid_factory.keys():
-        raise KeyError("Invalid dataset, got '{}', but expected to be one of {}".format(name, __vid_factory.keys()))
-    return __vid_factory[name](cfg)
+        raise KeyError("Invalid dataset, got '{}', but expected to be one of {}".format(name, __vid_factory.keys()))    
+    dataset = __vid_factory[name](cfg)
+    return dataset
