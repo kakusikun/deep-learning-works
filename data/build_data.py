@@ -40,7 +40,6 @@ class build_reid_dataset(data.Dataset):
     def __init__(self, dataset, transform=None):
         self.dataset = dataset
         self.transform = transform
-        self.relabel = relabel
            
     def __getitem__(self, index):
         img_path, pid, camid = self.dataset[index]
