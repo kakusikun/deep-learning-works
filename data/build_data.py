@@ -40,16 +40,17 @@ class build_reid_dataset(data.Dataset):
     def __init__(self, dataset, transform=None):
         self.dataset = dataset
         self.transform = transform
-    
+        self.relabel = relabel
+           
     def __getitem__(self, index):
-        img_path, pids, camids = self.dataset[index]
-            
+        img_path, pid, camid = self.dataset[index]
+
         img = Image.open(img_path)
 
         if self.transform is not None:
             img = self.transform(img)
         
-        return img, pids, camids
+        return img, pid, camid
     
     def __len__(self):
         return len(self.dataset)
