@@ -1,5 +1,5 @@
 from torch.utils import data
-from data.data_manager import init_img_dataset
+from data.data_manager import init_img_dataset, init_vid_dataset
 from data.build_data import build_image_dataset, build_reid_dataset
 from data.build_transform import build_transform
 from data.sampler import IdBasedSampler
@@ -93,7 +93,7 @@ def build_reid_loader(cfg):
         msmt_dataset = init_img_dataset(cfg)
 
         cfg.DATASET.NAME = 'mars'
-        mars_dataset = init_img_dataset(cfg)
+        mars_dataset = init_vid_dataset(cfg)
 
         _dataset = []
         _dataset.extend(msmt_dataset.train)
