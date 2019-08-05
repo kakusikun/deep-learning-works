@@ -107,9 +107,9 @@ def build_reid_loader(cfg):
         train_dataset = build_reid_dataset(dataset.train, train_trans)
 
         if cfg.DATASET.TEST != "":
-            cfg.DATASET.NAME = cfg.DATASET.TEST:
+            cfg.DATASET.NAME = cfg.DATASET.TEST
             dataset = init_img_dataset(cfg)
-            
+
         query_dataset = build_reid_dataset(dataset.query, val_trans)
         gallery_dataset = build_reid_dataset(dataset.gallery, val_trans)    
 
