@@ -72,9 +72,9 @@ _C.REID.SIZE_PERSON = 3
 _C.DATASET = CN()
 _C.DATASET.NAME = ""
 # List of the dataset names for training, as present in paths_catalog.py
-_C.DATASET.TRAIN = ()
+_C.DATASET.TRAIN = ""
 # List of the dataset names for testing, as present in paths_catalog.py
-_C.DATASET.TEST = ()
+_C.DATASET.TEST = ""
 
 _C.DATASET.TRAIN_PATH = ""
 _C.DATASET.TEST_PATH = ""

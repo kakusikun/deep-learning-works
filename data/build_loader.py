@@ -89,7 +89,7 @@ def build_reid_loader(cfg):
         cfg.DATASET.NAME = 'market1501'
         market_dataset = init_img_dataset(cfg)
 
-        cfg.DATASET.NAME = 'msmt17_total'
+        cfg.DATASET.NAME = 'msmt17'
         msmt_dataset = init_img_dataset(cfg)
         
         train_trans = build_transform(cfg)
@@ -105,9 +105,13 @@ def build_reid_loader(cfg):
         val_trans = build_transform(cfg, isTrain=False)
 
         train_dataset = build_reid_dataset(dataset.train, train_trans)
+
+        if cfg.DATASET.TEST != "":
+            cfg.DATASET.NAME = cfg.DATASET.TEST:
+            dataset = init_img_dataset(cfg)
+            
         query_dataset = build_reid_dataset(dataset.query, val_trans)
-        gallery_dataset = build_reid_dataset(dataset.gallery, val_trans)
-    
+        gallery_dataset = build_reid_dataset(dataset.gallery, val_trans)    
 
     num_workers = cfg.DATALOADER.NUM_WORKERS
 
