@@ -1,8 +1,11 @@
 result*
 __pycache__
-*.pyc
+!notebook/
 *.ipynb
 *.json
 *.swp
 *.txt
 *.html
+*.npy
+*.csv
+*.jpg

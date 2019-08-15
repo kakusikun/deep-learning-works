@@ -60,9 +60,9 @@ class build_reid_atmap_dataset(data.Dataset):
     def __init__(self, dataset, cfg, transform=None):
         self.dataset = dataset
         self.transform = transform
-        self.at_maps = np.load(cfg.DATASET.ATTENTION_MAP)
+        self.at_maps = np.load(cfg.DATASET.ATTENTION_MAPS)
         self.at_maps_keys = {}
-        with open(cfg.DATASET.ATTENTION_MAP_LIST, 'r') as f:
+        with open(cfg.DATASET.ATTENTION_MAPS_LIST, 'r') as f:
             for i, line in enumerate(f):
                 line = line.strip()
                 self.at_maps_keys[line] = i
@@ -71,14 +71,14 @@ class build_reid_atmap_dataset(data.Dataset):
         img_path, pid, camid = self.dataset[index]
         at_maps_key = img_path.split("/")[-1]
         if  at_maps_key in self.at_maps_keys:
-            at_map = np.expand_dims(self.at_maps[self.at_maps_keys[at_maps_key]], 0)
-            at_map = torch.from_numpy(at_map)
+            at_map = self.at_maps[self.at_maps_keys[at_maps_key]].astype(int)
+            at_map = torch.from_numpy(at_map).float()
             at_map_label = 1
         else:
-            at_map = torch.ones(1,16,8) * -1
+            at_map = torch.ones(16*8)
             at_map_label = -1
         
-        at_map = at_map.view(at_map.size(0), -1)
+        at_map = at_map.view(-1)
 
         img = Image.open(img_path)
 

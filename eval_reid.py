@@ -29,7 +29,7 @@ if args.opts != None:
     cfg.merge_from_list(args.opts)
 
 log_name = "evaluation_{}_{}".format(cfg.DATASET.NAME, cfg.EVALUATE.split("/")[-1])
-logger = setup_logger(".", log_name)
+logger = setup_logger("./evaluation/", log_name)
 logger.info("Running with config:\n{}".format(cfg))
 
 action = input("Config Confirmed ? (Y/N)").lower().strip()

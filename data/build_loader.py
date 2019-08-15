@@ -104,9 +104,9 @@ def build_reid_loader(cfg):
         train_trans = build_transform(cfg)
         val_trans = build_transform(cfg, isTrain=False)
 
-        if cfg.DATASET.ATTENTION_MAP != "":
+        if cfg.DATASET.ATTENTION_MAPS != "":
             train_dataset = build_reid_atmap_dataset(dataset.train, cfg, train_trans)
-        else
+        else:
             train_dataset = build_reid_dataset(dataset.train, train_trans)
 
         if cfg.DATASET.TEST != "":
@@ -118,7 +118,6 @@ def build_reid_loader(cfg):
 
     num_workers = cfg.DATALOADER.NUM_WORKERS
 
-    sampler = IdBasedSampler(train_dataset, batch_size=cfg.INPUT.SIZE_TRAIN, num_instances=cfg.REID.SIZE_PERSON)
 
     if cfg.EVALUATE != "":
         t_loader = data.DataLoader(
@@ -128,6 +127,8 @@ def build_reid_loader(cfg):
             pin_memory=True
         )
     else:
+        sampler = IdBasedSampler(train_dataset, batch_size=cfg.INPUT.SIZE_TRAIN, num_instances=cfg.REID.SIZE_PERSON)
+
         t_loader = data.DataLoader(
             train_dataset, 
             batch_size=cfg.INPUT.SIZE_TRAIN, 
