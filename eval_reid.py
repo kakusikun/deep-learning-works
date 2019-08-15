@@ -3,7 +3,7 @@ import sys
 from tqdm import tqdm
 import torch
 import torch.nn.functional as F
-from tools.eval_reid_metrics import evaluate
+from tools.eval_reid_metrics import evaluate, eval_recall
 from model.OSNetv2 import osnet_x1_0
 from config.config_manager import _C as cfg
 from data.build_loader import build_reid_loader
@@ -16,11 +16,10 @@ from tools.logger import setup_logger
 
 
 parser = argparse.ArgumentParser(description="PyTorch Template MNIST Training")
-parser.add_argument(
-    "--config_file", default="", help="path to config file", type=str
-)
+parser.add_argument("--config_file", default="", help="path to config file", type=str)
 parser.add_argument("--opts", help="Modify config options using the command-line", default=None,
                     nargs=argparse.REMAINDER)
+parser.add_argument("--type", default="cmc", help="evaluation type", type=str)
 
 args = parser.parse_args()
 
@@ -29,7 +28,7 @@ if args.config_file != "":
 if args.opts != None:
     cfg.merge_from_list(args.opts)
 
-log_name = "evaluation_{}_{}.txt".format(cfg.DATASET.NAME, cfg.EVALUATE.split("/")[-1])
+log_name = "evaluation_{}_{}".format(cfg.DATASET.NAME, cfg.EVALUATE.split("/")[-1])
 logger = setup_logger(".", log_name)
 logger.info("Running with config:\n{}".format(cfg))
 
@@ -113,15 +112,24 @@ if action == 'y':
         distmat.addmm_(1, -2, qf, gf.t())
         distmat = distmat.numpy()
 
-    logger.info("Computing CMC and mAP")
-    cmc, mAP = evaluate(distmat, q_pids, g_pids, q_camids, g_camids)
+    if args.type == 'cmc':
+        logger.info("Computing CMC and mAP")
+        # np.save("./dismat.npy", distmat)
+        # np.save("./q_pids.npy", q_pids)
+        # np.save("./g_pids.npy", g_pids)
+        # np.save("./q_camids.npy", q_camids)
+        # np.save("./g_camids.npy", g_camids)
 
-    logger.info("Results ----------")
-    logger.info("mAP: {:.4%}".format(mAP))
-    logger.info("CMC curve")
-    for r in [1, 5, 10, 20]:
-        logger.info("Rank-{:<3}: {:.4%}".format(r, cmc[r - 1]))
-    logger.info("------------------")
+        cmc, mAP = evaluate(distmat, q_pids, g_pids, q_camids, g_camids)
+
+        logger.info("Results ----------")
+        logger.info("mAP: {:.4%}".format(mAP))
+        logger.info("CMC curve")
+        for r in [1, 5, 10, 20]:
+            logger.info("Rank-{:<3}: {:.4%}".format(r, cmc[r - 1]))
+        logger.info("------------------")
+    elif args.type == 'recall':
+        eval_recall(distmat, q_pids, g_pids, q_camids, g_camids, save=True, name=log_name)
  
 else:
     sys.exit(1)
