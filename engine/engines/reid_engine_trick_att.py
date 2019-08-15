@@ -38,7 +38,7 @@ class ReIDEngine(Engine):
             self._train_iter_start()
 
             images, target, _, at_map_gt, at_map_keys= batch
-            if self.use_gpu: images, target = images.cuda(), target.cuda()
+            if self.use_gpu: images, target, at_map_gt, at_map_keys = images.cuda(), target.cuda(), at_map_gt.cuda(), at_map_keys.cuda()
             
             local, glob, at_map = self.core(images) 
             self.total_loss, self.each_loss = self.manager.loss_func(local, glob, at_map, target, at_map_gt, at_map_keys)

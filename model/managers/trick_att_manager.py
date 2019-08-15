@@ -37,7 +37,7 @@ class TrickManager(TrainingManager):
         ce_ls = CrossEntropyLossLS(self.cfg.MODEL.NUM_CLASSES)
         center_loss = CenterLoss(feat_dim, self.cfg.MODEL.NUM_CLASSES, self.cfg.MODEL.NUM_GPUS > 0 and torch.cuda.is_available())        
         triplet_loss = TripletLoss()
-        attention_loss = nn.MSELoss()
+        attention_loss = nn.BCEWithLogitsLoss()
         self.loss_has_param = [center_loss]
         self.loss_name = ["cels", "triplet", "center", "attention"]
 
@@ -108,7 +108,8 @@ class Model(nn.Module):
     
     def forward(self, x):
         feat, at_map = self.backbone(x)
-        at_map = at_map.view(at_map.size(0), -1)
+        at_map = at_map.mean(dim=1).view(at_map.size(0), -1)
+        
         x = self.gap(feat)
         local_feat = x.view(x.size(0), -1)
         x = self.BNNeck(x)
