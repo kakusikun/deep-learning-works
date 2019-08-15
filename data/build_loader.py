@@ -1,6 +1,6 @@
 from torch.utils import data
 from data.data_manager import init_img_dataset, init_vid_dataset
-from data.build_data import build_image_dataset, build_reid_dataset
+from data.build_data import build_image_dataset, build_reid_dataset, build_reid_atmap_dataset
 from data.build_transform import build_transform
 from data.sampler import IdBasedSampler
 from torchvision.datasets.cifar import CIFAR10
@@ -104,7 +104,10 @@ def build_reid_loader(cfg):
         train_trans = build_transform(cfg)
         val_trans = build_transform(cfg, isTrain=False)
 
-        train_dataset = build_reid_dataset(dataset.train, train_trans)
+        if cfg.DATASET.ATTENTION_MAP != "":
+            train_dataset = build_reid_atmap_dataset(dataset.train, cfg, train_trans)
+        else
+            train_dataset = build_reid_dataset(dataset.train, train_trans)
 
         if cfg.DATASET.TEST != "":
             cfg.DATASET.NAME = cfg.DATASET.TEST
@@ -117,13 +120,21 @@ def build_reid_loader(cfg):
 
     sampler = IdBasedSampler(train_dataset, batch_size=cfg.INPUT.SIZE_TRAIN, num_instances=cfg.REID.SIZE_PERSON)
 
-    t_loader = data.DataLoader(
-        train_dataset, 
-        batch_size=cfg.INPUT.SIZE_TRAIN, 
-        sampler=sampler, 
-        num_workers=num_workers, 
-        pin_memory=True
-    )
+    if cfg.EVALUATE != "":
+        t_loader = data.DataLoader(
+            train_dataset, 
+            batch_size=cfg.INPUT.SIZE_TRAIN,
+            num_workers=num_workers, 
+            pin_memory=True
+        )
+    else:
+        t_loader = data.DataLoader(
+            train_dataset, 
+            batch_size=cfg.INPUT.SIZE_TRAIN, 
+            sampler=sampler, 
+            num_workers=num_workers, 
+            pin_memory=True
+        )
 
     q_loader = data.DataLoader(
         query_dataset, batch_size=cfg.INPUT.SIZE_TEST, shuffle=False, num_workers=num_workers, pin_memory=True, drop_last=False

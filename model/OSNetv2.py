@@ -204,12 +204,13 @@ class OSNet(nn.Module):
           https://arxiv.org/abs/1905.00953
     """
 
-    def __init__(self, num_classes, blocks, layers, channels, feature_dim=512, loss='softmax', IN=False, **kwargs):
+    def __init__(self, num_classes, blocks, layers, channels, feature_dim=512, loss='softmax', attention=False, IN=False, **kwargs):
         super(OSNet, self).__init__()
         num_blocks = len(blocks)
         assert num_blocks == len(layers)
         assert num_blocks == len(channels) - 1 
         self.loss = loss
+        self.attention = attention
         
         # convolutional backbone
         self.conv1 = ConvLayer(3, channels[0], 7, stride=2, padding=3, IN=IN)
@@ -218,6 +219,8 @@ class OSNet(nn.Module):
         self.conv3 = self._make_layer(blocks[1], layers[1], channels[1], channels[2], reduce_spatial_size=True)
         self.conv4 = self._make_layer(blocks[2], layers[2], channels[2], channels[3], reduce_spatial_size=False)
         self.conv5 = Conv1x1(channels[3], channels[3])
+        if self.attention:
+            self.attention_conv = Conv1x1(channels[2]+channels[3]+channels[3], 1)
         self.global_avgpool = nn.AdaptiveAvgPool2d(1)
         # fully connected layer
         self.fc = self._construct_fc_layer(feature_dim, channels[3], dropout_p=None)
@@ -286,15 +289,25 @@ class OSNet(nn.Module):
         x = self.conv1(x)
         x = self.maxpool(x)
         x = self.conv2(x)
-        x = self.conv3(x)
-        x = self.conv4(x)
-        x = self.conv5(x)
-        return x
+        x1 = self.conv3(x)
+        x2 = self.conv4(x1)
+        x3 = self.conv5(x2)
+        if self.attention:
+            at_map = torch.cat([x1, x2, x3], dim=1)
+            at_map = self.attention_conv(at_map)
+            return x3, at_map
+        return x3
 
     def forward(self, x):
-        v = self.featuremaps(x)
+        if self.attention:
+            v, at_map = self.featuremaps(x)
+            v = v * at_map
+        else:
+            v = self.featuremaps(x)
         
         if self.loss == 'trick':
+            if self.attention:
+                return v, at_map
             return v
         
         v = self.global_avgpool(v)        
@@ -308,11 +321,15 @@ class OSNet(nn.Module):
 ##########
 # Instantiation
 ##########
-def osnet_x1_0(num_classes=1000, loss='softmax', **kwargs):
+def osnet_x1_0(num_classes=1000, loss='softmax', attention=False, **kwargs):
     # standard size (width x1.0)
     return OSNet(num_classes, blocks=[OSBlock, OSBlock, OSBlock], layers=[2, 2, 2],
                  channels=[64, 256, 384, 512], loss=loss, **kwargs)
 
+def osnet_att_x1_0(num_classes=1000, loss='softmax', **kwargs):
+    # standard size (width x1.0)
+    return OSNet(num_classes, blocks=[OSBlock, OSBlock, OSBlock], layers=[2, 2, 2],
+                 channels=[64, 256, 384, 512], loss=loss, attention=True, **kwargs)
 
 def osnet_x0_75(num_classes=1000, loss='softmax', **kwargs):
     # medium size (width x0.75)

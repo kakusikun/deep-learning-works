@@ -75,6 +75,8 @@ _C.DATASET.NAME = ""
 _C.DATASET.TRAIN = ""
 # List of the dataset names for testing, as present in paths_catalog.py
 _C.DATASET.TEST = ""
+_C.DATASET.ATTENTION_MAPS = ""
+_C.DATASET.ATTENTION_MAPS_LIST = ""
 
 _C.DATASET.TRAIN_PATH = ""
 _C.DATASET.TEST_PATH = ""
