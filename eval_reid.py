@@ -8,6 +8,7 @@ from model.OSNetv2 import osnet_x1_0
 from config.config_manager import _C as cfg
 from data.build_loader import build_reid_loader
 from model.managers.trick_manager import TrickManager
+from model.managers.trick_att_manager import TrickManager as AttentionManager
 from tools.logger import setup_logger
 from engine.engines.reid_engine_trick import ReIDEngine
 import numpy as np
@@ -20,6 +21,7 @@ parser.add_argument("--config_file", default="", help="path to config file", typ
 parser.add_argument("--opts", help="Modify config options using the command-line", default=None,
                     nargs=argparse.REMAINDER)
 parser.add_argument("--type", default="cmc", help="evaluation type", type=str)
+parser.add_argument("--manager", default="trick", help="evaluation type", type=str)
 
 args = parser.parse_args()
 
@@ -28,7 +30,7 @@ if args.config_file != "":
 if args.opts != None:
     cfg.merge_from_list(args.opts)
 
-log_name = "evaluation_{}_{}".format(cfg.DATASET.NAME, cfg.EVALUATE.split("/")[-1])
+log_name = "{}_evaluation_{}_{}".format(args.type, cfg.DATASET.NAME, cfg.EVALUATE.split("/")[-1])
 logger = setup_logger("./evaluation/", log_name)
 logger.info("Running with config:\n{}".format(cfg))
 
@@ -53,8 +55,12 @@ if action == 'y':
         model_state.update(checkpointRefine)
         core.load_state_dict(model_state)
     else:
-        model_manager = TrickManager(cfg)
-        core = model_manager.model
+        if args.manager == 'trick':
+            model_manager = TrickManager(cfg)
+            core = model_manager.model
+        elif args.manager == 'attention':
+            model_manager = AttentionManager(cfg)
+            core = model_manager.model
 
     core = core.cuda()
     core.eval()

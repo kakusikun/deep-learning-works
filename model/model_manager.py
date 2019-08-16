@@ -17,14 +17,14 @@ class TrainingManager():
         self.loss_has_param = []
 
     def _check_model(self):
-        if self.cfg.RESUME:
-            logger.info("Resuming model from {}".format(self.cfg.RESUME))
-            self.loadPath = self.cfg.RESUME
-            self.load_model()
-        elif self.cfg.EVALUATE:
+        if self.cfg.EVALUATE:
             logger.info("Evaluating model from {}".format(self.cfg.EVALUATE))
             self.loadPath = self.cfg.EVALUATE
             self.load_model()
+        elif self.cfg.RESUME:
+            logger.info("Resuming model from {}".format(self.cfg.RESUME))
+            self.loadPath = self.cfg.RESUME
+            self.load_model()        
         else:
            self._initialize_weights()        
         

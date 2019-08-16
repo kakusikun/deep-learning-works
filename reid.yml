@@ -7,7 +7,7 @@ MODEL:
   NUM_GPUS: 1
   NUM_CLASSES: 702
   NAME: "osnet"
-  PRETRAIN: "outside"
+  PRETRAIN: "own"
 
 INPUT:
   IMAGE_PAD: 10
@@ -27,14 +27,14 @@ DATALOADER:
 DATASET:
   NAME: "dukemtmcreid"
   TRAIN_PATH: "/media/allen/mass/reid"
-  ATTENTION_MAPS: "/media/allen/mass/reid/dukemtmc-reid/DukeMTMC-reID/at_maps.npy"
+  ATTENTION_MAPS: "/media/allen/mass/reid/dukemtmc-reid/DukeMTMC-reID/at_map_gt"
   ATTENTION_MAPS_LIST: "/media/allen/mass/reid/dukemtmc-reid/DukeMTMC-reID/at_maps.txt"
 
-TRANSFORM:
-  HFLIP: True
-  RANDOMCROP: True
-  NORMALIZE: True
-  RESIZE: True 
+# TRANSFORM:
+  # HFLIP: True
+  # RANDOMCROP: True
+  # NORMALIZE: True
+  # RESIZE: True 
   # RANDOMERASING: True
 
 SOLVER:
@@ -58,7 +58,7 @@ SOLVER:
 
 # osnet_ibn_x1_0_imagenet.pth 
 
-RESUME: "/home/allen/Downloads/osnet_x1_0_imagenet.pth"
+# RESUME: "/home/allen/Downloads/osnet_x1_0_imagenet.pth"
 # EVALUATE: "/home/allen/OSNet_market_cels_triplet_center_Adam_lr_0.00035_warmup_10_0.01_plateau_10_flip_crop_erase_imagenet_0.9495.pth"
 # EVALUATE: "/home/allen/Downloads/osnet_x1_0_market_256x128_amsgrad_ep150_stp60_lr0.0015_b64_fb10_softmax_labelsmooth_flip.pth"
 # EVALUATE: ["main", "/home/allen.jc.lin/deep-learning-works/result_ResNet18_SGD_REID_Phase2_TupletLoss_CELSR_Trick_scratch_2019-07-08_22-35-03/weights/model_main_220_0.7732.pth"]
