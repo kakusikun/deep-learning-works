@@ -1,11 +1,17 @@
 
 import torch
+import os
+import cv2
 import numpy as np
 import torch.utils.data as data
 import lmdb
 from PIL import Image
 from data import caffe_pb2
+from data.build_transform import RandomErasing, _RandomCrop, _RandomHorizontalFlip
+import torchvision.transforms as T
+import torchvision.transforms.functional as F
 datum = caffe_pb2.Datum()
+
 
 class build_image_dataset(data.Dataset):
     def __init__(self, dataset, transform=None, use_lmdb=None):
@@ -60,30 +66,49 @@ class build_reid_atmap_dataset(data.Dataset):
     def __init__(self, dataset, cfg, transform=None):
         self.dataset = dataset
         self.transform = transform
-        self.at_maps = np.load(cfg.DATASET.ATTENTION_MAPS)
+        self.at_maps = cfg.DATASET.ATTENTION_MAPS
         self.at_maps_keys = {}
         with open(cfg.DATASET.ATTENTION_MAPS_LIST, 'r') as f:
             for i, line in enumerate(f):
                 line = line.strip()
                 self.at_maps_keys[line] = i
+        
+        self.resize = T.Resize(size=cfg.INPUT.IMAGE_SIZE)
+        self.at_map_resize = T.Resize(size=cfg.INPUT.IMAGE_SIZE, interpolation=Image.NEAREST)
+        self.normalize = T.Normalize(mean=cfg.INPUT.PIXEL_MEAN, std=cfg.INPUT.PIXEL_STD)
+        self.random_hflip = _RandomHorizontalFlip(p=cfg.INPUT.PROB)
+        self.random_erase = RandomErasing()
+        self.random_crop = _RandomCrop(size=cfg.INPUT.IMAGE_CROP_SIZE, padding=cfg.INPUT.IMAGE_PAD)
            
     def __getitem__(self, index):
         img_path, pid, camid = self.dataset[index]
         at_maps_key = img_path.split("/")[-1]
         if  at_maps_key in self.at_maps_keys:
-            at_map = self.at_maps[self.at_maps_keys[at_maps_key]].astype(int)
-            at_map = torch.from_numpy(at_map).float()
+            at_map = Image.open(os.path.join(self.at_maps, at_maps_key))
             at_map_label = 1
         else:
             at_map = torch.ones(16*8)
-            at_map_label = -1
+            at_map_label = -1       
         
-        at_map = at_map.view(-1)
-
         img = Image.open(img_path)
-
-        if self.transform is not None:
-            img = self.transform(img)
+        img = self.resize(img)
+        img, is_flip = self.random_hflip(img)
+        img, i, j, h, w = self.random_crop(img)
+        img = self.transform(img)
+        img = self.normalize(img)
+        img, x1, y1, rh, rw = self.random_erase(img)
+        
+        if at_map_label > 0:
+            at_map = self.at_map_resize(at_map)
+            if is_flip:
+                at_map = F.hflip(at_map)
+            at_map = self.random_crop.by_param(at_map, i, j, h, w)
+            at_map = torch.Tensor(np.array(at_map)).transpose(0,2).transpose(1,2)
+            if x1 > 0:
+                at_map = self.random_erase.by_param(at_map, x1, y1, rh, rw)
+            at_map = at_map.transpose(0,2).transpose(0,1).numpy()
+            at_map = cv2.resize(at_map, (8, 16), interpolation=cv2.INTER_NEAREST).mean(axis=2)
+            at_map = torch.Tensor(at_map).view(-1)    
         
         return img, pid, camid, at_map, at_map_label
     
