@@ -127,7 +127,7 @@ def build_reid_loader(cfg):
             pin_memory=True
         )
     else:
-        sampler = IdBasedSampler(train_dataset, batch_size=cfg.INPUT.SIZE_TRAIN, num_instances=cfg.REID.SIZE_PERSON)
+        sampler = IdBasedSampler(dataset.train, batch_size=cfg.INPUT.SIZE_TRAIN, num_instances=cfg.REID.SIZE_PERSON)
 
         t_loader = data.DataLoader(
             train_dataset, 
