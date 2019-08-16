@@ -105,7 +105,7 @@ def build_reid_loader(cfg):
         val_trans = build_transform(cfg, isTrain=False)
 
         if cfg.DATASET.ATTENTION_MAPS != "":
-            train_dataset = build_reid_atmap_dataset(dataset.train, cfg, train_trans)
+            train_dataset = build_reid_atmap_dataset(dataset.train, cfg)
         else:
             train_dataset = build_reid_dataset(dataset.train, train_trans)
 
