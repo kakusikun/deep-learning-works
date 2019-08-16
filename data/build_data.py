@@ -63,9 +63,8 @@ class build_reid_dataset(data.Dataset):
         return len(self.dataset)
 
 class build_reid_atmap_dataset(data.Dataset):
-    def __init__(self, dataset, cfg, transform=None):
+    def __init__(self, dataset, cfg):
         self.dataset = dataset
-        self.transform = transform
         self.at_maps = cfg.DATASET.ATTENTION_MAPS
         self.at_maps_keys = {}
         with open(cfg.DATASET.ATTENTION_MAPS_LIST, 'r') as f:
@@ -94,7 +93,7 @@ class build_reid_atmap_dataset(data.Dataset):
         img = self.resize(img)
         img, is_flip = self.random_hflip(img)
         img, i, j, h, w = self.random_crop(img)
-        img = self.transform(img)
+        img = F.to_tensor(img)
         img = self.normalize(img)
         img, x1, y1, rh, rw = self.random_erase(img)
         
