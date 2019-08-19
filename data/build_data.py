@@ -72,12 +72,32 @@ class build_reid_atmap_dataset(data.Dataset):
                 line = line.strip()
                 self.at_maps_keys[line] = i
         
-        self.resize = T.Resize(size=cfg.INPUT.IMAGE_SIZE)
-        self.at_map_resize = T.Resize(size=cfg.INPUT.IMAGE_SIZE, interpolation=Image.NEAREST)
-        self.normalize = T.Normalize(mean=cfg.INPUT.PIXEL_MEAN, std=cfg.INPUT.PIXEL_STD)
-        self.random_hflip = _RandomHorizontalFlip(p=cfg.INPUT.PROB)
-        self.random_erase = RandomErasing()
-        self.random_crop = _RandomCrop(size=cfg.INPUT.IMAGE_CROP_SIZE, padding=cfg.INPUT.IMAGE_PAD)
+        if cfg.TRANSFORM.RESIZE:
+            self.resize = T.Resize(size=cfg.INPUT.IMAGE_SIZE)
+            self.at_map_resize = T.Resize(size=cfg.INPUT.IMAGE_SIZE, interpolation=Image.NEAREST)
+        else:
+            self.resize = None
+            self.at_map_resize = None
+
+        if cfg.TRANSFORM.HFLIP:
+            self.random_hflip = _RandomHorizontalFlip(p=cfg.INPUT.PROB)
+        else:
+            self.random_hflip = None
+
+        if cfg.TRANSFORM.RANDOMCROP:
+            self.random_crop = _RandomCrop(size=cfg.INPUT.IMAGE_CROP_SIZE, padding=cfg.INPUT.IMAGE_PAD)
+        else:
+            self.random_crop = None
+        
+        if cfg.TRANSFORM.NORMALIZE:
+            self.normalize = T.Normalize(mean=cfg.INPUT.PIXEL_MEAN, std=cfg.INPUT.PIXEL_STD)
+        else:
+            self.normalize = None
+
+        if cfg.TRANSFORM.RANDOMERASING:
+            self.random_erase = RandomErasing()
+        else:
+            self.random_erase = None
            
     def __getitem__(self, index):
         img_path, pid, camid = self.dataset[index]
@@ -90,20 +110,26 @@ class build_reid_atmap_dataset(data.Dataset):
             at_map_label = -1       
         
         img = Image.open(img_path)
-        img = self.resize(img)
-        img, is_flip = self.random_hflip(img)
-        img, i, j, h, w = self.random_crop(img)
+        if self.resize is not None:
+            img = self.resize(img)
+        if self.random_hflip is not None:
+            img, is_flip = self.random_hflip(img)
+        if self.random_crop is not None:
+            img, i, j, h, w = self.random_crop(img)
         img = F.to_tensor(img)
-        img = self.normalize(img)
-        img, x1, y1, rh, rw = self.random_erase(img)
+        if self.normalize is not None:
+            img = self.normalize(img)
+        if self.random_erase is not None:
+            img, x1, y1, rh, rw = self.random_erase(img)
         
         if at_map_label > 0:
             at_map = self.at_map_resize(at_map)
-            if is_flip:
+            if self.random_hflip is not None:
                 at_map = F.hflip(at_map)
-            at_map = self.random_crop.by_param(at_map, i, j, h, w)
+            if self.random_crop is not None:
+                at_map = self.random_crop.by_param(at_map, i, j, h, w)
             at_map = torch.Tensor(np.array(at_map)).transpose(0,2).transpose(1,2)
-            if x1 > 0:
+            if self.random_erase is not None:
                 at_map = self.random_erase.by_param(at_map, x1, y1, rh, rw)
             at_map = at_map.transpose(0,2).transpose(0,1).numpy()
             at_map = cv2.resize(at_map, (8, 16), interpolation=cv2.INTER_NEAREST).mean(axis=2)
