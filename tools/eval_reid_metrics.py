@@ -173,7 +173,7 @@ def eval_recall(distmat, q_pids, g_pids, q_camids, g_camids, save=False, name="r
     recalls = np.array(recalls)
     precisions = np.array(precisions)
     df = pd.DataFrame({'thresh': thresh, 'recall': recalls, 'precision': precisions})    
-    df.to_csv("./{}.csv".format(name), index=False)
+    df.to_csv("./evaluation/{}.csv".format(name), index=False)
 
     if save:                
         plt.figure(figsize=(12, 5))
