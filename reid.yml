@@ -1,4 +1,4 @@
-EXPERIMENT: "OSNet_duke_cels_triplet_center_bceAttention_Adam_lr_0.00035_warmup_10_0.01_plateau_10_flip_crop_erase_imagenet"
+EXPERIMENT: "OSNet_duke_cels_triplet_center_bceAttention_Adam_lr_0.00035_warmup_10_0.01_plateau_10_flip_crop_imagenet"
 # [modelname]_[task]_[loss]_[opt]_[lr]_[trick]_[pretrain]
 
 TASK: "reid"
@@ -30,11 +30,11 @@ DATASET:
   ATTENTION_MAPS: "/media/allen/mass/reid/dukemtmc-reid/DukeMTMC-reID/at_map_gt"
   ATTENTION_MAPS_LIST: "/media/allen/mass/reid/dukemtmc-reid/DukeMTMC-reID/at_maps.txt"
 
-# TRANSFORM:
-  # HFLIP: True
-  # RANDOMCROP: True
-  # NORMALIZE: True
-  # RESIZE: True 
+TRANSFORM:
+  HFLIP: True
+  RANDOMCROP: True
+  NORMALIZE: True
+  RESIZE: True 
   # RANDOMERASING: True
 
 SOLVER:
