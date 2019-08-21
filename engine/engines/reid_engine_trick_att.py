@@ -15,7 +15,25 @@ logger = logging.getLogger("logger")
 class ReIDEngine(Engine):
     def __init__(self, cfg, opts, tdata, qdata, gdata, show, manager):
         super(ReIDEngine, self).__init__(cfg, opts, tdata, None, qdata, gdata, show, manager)
-            
+        
+    def _train_epoch_start(self): 
+        self.epoch += 1
+        if self.epoch == 1:
+            for n, p in self.core.backbone.named_parameters():
+                if n.find('attention') == -1:
+                    p.requires_grad_(False)
+            logger.info("Module Freezed")
+
+        elif self.epoch == cfg.SOLVER.MODEL_FREEZE_PEROID + 1:
+            for n, p in self.core.backbone.named_parameters():
+                if n.find('attention') == -1:
+                    p.requires_grad_(True)
+            logger.info("Module Thawed")
+
+        logger.info("Epoch {} start".format(self.epoch))
+
+        self.core.train() 
+
     def _train_iter_start(self):
         self.iter += 1
         for opt in self.opts:
