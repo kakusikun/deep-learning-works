@@ -204,12 +204,12 @@ class OSNet(nn.Module):
           https://arxiv.org/abs/1905.00953
     """
 
-    def __init__(self, num_classes, blocks, layers, channels, feature_dim=512, loss='softmax', attention=False, IN=False, **kwargs):
+    def __init__(self, num_classes, blocks, layers, channels, feature_dim=512, task='imagenet', attention=False, IN=False, **kwargs):
         super(OSNet, self).__init__()
         num_blocks = len(blocks)
         assert num_blocks == len(layers)
         assert num_blocks == len(channels) - 1 
-        self.loss = loss
+        self.task = task
         self.attention = attention
         
         # convolutional backbone
@@ -221,8 +221,12 @@ class OSNet(nn.Module):
         self.conv5 = Conv1x1(channels[3], channels[3])
         if self.attention:
             self.att_incorp = AttentionIncorporation(channels[2])
-        if self.loss == 'softmax':
+        if self.task == 'imagenet':
             self.global_avgpool = nn.AdaptiveAvgPool2d(1)
+            # fully connected layer
+            self.fc = self._construct_fc_layer(feature_dim, channels[3], dropout_p=None)
+        if self.task == 'attention':
+            self.global_maxpool = nn.AdaptiveMaxPool2d(1)
             # fully connected layer
             self.fc = self._construct_fc_layer(feature_dim, channels[3], dropout_p=None)
         
@@ -304,17 +308,27 @@ class OSNet(nn.Module):
         else:
             x = self.featuremaps(x)
         
-        if self.loss == 'trick':
+        if self.task == 'trick':
             if self.attention:
                 return x, at_map
             return x
 
-        if self.loss == 'softmax':
+        if self.task == 'attention':
+            x = self.global_maxpool(x)        
+            x = x.view(x.size(0), -1)
+            if self.fc is not None:
+                x = self.fc(x)
+                x = x.unsqueeze(2).unsqueeze(3) 
+            if self.attention:
+                return x, at_map
+            return x
+            
+        if self.task == 'imagenet':
             x = self.global_avgpool(x)        
             x = x.view(x.size(0), -1)
             if self.fc is not None:
                 x = self.fc(x)
-        return x
+            return x
 
 
 

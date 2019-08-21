@@ -74,13 +74,13 @@ def weights_init_classifier(module):
 class Model(nn.Module):
     def __init__(self, cfg):
         super(Model, self).__init__()
-        
+        self.cfg = cfg 
         if cfg.MODEL.NAME == 'osnet':
             self.in_planes = 512
             if cfg.MODEL.PRETRAIN == "outside":
-                self.backbone = osnet_att_x1_0(loss='trick') 
+                self.backbone = osnet_att_x1_0(task=cfg.MODEL.TASK) 
             else:
-                self.backbone = osnet_att_x1_0(num_classes=cfg.MODEL.NUM_CLASSES, loss='trick')        
+                self.backbone = osnet_att_x1_0(num_classes=cfg.MODEL.NUM_CLASSES, task=cfg.MODEL.TASK)        
         else:
             logger.info("{} is not supported".format(cfg.MODEL.NAME))
             sys.exit(1)
@@ -98,20 +98,40 @@ class Model(nn.Module):
         self.id_fc.apply(weights_init_classifier)
     
     def forward(self, x):
-        feat, at_map = self.backbone(x)
+        if self.cfg.MODEL.TASK == 'trick':
+            feat, at_map = self.backbone(x)
 
-        # additional attention incorporation
-        at_map = self.att_conv_block(at_map)
-        at_map = self.gmp(at_map)        
-        x = self.gmp(feat)
-        # fused before BNNeck
-        x = torch.cat((x, at_map), dim=1)
-        # feature to triplet loss
-        local_feat = x.view(x.size(0), -1)
+            # additional attention incorporation
+            at_map = self.att_conv_block(at_map)
+            at_map = self.gmp(at_map)        
+            x = self.gmp(feat)
+            # fused before BNNeck
+            x = torch.cat((x, at_map), dim=1)
+            # feature to triplet loss
+            local_feat = x.view(x.size(0), -1)
 
-        x = self.BNNeck(x)
-        x = x.view(x.size(0), -1)
-        if not self.training:
-            return x        
-        global_feat = self.id_fc(x)
-        return local_feat, global_feat
+            x = self.BNNeck(x)
+            x = x.view(x.size(0), -1)
+            if not self.training:
+                return x        
+            global_feat = self.id_fc(x)
+            return local_feat, global_feat
+
+        if self.cfg.MODEL.TASK == 'attention':
+            feat, at_map = self.backbone(x)
+
+            # additional attention incorporation
+            at_map = self.att_conv_block(at_map)
+            at_map = self.gmp(at_map)        
+
+            # fuse
+            x = torch.cat((feat, at_map), dim=1)
+            x = self.BNNeck(x)
+
+            # feature to triplet loss
+            local_feat = x.view(x.size(0), -1)
+            if not self.training:
+                return local_feat        
+
+            global_feat = self.id_fc(local_feat)
+            return local_feat, global_feat

@@ -1,4 +1,4 @@
-EXPERIMENT: "OSNet_duke_cels_triplet_center_attention_Adam_lr_0.00035_warmup_10_0.01_plateau_10_flip_crop_imagenet"
+EXPERIMENT: "OSNet_duke_cels_triplet_center_attention_notrick_Adam_lr_0.00035_warmup_10_0.01_plateau_10_flip_crop_imagenet"
 # [modelname]_[task]_[loss]_[opt]_[lr]_[trick]_[pretrain]
 
 TASK: "reid"
@@ -8,6 +8,7 @@ MODEL:
   NUM_CLASSES: 702
   NAME: "osnet"
   PRETRAIN: "outside"
+  TASK: "attention"
 
 INPUT:
   IMAGE_PAD: 10
