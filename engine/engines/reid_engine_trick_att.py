@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import torchvision.transforms as T
 import torchvision
 from engine.engine import Engine
-from tools.eval_reid_metrics import evaluate
+from tools.eval_reid_metrics import eval_single_query as evaluate
 import numpy as np
 import logging
 logger = logging.getLogger("logger")
@@ -118,15 +118,14 @@ class ReIDEngine(Engine):
         distmat =  1 - F.linear(qf, gf)
         distmat = distmat.numpy()
 
-        print("Computing CMC and mAP")
-        cmc, mAP = evaluate(distmat, q_pids, g_pids, q_camids, g_camids)
+        logger.info("Computing Single Query CMC")
+        cmc = evaluate(distmat, q_pids, g_pids, q_camids, g_camids)
 
-        print("Results ----------")
-        print("mAP: {:.1%}".format(mAP))
-        print("CMC curve")
+        logger.info("Results ----------")
+        logger.info("CMC curve")
         for r in [1, 5, 10, 20]:
-            print("Rank-{:<3}: {:.1%}".format(r, cmc[r - 1]))
-        print("------------------")
+            logger.info("Rank-{:<3}: {:.1%}".format(r, cmc[r - 1]))
+        logger.info("------------------")
 
         self.accu = cmc[0]
 

@@ -132,6 +132,49 @@ def eval_market1501(distmat, q_pids, g_pids, q_camids, g_camids, max_rank):
 
     return all_cmc, mAP
 
+def eval_single_query(distmat, q_pids, g_pids, q_camids, g_camids):
+    """Evaluation with market1501 metric
+    Key: for each query identity, its gallery images from the same camera view are discarded.
+    """
+    num_q, num_g = distmat.shape
+    if num_g < max_rank:
+        max_rank = num_g
+        print("Note: number of gallery samples is quite small, got {}".format(num_g))
+    indices = np.argsort(distmat, axis=1)
+    matches = (g_pids[indices] == q_pids[:, np.newaxis]).astype(np.int32)
+
+    # compute cmc curve for each query
+    num_valid_q = 0. # number of valid query
+    num_success_q = np.zeros(50)
+    for q_idx in tqdm(range(num_q), desc="CMC"):
+        # get query pid and camid
+        q_pid = q_pids[q_idx]
+        q_camid = q_camids[q_idx]
+
+        # remove gallery samples that have the same pid and camid with query
+        order = indices[q_idx]
+        remove = (g_pids[order] == q_pid) & (g_camids[order] == q_camid)
+        keep = np.invert(remove)
+
+        num_valid_q += sum(matches[q_idx][keep])
+
+        num_match = 0
+        for idx, match in enumerate(matches[q_idx][keep]):
+            if match == 0:
+                num_match += 1
+                for i in range(50):
+                    if num_match == i+1:
+                        num_success_q[i] += sum(matches[q_idx][keep][:idx])
+                if num_match == 50:    
+                    break
+
+    assert num_valid_q > 0, "Error: all query identities do not appear in gallery"
+
+    cmc = num_success_q / num_valid_q
+
+    return cmc   
+
+
 def eval_recall(distmat, q_pids, g_pids, q_camids, g_camids, save=False, name="recall"):
     """Evaluation with market1501 metric
     Key: for each query identity, its gallery images from the same camera view are discarded.
