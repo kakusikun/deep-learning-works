@@ -55,28 +55,32 @@ class TrainingManager():
 
     def load_model(self): 
         state = torch.load(self.loadPath)
+        loaded_weights = {}
         if len(state.keys()) < 10:
             for key in state.keys():            
                 if 'model' in key:
                     checkpoint = state[key]
-                    if self.cfg.MODEL.PRETRAIN == "backbone":
-                        model_state = self.model.backbone.state_dict()
-                    else:
-                        model_state = self.model.state_dict()
+                    model_state = self.model.state_dict()
+                    
+                    for k, _ in model_state.items():
+                        loaded_weights[k] = False
 
                     checkpointRefine = {}             
                     for k, v in checkpoint.items():
                         if k in model_state and torch.isnan(v).sum() == 0:
                             checkpointRefine[k] = v
+                            loaded_weights[k] = True
                             logger.info("{:60} ...... loaded".format(k))
                         else:
                             logger.info("{:60} ......... skipped".format(k))
+                    
+                    for k in loaded_weights.keys():
+                        logger.info("{:60}".format(k))
+                        if not loaded_weights[k]:
+                            logger.info("{:60} ...... not loaded".format(k))
                         
                     model_state.update(checkpointRefine)
-                    if self.cfg.MODEL.PRETRAIN == "backbone":
-                        self.model.backbone.load_state_dict(model_state)
-                    else:
-                        self.model.load_state_dict(model_state)
+                    self.model.load_state_dict(model_state)
                     
                 elif 'loss' in key:
                     idx = int(key.split("_")[-1])
@@ -86,13 +90,23 @@ class TrainingManager():
         else:
             checkpoint = state
             model_state = self.model.backbone.state_dict()
+
+            for k, _ in model_state.items():
+                loaded_weights[k] = False
+
             checkpointRefine = {}             
             for k, v in checkpoint.items():
                 if k in model_state and torch.isnan(v).sum() == 0:
                     checkpointRefine[k] = v
+                    loaded_weights[k] = True
                     logger.info("{:60} ...... loaded".format(k))
                 else:
-                    logger.info("{:60} ...... skipped".format(k))                
+                    logger.info("{:60} ...... skipped".format(k))
+
+            for k in loaded_weights.keys():
+                if not loaded_weights[k]:
+                    logger.info("{:60} ...... not loaded".format(k))     
+                               
             model_state.update(checkpointRefine)
             self.model.backbone.load_state_dict(model_state)
 

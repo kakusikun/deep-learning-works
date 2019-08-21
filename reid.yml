@@ -1,4 +1,4 @@
-EXPERIMENT: "OSNet_duke_cels_triplet_center_bceAttention_Adam_lr_0.00035_warmup_10_0.01_plateau_10_flip_crop_imagenet"
+EXPERIMENT: "OSNet_duke_cels_triplet_center_attention_Adam_lr_0.00035_warmup_10_0.01_plateau_10_flip_crop_imagenet"
 # [modelname]_[task]_[loss]_[opt]_[lr]_[trick]_[pretrain]
 
 TASK: "reid"
@@ -7,12 +7,12 @@ MODEL:
   NUM_GPUS: 1
   NUM_CLASSES: 702
   NAME: "osnet"
-  PRETRAIN: "own"
+  PRETRAIN: "outside"
 
 INPUT:
   IMAGE_PAD: 10
-  IMAGE_SIZE: (256, 128) #(320, 160)
-  IMAGE_CROP_SIZE: (256, 128)
+  IMAGE_SIZE: (384, 128) #(320, 160)
+  IMAGE_CROP_SIZE: (384, 128)
   SIZE_TRAIN: 64
   SIZE_TEST: 256
   PIXEL_MEAN: [0.485, 0.456, 0.406]
@@ -55,6 +55,8 @@ SOLVER:
   WARMUP_FACTOR: 0.01
   WARMUP_SIZE: 10.0
   PLATEAU_SIZE: 10.0
+
+  SOLVER.MODEL_FREEZE_PEROID: 3
 
 # osnet_ibn_x1_0_imagenet.pth 
 
