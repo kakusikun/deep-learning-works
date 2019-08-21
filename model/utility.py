@@ -407,7 +407,7 @@ class SpatialAttention(nn.Module):
     def __init__(self, in_channels, reduction=8):
         super(SpatialAttention, self).__init__()
         self.out_channels = in_channels // reduction
-        self.scale = nn.Parameter(torch.FloatTensor(0))
+        self.scale = nn.Parameter(torch.FloatTensor([0]))
         self.conv_reduce1 = PureConv1x1(in_channels, self.out_channels)
         self.conv_reduce2 = PureConv1x1(in_channels, self.out_channels)
         self.conv = PureConv1x1(in_channels, in_channels)
@@ -422,8 +422,9 @@ class SpatialAttention(nn.Module):
         A_s = self.softmax(torch.matmul(reduce_1, reduce_2))
         # N x C x HW
         multipler = self.conv(x).view(n, c, -1)
+        A_s = torch.matmul(multipler, A_s)
         # N x C x HW
-        weighted_A_s = self.scale * torch.matmul(multipler, A_s)
+        weighted_A_s = torch.mul(A_s, self.scale)
         # N x C x H x W
         residual = x + weighted_A_s.view(n, c, h, w)
         return residual
@@ -431,7 +432,7 @@ class SpatialAttention(nn.Module):
 class ChannelAttention(nn.Module):
     def __init__(self):
         super(ChannelAttention, self).__init__()
-        self.scale = nn.Parameter(torch.FloatTensor(0))
+        self.scale = nn.Parameter(torch.FloatTensor([0]))
         self.softmax = nn.Softmax(dim=2)
     def forward(self, x):
         n, c, h, w = x.shape
@@ -441,8 +442,9 @@ class ChannelAttention(nn.Module):
         x2 = x.view(n, c, -1).transpose(1,2)
         # N x C x C
         A_s = self.softmax(torch.matmul(x1, x2))
+        A_s = torch.matmul(A_s, x1)
         # N x C x HW
-        weighted_A_s = self.scale * torch.matmul(A_s, x1)
+        weighted_A_s = torch.mul(A_s, self.scale)
         # N x C x H x W
         residual = x + weighted_A_s.view(n, c, h, w)
         return residual
@@ -481,7 +483,7 @@ class AttentionConvBlock(nn.Module):
         self.conv1 = Conv3x3(in_channels, 512)
         self.conv2 = Conv1x1(512, out_channels)
         self.max_pool = nn.AdaptiveMaxPool2d(1)
-    def forward(self, x, attention):
+    def forward(self, x):
         x = self.conv1(x)
         x = self.conv2(x)
         return x

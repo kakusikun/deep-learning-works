@@ -24,7 +24,7 @@ class ReIDEngine(Engine):
                     p.requires_grad_(False)
             logger.info("Module Freezed")
 
-        elif self.epoch == cfg.SOLVER.MODEL_FREEZE_PEROID + 1:
+        elif self.epoch == self.cfg.SOLVER.MODEL_FREEZE_PEROID + 1:
             for n, p in self.core.backbone.named_parameters():
                 if n.find('attention') == -1:
                     p.requires_grad_(True)
@@ -55,11 +55,11 @@ class ReIDEngine(Engine):
         for batch in tqdm(self.tdata, desc="Epoch[{}/{}]".format(self.epoch, self.max_epoch)):
             self._train_iter_start()
 
-            images, target, _, at_map_gt, at_map_keys= batch
-            if self.use_gpu: images, target, at_map_gt, at_map_keys = images.cuda(), target.cuda(), at_map_gt.cuda(), at_map_keys.cuda()
+            images, target, _ = batch
+            if self.use_gpu: images, target = images.cuda(), target.cuda()
             
-            local, glob, at_map = self.core(images) 
-            self.total_loss, self.each_loss = self.manager.loss_func(local, glob, at_map, target, at_map_gt, at_map_keys)
+            local, glob = self.core(images) 
+            self.total_loss, self.each_loss = self.manager.loss_func(local, glob, target)
             self.total_loss.backward()
 
             for _loss in self.manager.loss_has_param:

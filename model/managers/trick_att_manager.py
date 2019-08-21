@@ -29,25 +29,23 @@ class AttentionManager(TrainingManager):
         self.model = Model(self.cfg)
 
     def _make_loss(self):
-        if self.cfg.MODEL.NAME == 'resnet18' or self.cfg.MODEL.NAME == 'osnet' or self.cfg.MODEL.NAME == 'osnetibn':
-            feat_dim = 512
-        elif self.cfg.MODEL.NAME == 'rmnet':
-            feat_dim = 256        
+        if self.cfg.MODEL.NAME == 'osnet':
+            feat_dim = 512 + 1024
+        else:
+            logger.info("{} is not supported".format(cfg.MODEL.NAME))
+            sys.exit(1)
 
         ce_ls = CrossEntropyLossLS(self.cfg.MODEL.NUM_CLASSES)
         center_loss = CenterLoss(feat_dim, self.cfg.MODEL.NUM_CLASSES, self.cfg.MODEL.NUM_GPUS > 0 and torch.cuda.is_available())        
         triplet_loss = TripletLoss()
-        attention_loss = nn.BCEWithLogitsLoss()
         self.loss_has_param = [center_loss]
-        self.loss_name = ["cels", "triplet", "center", "attention"]
+        self.loss_name = ["cels", "triplet", "center"]
 
-        def loss_func(l_feat, g_feat, at_map, target, at_map_gt, at_map_keys):
-            keys = at_map_keys == 1
+        def loss_func(l_feat, g_feat, target):
             each_loss = [ce_ls(g_feat, target),
                          triplet_loss(l_feat, target)[0], 
-                         center_loss(l_feat, target), 
-                         attention_loss(at_map[keys], at_map_gt[keys])]
-            loss = each_loss[0] + each_loss[1] + self.cfg.SOLVER.CENTER_LOSS_WEIGHT * each_loss[2] + each_loss[3]
+                         center_loss(l_feat, target)]
+            loss = each_loss[0] + each_loss[1] + self.cfg.SOLVER.CENTER_LOSS_WEIGHT * each_loss[2]
             return loss, each_loss
 
         self.loss_func = loss_func
@@ -85,13 +83,14 @@ class Model(nn.Module):
                 self.backbone = osnet_att_x1_0(num_classes=cfg.MODEL.NUM_CLASSES, loss='trick')        
         else:
             logger.info("{} is not supported".format(cfg.MODEL.NAME))
+            sys.exit(1)
 
         self.gmp = nn.AdaptiveMaxPool2d(1)        
-        self.BNNeck = nn.BatchNorm2d(self.in_planes)
+        self.BNNeck = nn.BatchNorm2d(self.in_planes + 1024)
         self.BNNeck.bias.requires_grad_(False)  # no shift
         self.BNNeck.apply(weights_init_kaiming)
 
-        self.att_conv_block = AttentionConvBlock(512, 1024)
+        self.att_conv_block = AttentionConvBlock(384, 1024)
         self.att_conv_block.apply(weights_init_kaiming)
 
         self.num_classes = cfg.MODEL.NUM_CLASSES
@@ -115,4 +114,4 @@ class Model(nn.Module):
         if not self.training:
             return x        
         global_feat = self.id_fc(x)
-        return local_feat, global_feat, at_map
+        return local_feat, global_feat
