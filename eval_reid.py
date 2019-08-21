@@ -3,12 +3,12 @@ import sys
 from tqdm import tqdm
 import torch
 import torch.nn.functional as F
-from tools.eval_reid_metrics import evaluate, eval_recall
+from tools.eval_reid_metrics import eval_single_query, eval_recall
 from model.OSNetv2 import osnet_x1_0
 from config.config_manager import _C as cfg
 from data.build_loader import build_reid_loader
 from model.managers.trick_manager import TrickManager
-from model.managers.trick_att_manager import TrickManager as AttentionManager
+from model.managers.trick_att_manager import AttentionManager
 from tools.logger import setup_logger
 from engine.engines.reid_engine_trick import ReIDEngine
 import numpy as np
@@ -126,13 +126,13 @@ if action == 'y':
         # np.save("./q_camids.npy", q_camids)
         # np.save("./g_camids.npy", g_camids)
 
-        cmc, mAP = evaluate(distmat, q_pids, g_pids, q_camids, g_camids)
+        logger.info("Computing Single Query CMC")
+        cmc = eval_single_query(distmat, q_pids, g_pids, q_camids, g_camids)
 
         logger.info("Results ----------")
-        logger.info("mAP: {:.4%}".format(mAP))
         logger.info("CMC curve")
         for r in [1, 5, 10, 20]:
-            logger.info("Rank-{:<3}: {:.4%}".format(r, cmc[r - 1]))
+            logger.info("Rank-{:<3}: {:.1%}".format(r, cmc[r - 1]))
         logger.info("------------------")
     elif args.type == 'recall':
         eval_recall(distmat, q_pids, g_pids, q_camids, g_camids, save=True, name=log_name)

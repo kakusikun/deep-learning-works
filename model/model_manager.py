@@ -75,7 +75,6 @@ class TrainingManager():
                             logger.info("{:60} ......... skipped".format(k))
                     
                     for k in loaded_weights.keys():
-                        logger.info("{:60}".format(k))
                         if not loaded_weights[k]:
                             logger.info("{:60} ...... not loaded".format(k))
                         
@@ -106,7 +105,7 @@ class TrainingManager():
             for k in loaded_weights.keys():
                 if not loaded_weights[k]:
                     logger.info("{:60} ...... not loaded".format(k))     
-                               
+
             model_state.update(checkpointRefine)
             self.model.backbone.load_state_dict(model_state)
 

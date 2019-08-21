@@ -56,7 +56,7 @@ SOLVER:
   WARMUP_SIZE: 10.0
   PLATEAU_SIZE: 10.0
 
-  SOLVER.MODEL_FREEZE_PEROID: 3
+  MODEL_FREEZE_PEROID: 3
 
 # osnet_ibn_x1_0_imagenet.pth 
 
