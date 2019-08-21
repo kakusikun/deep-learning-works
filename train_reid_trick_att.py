@@ -11,7 +11,7 @@ from data.build_loader import build_reid_loader
 from engine.engines.reid_engine_trick_att import ReIDEngine
 from solver.optimizer import Solver
 from visualizer.visualizer import Visualizer
-from model.managers.trick_att_manager import TrickManager
+from model.managers.trick_att_manager import AttentionManager
 from tools.logger import setup_logger
 import torch.nn as nn
 
@@ -19,7 +19,7 @@ def train(cfg):
 
     train_loader, query_loader, gallery_loader = build_reid_loader(cfg)
 
-    model_manager = TrickManager(cfg)
+    model_manager = AttentionManager(cfg)
 
     cfg.SOLVER.ITERATIONS_PER_EPOCH = len(train_loader)
 

@@ -359,6 +359,134 @@ class AMSoftmax(nn.Module):
 
         return output
 
+class PureConv1x1(nn.Module):
+    """1x1 convolution"""
+    
+    def __init__(self, in_channels, out_channels, stride=1, groups=1):
+        super(PureConv1x1, self).__init__()
+        self.conv = nn.Conv2d(in_channels, out_channels, 1, stride=stride, padding=0,
+                              bias=False, groups=groups)        
+
+    def forward(self, x):
+        x = self.conv(x)        
+        return x
+
+class Conv1x1(nn.Module):
+    """1x1 convolution + bn + relu."""
+    
+    def __init__(self, in_channels, out_channels, stride=1, groups=1):
+        super(Conv1x1, self).__init__()
+        self.conv = nn.Conv2d(in_channels, out_channels, 1, stride=stride, padding=0,
+                              bias=False, groups=groups)
+        self.bn = nn.BatchNorm2d(out_channels)
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.bn(x)
+        x = self.relu(x)
+        return x
+
+class Conv3x3(nn.Module):
+    """3x3 convolution + bn + relu."""
+    
+    def __init__(self, in_channels, out_channels, stride=1, groups=1):
+        super(Conv3x3, self).__init__()
+        self.conv = nn.Conv2d(in_channels, out_channels, 3, stride=stride, padding=1,
+                              bias=False, groups=groups)
+        self.bn = nn.BatchNorm2d(out_channels)
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.bn(x)
+        x = self.relu(x)
+        return x
+
+class SpatialAttention(nn.Module):
+    def __init__(self, in_channels, reduction=8):
+        super(SpatialAttention, self).__init__()
+        self.out_channels = in_channels // reduction
+        self.scale = nn.Parameter(torch.FloatTensor(0))
+        self.conv_reduce1 = PureConv1x1(in_channels, self.out_channels)
+        self.conv_reduce2 = PureConv1x1(in_channels, self.out_channels)
+        self.conv = PureConv1x1(in_channels, in_channels)
+        self.softmax = nn.Softmax(dim=2)
+    def forward(self, x):
+        n, c, h, w = x.shape
+        # N x HW x C/r
+        reduce_1 = self.conv_reduce1(x).view(n, self.out_channels, -1).transpose(1,2)
+        # N x C/r x HW
+        reduce_2 = self.conv_reduce2(x).view(n, self.out_channels, -1)
+        # N x HW x HW
+        A_s = self.softmax(torch.matmul(reduce_1, reduce_2))
+        # N x C x HW
+        multipler = self.conv(x).view(n, c, -1)
+        # N x C x HW
+        weighted_A_s = self.scale * torch.matmul(multipler, A_s)
+        # N x C x H x W
+        residual = x + weighted_A_s.view(n, c, h, w)
+        return residual
+
+class ChannelAttention(nn.Module):
+    def __init__(self):
+        super(ChannelAttention, self).__init__()
+        self.scale = nn.Parameter(torch.FloatTensor(0))
+        self.softmax = nn.Softmax(dim=2)
+    def forward(self, x):
+        n, c, h, w = x.shape
+        # N x C x HW
+        x1 = x.view(n, c, -1) 
+        # N x HW x C
+        x2 = x.view(n, c, -1).transpose(1,2)
+        # N x C x C
+        A_s = self.softmax(torch.matmul(x1, x2))
+        # N x C x HW
+        weighted_A_s = self.scale * torch.matmul(A_s, x1)
+        # N x C x H x W
+        residual = x + weighted_A_s.view(n, c, h, w)
+        return residual
+
+class AttentionIncorporation(nn.Module):
+    def __init__(self, in_channels, attention='sum'):
+        super(AttentionIncorporation, self).__init__()
+
+        self.attention = attention
+        if attention == 's':
+            self.spatial_attention = SpatialAttention(in_channels)
+        elif attention == 'c':
+            self.channel_attention = ChannelAttention()
+        elif attention == 'sum':
+            self.spatial_attention = SpatialAttention(in_channels)
+            self.channel_attention = ChannelAttention()
+        else:
+            print("Not supported type")
+            sys.exit(1)
+
+    def forward(self, x):
+        if self.attention == 's':
+            spatial_attention_feat = self.spatial_attention(x)
+            return spatial_attention_feat
+        if self.attention == 'c':
+            channel_attention_feat = self.channel_attention(x)
+            return channel_attention_feat
+        if self.attention == 'sum':
+            spatial_attention_feat = self.spatial_attention(x)
+            channel_attention_feat = self.channel_attention(x.contiguous())
+            return spatial_attention_feat + channel_attention_feat
+
+class AttentionConvBlock(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super(AttentionConvBlock, self).__init__()
+        self.conv1 = Conv3x3(in_channels, 512)
+        self.conv2 = Conv1x1(512, out_channels)
+        self.max_pool = nn.AdaptiveMaxPool2d(1)
+    def forward(self, x, attention):
+        x = self.conv1(x)
+        x = self.conv2(x)
+        return x
+
+
 if __name__ == '__main__':
     center_loss = CenterLoss(2048, 751)
     features = torch.ones(16, 2048)

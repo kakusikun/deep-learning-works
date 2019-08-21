@@ -6,7 +6,7 @@ __all__ = ['osnet_x1_0', 'osnet_x0_75', 'osnet_x0_5', 'osnet_x0_25', 'osnet_ibn_
 import torch
 from torch import nn
 from torch.nn import functional as F
-from model.utility import ConvFC
+from model.utility import ConvFC, AttentionIncorporation
 import torchvision
 
 
@@ -220,10 +220,11 @@ class OSNet(nn.Module):
         self.conv4 = self._make_layer(blocks[2], layers[2], channels[2], channels[3], reduce_spatial_size=False)
         self.conv5 = Conv1x1(channels[3], channels[3])
         if self.attention:
-            self.attention_conv = Conv1x1Linear(channels[2]+channels[3]+channels[3], channels[3])
-        self.global_avgpool = nn.AdaptiveAvgPool2d(1)
-        # fully connected layer
-        self.fc = self._construct_fc_layer(feature_dim, channels[3], dropout_p=None)
+            self.att_incorp = AttentionIncorporation(channels[2])
+        if self.loss == 'softmax':
+            self.global_avgpool = nn.AdaptiveAvgPool2d(1)
+            # fully connected layer
+            self.fc = self._construct_fc_layer(feature_dim, channels[3], dropout_p=None)
         
         self._init_params()
 
@@ -289,32 +290,31 @@ class OSNet(nn.Module):
         x = self.conv1(x)
         x = self.maxpool(x)
         x = self.conv2(x)
-        x1 = self.conv3(x)
-        x2 = self.conv4(x1)
-        x3 = self.conv5(x2)
+        x3 = self.conv3(x)        
+        x = self.conv4(x3)
+        x = self.conv5(x)
         if self.attention:
-            at_map = torch.cat([x1, x2, x3], dim=1)
-            at_map = self.attention_conv(at_map)
-            return x3, at_map
-        return x3
+            at_map = self.att_incorp(x3)
+            return x, at_map
+        return x
 
     def forward(self, x):
         if self.attention:
-            v, at_map = self.featuremaps(x)
-            v = v * at_map
+            x, at_map = self.featuremaps(x)
         else:
-            v = self.featuremaps(x)
+            x = self.featuremaps(x)
         
         if self.loss == 'trick':
             if self.attention:
-                return v, at_map
-            return v
-        
-        v = self.global_avgpool(v)        
-        v = v.view(v.size(0), -1)
-        if self.fc is not None:
-            v = self.fc(v)
-        return v
+                return x, at_map
+            return x
+
+        if self.loss == 'softmax':
+            x = self.global_avgpool(x)        
+            x = x.view(x.size(0), -1)
+            if self.fc is not None:
+                x = self.fc(x)
+        return x
 
 
 
