@@ -4,7 +4,7 @@ import torch
 import math
 import torch.nn as nn
 from collections import OrderedDict
-from model.OSNetv2 import osnet_x1_0, osnet_ibn_x1_0
+from model.OSNetv2 import osnet_x1_0
 from model.RMNet import RMNet
 from model.ResNet import ResNet, BasicBlock
 from model.utility import ConvFC, CenterLoss, AMSoftmax, CrossEntropyLossLS, TripletLoss
@@ -82,13 +82,7 @@ class Model(nn.Module):
             if cfg.MODEL.PRETRAIN == "outside":
                 self.backbone = osnet_x1_0(task='trick') 
             else:
-                self.backbone = osnet_x1_0(cfg.MODEL.NUM_CLASSES, task='trick')
-        elif cfg.MODEL.NAME == 'osnetibn':
-            self.in_planes = 512
-            if cfg.MODEL.PRETRAIN == "outside":
-                self.backbone = osnet_ibn_x1_0(1000, loss='trick') 
-            else:
-                self.backbone = osnet_ibn_x1_0(cfg.MODEL.NUM_CLASSES, loss='trick')
+                self.backbone = osnet_x1_0(cfg.MODEL.NUM_CLASSES, task='trick')        
         else:
             logger.info("{} is not supported".format(cfg.MODEL.NAME))
 
@@ -102,6 +96,7 @@ class Model(nn.Module):
         self.id_fc.apply(weights_init_classifier)
     
     def forward(self, x):
+        # use trick: BNNeck, feature before BNNeck to triplet GAP and feature w/o fc forward in backbone
         feat = self.backbone(x)
         x = self.gap(feat)
         local_feat = x.view(x.size(0), -1)

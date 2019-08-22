@@ -363,8 +363,8 @@ def osnet_att_x1_0(num_classes=1000, task='imagenet', **kwargs):
 #                  channels=[16, 64, 96, 128], loss=loss, **kwargs)
 
 
-def osnet_ibn_x1_0(num_classes=1000, loss='softmax', **kwargs):
-    # standard size (width x1.0) + IBN layer
-    # Ref: Pan et al. Two at Once: Enhancing Learning and Generalization Capacities via IBN-Net. ECCV, 2018.
-    return OSNet(num_classes, blocks=[OSBlock, OSBlock, OSBlock], layers=[2, 2, 2],
-                 channels=[64, 256, 384, 512], loss=loss, IN=True, **kwargs)
+# def osnet_ibn_x1_0(num_classes=1000, loss='softmax', **kwargs):
+#     # standard size (width x1.0) + IBN layer
+#     # Ref: Pan et al. Two at Once: Enhancing Learning and Generalization Capacities via IBN-Net. ECCV, 2018.
+#     return OSNet(num_classes, blocks=[OSBlock, OSBlock, OSBlock], layers=[2, 2, 2],
+#                  channels=[64, 256, 384, 512], loss=loss, IN=True, **kwargs)
