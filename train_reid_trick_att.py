@@ -11,7 +11,7 @@ from data.build_loader import build_reid_loader
 from engine.engines.reid_engine_trick_att import ReIDEngine
 from solver.optimizer import Solver
 from visualizer.visualizer import Visualizer
-from model.managers.trick_att_manager import AttentionManager
+from model.managers.reid_trick_att_manager import AttentionManager
 from tools.logger import setup_logger
 import torch.nn as nn
 

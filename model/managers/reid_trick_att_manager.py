@@ -99,6 +99,7 @@ class Model(nn.Module):
     
     def forward(self, x):
         if self.cfg.MODEL.TASK == 'trick':
+            # use trick: BNNeck, feature before BNNeck to triplet, but GMP
             feat, at_map = self.backbone(x)
 
             # additional attention incorporation
@@ -118,6 +119,7 @@ class Model(nn.Module):
             return local_feat, global_feat
 
         if self.cfg.MODEL.TASK == 'attention':
+            # use trick: BNNeck, feature after BNNeck to triplet, but GMP and feature after fc in backbone
             feat, at_map = self.backbone(x)
 
             # additional attention incorporation
