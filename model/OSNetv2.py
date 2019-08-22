@@ -204,7 +204,7 @@ class OSNet(nn.Module):
           https://arxiv.org/abs/1905.00953
     """
 
-    def __init__(self, num_classes, blocks, layers, channels, feature_dim=512, task='imagenet', attention=False, IN=False, **kwargs):
+    def __init__(self, num_classes, blocks, layers, channels, feature_dim=512, pooling='AVG', task='imagenet', attention=False, IN=False, **kwargs):
         super(OSNet, self).__init__()
         num_blocks = len(blocks)
         assert num_blocks == len(layers)
@@ -219,14 +219,19 @@ class OSNet(nn.Module):
         self.conv3 = self._make_layer(blocks[1], layers[1], channels[1], channels[2], reduce_spatial_size=True)
         self.conv4 = self._make_layer(blocks[2], layers[2], channels[2], channels[3], reduce_spatial_size=False)
         self.conv5 = Conv1x1(channels[3], channels[3])
+
+        if pooling == 'AVG':
+            self.global_pool = nn.AdaptiveAvgPool2d(1)
+        elif pooling == 'MAX':
+            self.global_pool = nn.AdaptiveMaxPool2d(1)
+        else:
+            logger.info("{} is not supported".format(pooling))
+            sys.exit(1)
+
         if self.attention:
             self.att_incorp = AttentionIncorporation(channels[2])
-        if self.task == 'imagenet':
-            self.global_avgpool = nn.AdaptiveAvgPool2d(1)
-            # fully connected layer
-            self.fc = self._construct_fc_layer(feature_dim, channels[3], dropout_p=None)
-        if self.task == 'attention':
-            self.global_maxpool = nn.AdaptiveMaxPool2d(1)
+
+        if self.task == 'imagenet' or self.task == 'attention':
             # fully connected layer
             self.fc = self._construct_fc_layer(feature_dim, channels[3], dropout_p=None)
         
@@ -313,21 +318,18 @@ class OSNet(nn.Module):
                 return x, at_map
             return x
 
-        if self.task == 'attention':
-            x = self.global_maxpool(x)        
-            x = x.view(x.size(0), -1)
-            if self.fc is not None:
-                x = self.fc(x)
-                x = x.unsqueeze(2).unsqueeze(3) 
+        x = self.global_pool(x)        
+        x = x.view(x.size(0), -1)
+        if self.fc is not None:
+            x = self.fc(x)
+
+        if self.task == 'attention':            
+            x = x.unsqueeze(2).unsqueeze(3) 
             if self.attention:
                 return x, at_map
             return x
             
         if self.task == 'imagenet':
-            x = self.global_avgpool(x)        
-            x = x.view(x.size(0), -1)
-            if self.fc is not None:
-                x = self.fc(x)
             return x
 
 
@@ -335,15 +337,15 @@ class OSNet(nn.Module):
 ##########
 # Instantiation
 ##########
-def osnet_x1_0(num_classes=1000, task='imagenet', attention=False, **kwargs):
+def osnet_x1_0(num_classes=1000, pooling='AVG', task='imagenet', attention=False, **kwargs):
     # standard size (width x1.0)
     return OSNet(num_classes, blocks=[OSBlock, OSBlock, OSBlock], layers=[2, 2, 2],
-                 channels=[64, 256, 384, 512], task=task, **kwargs)
+                 channels=[64, 256, 384, 512], pooling=pooling, task=task, **kwargs)
 
-def osnet_att_x1_0(num_classes=1000, task='imagenet', **kwargs):
+def osnet_att_x1_0(num_classes=1000, pooling='AVG', task='imagenet', **kwargs):
     # standard size (width x1.0)
     return OSNet(num_classes, blocks=[OSBlock, OSBlock, OSBlock], layers=[2, 2, 2],
-                 channels=[64, 256, 384, 512], task=task, attention=True, **kwargs)
+                 channels=[64, 256, 384, 512], pooling=pooling, task=task, attention=True, **kwargs)
 
 # def osnet_x0_75(num_classes=1000, loss='softmax', **kwargs):
 #     # medium size (width x0.75)
