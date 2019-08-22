@@ -8,10 +8,10 @@ import shutil
 
 from config.config_manager import _C as cfg
 from data.build_loader import build_imagenet_loader
-from engine.engines.imagenet_engine import ImageNetEngine
+from engine.engines.engine_imagenet import ImageNetEngine
 from solver.optimizer import Solver
 from visualizer.visualizer import Visualizer
-from model.managers.imagenet_manager import ImageNetManager
+from model.managers.manager_imagenet import ImageNetManager
 from model.utility import CrossEntropyLossLS
 from tools.logger import setup_logger
 import torch.nn as nn

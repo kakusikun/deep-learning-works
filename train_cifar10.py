@@ -8,7 +8,7 @@ import shutil
 
 from config.config_manager import _C as cfg
 from data.build_loader import build_cifar10_loader
-from engine.imagenet_engine import ImageNetEngine
+from engine.engine_imagenet import ImageNetEngine
 from solver.optimizer import Solver
 from visualizer.visualizer import Visualizer
 from model.model_manager import TrainingManager

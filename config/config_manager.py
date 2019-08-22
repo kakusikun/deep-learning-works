@@ -26,6 +26,7 @@ _C.MODEL.NUM_CLASSES = 0
 _C.MODEL.NAME = ""
 _C.MODEL.PRETRAIN = "own"
 _C.MODEL.TASK = "imagenet"
+_C.MODEL.POOLING = "AVG"
 
 # -----------------------------------------------------------------------------
 # INPUT

@@ -8,10 +8,10 @@ import shutil
 
 from config.config_manager import _C as cfg
 from data.build_loader import build_reid_loader
-from engine.engines.reid_engine_trick import ReIDEngine
+from engine.engines.engine_reid_trick import ReIDEngine
 from solver.optimizer import Solver
 from visualizer.visualizer import Visualizer
-from model.managers.reid_trick_manager import TrickManager
+from model.managers.manager_reid_trick import TrickManager
 from tools.logger import setup_logger
 import torch.nn as nn
 

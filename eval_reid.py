@@ -7,10 +7,10 @@ from tools.eval_reid_metrics import eval_single_query, eval_recall
 from model.OSNetv2 import osnet_x1_0
 from config.config_manager import _C as cfg
 from data.build_loader import build_reid_loader
-from model.managers.reid_trick_manager import TrickManager
-from model.managers.reid_trick_att_manager import AttentionManager
+from model.managers.manager_reid_trick import TrickManager
+from model.managers.manager_reid_trick_att import AttentionManager
 from tools.logger import setup_logger
-from engine.engines.reid_engine_trick import ReIDEngine
+from engine.engines.engine_reid_trick import ReIDEngine
 import numpy as np
 from tools.logger import setup_logger
 

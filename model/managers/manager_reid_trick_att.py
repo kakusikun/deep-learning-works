@@ -4,7 +4,7 @@ import torch
 import math
 import torch.nn as nn
 from collections import OrderedDict
-from model.OSNetv2 import osnet_x1_0, osnet_ibn_x1_0, osnet_att_x1_0
+from model.OSNetv2 import osnet_x1_0, osnet_att_x1_0
 from model.RMNet import RMNet
 from model.ResNet import ResNet, BasicBlock
 from model.utility import ConvFC, CenterLoss, AMSoftmax, CrossEntropyLossLS, TripletLoss, AttentionConvBlock
@@ -78,14 +78,21 @@ class Model(nn.Module):
         if cfg.MODEL.NAME == 'osnet':
             self.in_planes = 512
             if cfg.MODEL.PRETRAIN == "outside":
-                self.backbone = osnet_att_x1_0(task=cfg.MODEL.TASK) 
+                self.backbone = osnet_att_x1_0(pooling=cfg.MODEL.POOLING, task=cfg.MODEL.TASK) 
             else:
-                self.backbone = osnet_att_x1_0(num_classes=cfg.MODEL.NUM_CLASSES, task=cfg.MODEL.TASK)        
+                self.backbone = osnet_att_x1_0(num_classes=cfg.MODEL.NUM_CLASSES, pooling=cfg.MODEL.POOLING, task=cfg.MODEL.TASK)        
         else:
             logger.info("{} is not supported".format(cfg.MODEL.NAME))
             sys.exit(1)
 
-        self.gmp = nn.AdaptiveMaxPool2d(1)        
+        if cfg.MODEL.POOLING == 'AVG':
+            self.gp = nn.AdaptiveAvgPool2d(1)   
+        elif cfg.MODEL.POOLING == 'MAX':
+            self.gp = nn.AdaptiveMaxPool2d(1)
+        else:
+            logger.info("{} is not supported".format(cfg.MODEL.POOLING))
+            sys.exit(1)
+
         self.BNNeck = nn.BatchNorm2d(self.in_planes + 1024)
         self.BNNeck.bias.requires_grad_(False)  # no shift
         self.BNNeck.apply(weights_init_kaiming)
@@ -104,8 +111,8 @@ class Model(nn.Module):
 
             # additional attention incorporation
             at_map = self.att_conv_block(at_map)
-            at_map = self.gmp(at_map)        
-            x = self.gmp(feat)
+            at_map = self.gp(at_map)        
+            x = self.gp(feat)
             # fused before BNNeck
             x = torch.cat((x, at_map), dim=1)
             # feature to triplet loss
@@ -124,7 +131,7 @@ class Model(nn.Module):
 
             # additional attention incorporation
             at_map = self.att_conv_block(at_map)
-            at_map = self.gmp(at_map)        
+            at_map = self.gp(at_map)        
 
             # fuse
             x = torch.cat((feat, at_map), dim=1)
