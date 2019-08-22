@@ -80,9 +80,9 @@ class Model(nn.Module):
         elif cfg.MODEL.NAME == 'osnet':
             self.in_planes = 512
             if cfg.MODEL.PRETRAIN == "outside":
-                self.backbone = osnet_x1_0(1000, loss='trick') 
+                self.backbone = osnet_x1_0(task='trick') 
             else:
-                self.backbone = osnet_x1_0(cfg.MODEL.NUM_CLASSES, loss='trick')
+                self.backbone = osnet_x1_0(cfg.MODEL.NUM_CLASSES, task='trick')
         elif cfg.MODEL.NAME == 'osnetibn':
             self.in_planes = 512
             if cfg.MODEL.PRETRAIN == "outside":

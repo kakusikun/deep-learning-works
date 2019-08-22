@@ -22,6 +22,7 @@ parser.add_argument("--opts", help="Modify config options using the command-line
                     nargs=argparse.REMAINDER)
 parser.add_argument("--type", default="cmc", help="evaluation type", type=str)
 parser.add_argument("--manager", default="trick", help="evaluation type", type=str)
+parser.add_argument("--cache", default="", help="evaluation type", type=str)
 
 args = parser.parse_args()
 
@@ -119,12 +120,12 @@ if action == 'y':
         distmat = distmat.numpy()
 
     if args.type == 'cmc':
-        logger.info("Computing CMC and mAP")
-        # np.save("./dismat.npy", distmat)
-        # np.save("./q_pids.npy", q_pids)
-        # np.save("./g_pids.npy", g_pids)
-        # np.save("./q_camids.npy", q_camids)
-        # np.save("./g_camids.npy", g_camids)
+        if args.cache:
+            np.save("./{}_dismat.npy".format(args.cache), distmat)
+            np.save("./{}_q_pids.npy".format(args.cache), q_pids)
+            np.save("./{}_g_pids.npy".format(args.cache), g_pids)
+            np.save("./{}_q_camids.npy".format(args.cache), q_camids)
+            np.save("./{}_g_camids.npy".format(args.cache), g_camids)
 
         logger.info("Computing Single Query CMC")
         cmc = eval_single_query(distmat, q_pids, g_pids, q_camids, g_camids)

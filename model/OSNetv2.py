@@ -335,32 +335,32 @@ class OSNet(nn.Module):
 ##########
 # Instantiation
 ##########
-def osnet_x1_0(num_classes=1000, loss='softmax', attention=False, **kwargs):
+def osnet_x1_0(num_classes=1000, task='imagenet', attention=False, **kwargs):
     # standard size (width x1.0)
     return OSNet(num_classes, blocks=[OSBlock, OSBlock, OSBlock], layers=[2, 2, 2],
-                 channels=[64, 256, 384, 512], loss=loss, **kwargs)
+                 channels=[64, 256, 384, 512], task=task, **kwargs)
 
-def osnet_att_x1_0(num_classes=1000, loss='softmax', **kwargs):
+def osnet_att_x1_0(num_classes=1000, task='imagenet', **kwargs):
     # standard size (width x1.0)
     return OSNet(num_classes, blocks=[OSBlock, OSBlock, OSBlock], layers=[2, 2, 2],
-                 channels=[64, 256, 384, 512], loss=loss, attention=True, **kwargs)
+                 channels=[64, 256, 384, 512], task=task, attention=True, **kwargs)
 
-def osnet_x0_75(num_classes=1000, loss='softmax', **kwargs):
-    # medium size (width x0.75)
-    return OSNet(num_classes, blocks=[OSBlock, OSBlock, OSBlock], layers=[2, 2, 2],
-                 channels=[48, 192, 288, 384], loss=loss, **kwargs)
-
-
-def osnet_x0_5(num_classes=1000, loss='softmax', **kwargs):
-    # tiny size (width x0.5)
-    return OSNet(num_classes, blocks=[OSBlock, OSBlock, OSBlock], layers=[2, 2, 2],
-                 channels=[32, 128, 192, 256], loss=loss, **kwargs)
+# def osnet_x0_75(num_classes=1000, loss='softmax', **kwargs):
+#     # medium size (width x0.75)
+#     return OSNet(num_classes, blocks=[OSBlock, OSBlock, OSBlock], layers=[2, 2, 2],
+#                  channels=[48, 192, 288, 384], loss=loss, **kwargs)
 
 
-def osnet_x0_25(num_classes=1000, loss='softmax', **kwargs):
-    # very tiny size (width x0.25)
-    return OSNet(num_classes, blocks=[OSBlock, OSBlock, OSBlock], layers=[2, 2, 2],
-                 channels=[16, 64, 96, 128], loss=loss, **kwargs)
+# def osnet_x0_5(num_classes=1000, loss='softmax', **kwargs):
+#     # tiny size (width x0.5)
+#     return OSNet(num_classes, blocks=[OSBlock, OSBlock, OSBlock], layers=[2, 2, 2],
+#                  channels=[32, 128, 192, 256], loss=loss, **kwargs)
+
+
+# def osnet_x0_25(num_classes=1000, loss='softmax', **kwargs):
+#     # very tiny size (width x0.25)
+#     return OSNet(num_classes, blocks=[OSBlock, OSBlock, OSBlock], layers=[2, 2, 2],
+#                  channels=[16, 64, 96, 128], loss=loss, **kwargs)
 
 
 def osnet_ibn_x1_0(num_classes=1000, loss='softmax', **kwargs):

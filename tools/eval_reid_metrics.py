@@ -232,8 +232,8 @@ def eval_recall(distmat, q_pids, g_pids, q_camids, g_camids, save=False, name="r
         plt.xlabel("Threshold")
         plt.ylabel("Value")
         plt.legend(bbox_to_anchor=(0.85, 0.95), loc='upper left', borderaxespad=0.5)
-        plt.title("{} => {}".format(name.split("_")[3], name.split("_")[1]))
-        plt.savefig("{}.jpg".format(name))
+        plt.title("{} => {}".format(name.split("_")[4], name.split("_")[2]))
+        plt.savefig("./evaluation/{}.jpg".format(name))
         
 
 def evaluate(distmat, q_pids, g_pids, q_camids, g_camids, max_rank=50, use_metric_cuhk03=False):
