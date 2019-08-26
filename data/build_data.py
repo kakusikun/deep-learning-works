@@ -140,6 +140,28 @@ class build_reid_atmap_dataset(data.Dataset):
     def __len__(self):
         return len(self.dataset)
 
+class build_par_dataset(data.Dataset):
+    def __init__(self, dataset, transform=None):
+        self.dataset = dataset
+        self.transform = transform
+           
+    def __getitem__(self, index):
+        img_path, bbox, attrs = self.dataset[index]
+
+        img = Image.open(img_path)
+        if bbox[0] != -1:
+            img = img.crop(bbox)
+
+        if self.transform is not None:
+            img = self.transform(img)
+        
+        attrs = torch.Tensor(attrs)
+
+        return img, attrs
+    
+    def __len__(self):
+        return len(self.dataset)
+
 class CALTECH(data.Dataset):
     def __init__(self, imgSrc, annoSrc, r=2, downSize=4, scale='h', offset=True, transform=None):
         self.imgSrc = imgSrc

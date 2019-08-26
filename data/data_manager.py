@@ -13,10 +13,80 @@ import h5py
 import cv2
 import pandas as pd
 from collections import defaultdict
+from tqdm import tqdm
 import logging
 logger = logging.getLogger("logger")
 
 from tools.utils import mkdir_if_missing, write_json, read_json
+
+class PAR():
+    def __init__(self, cfg):
+        self.dataset_dir = cfg.DATASET.TRAIN_PATH
+        self.parse27k_dir = osp.join(self.dataset_dir, "parse27k")
+        self.pa100k_dir = osp.join(self.dataset_dir, "pa100k")
+        self.peta_dir = osp.join(self.dataset_dir, "PETA")
+        self.duke_dir = osp.join(self.dataset_dir, "dukemtmc-reid")
+        self.market_dir = osp.join(self.dataset_dir, "market1501")
+        self.wider_dir = osp.join(self.dataset_dir, "wider")
+        self.val_list = osp.join(self.dataset_dir, "PAR_test_dataset.txt")
+        self.train_list = osp.join(self.dataset_dir, "PAR_train_dataset.txt")
+        self.category_names = ['gender', 'hair', 'shirt', 'plaid', 'stripe', 'sleeve',
+                            'logo', 'shorts', 'skirt', 'hat', 'glasses', 'backpack', 'bag']
+
+        self._check_before_run()
+
+        train, train_num_images = self._process_dir(self.train_list)
+        val, val_num_images = self._process_dir(self.val_list)
+
+        logger.info("=> PAR loaded")
+        logger.info("Dataset statistics:")
+        logger.info("  ------------------------------")
+        logger.info("  subset   | # class | # images")
+        logger.info("  ------------------------------")
+        logger.info("  train    | {:7d} | {:8d}".format(len(self.category_names), train_num_images))
+        logger.info("  val      | {:7d} | {:8d}".format(len(self.category_names), val_num_images))
+        logger.info("  ------------------------------")
+
+        self.train = train
+        self.val = val
+        self.numClasses = len(self.category_names)
+
+    def _check_before_run(self):
+        """Check if all files are available before going deeper"""
+        if not osp.exists(self.dataset_dir):
+            raise RuntimeError("'{}' is not available".format(self.dataset_dir))
+        if not osp.exists(self.parse27k_dir):
+            raise RuntimeError("'{}' is not available".format(self.parse27k_dir))
+        if not osp.exists(self.pa100k_dir):
+            raise RuntimeError("'{}' is not available".format(self.pa100k_dir))
+        if not osp.exists(self.peta_dir):
+            raise RuntimeError("'{}' is not available".format(self.peta_dir))
+        if not osp.exists(self.duke_dir):
+            raise RuntimeError("'{}' is not available".format(self.duke_dir))
+        if not osp.exists(self.market_dir):
+            raise RuntimeError("'{}' is not available".format(self.market_dir))
+        if not osp.exists(self.wider_dir):
+            raise RuntimeError("'{}' is not available".format(self.wider_dir))
+        if not osp.exists(self.val_list):
+            raise RuntimeError("'{}' is not available".format(self.val_list))
+        if not osp.exists(self.train_list):
+            raise RuntimeError("'{}' is not available".format(self.train_list))
+    
+    def _process_dir(self, path):
+        dataset = []
+        with open(path, 'r') as f:
+            for line in f:
+                line = line.strip().split(" ")
+                path = osp.join(self.dataset_dir, line[0])
+                x1 = int(float(line[1]))
+                y1 = int(float(line[2]))
+                x2 = int(float(line[3]))
+                y2 = int(float(line[4]))
+                attrs = []
+                for i in line[5:]:
+                    attrs.append(int(i))
+                dataset.append((path, (x1,y1,x2,y2), attrs))
+        return dataset, len(dataset)
 
 class ImageNet():
     def __init__(self, cfg):
@@ -1357,7 +1427,8 @@ __img_factory = {
     'cuhk03': CUHK03,
     'dukemtmcreid': DukeMTMCreID,
     'msmt17': MSMT17,
-    'msmt17_total': MSMT17_TOTAL
+    'msmt17_total': MSMT17_TOTAL,
+    'par': PAR
 }
 
 __vid_factory = {

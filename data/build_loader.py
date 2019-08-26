@@ -1,6 +1,6 @@
 from torch.utils import data
 from data.data_manager import init_img_dataset, init_vid_dataset
-from data.build_data import build_image_dataset, build_reid_dataset, build_reid_atmap_dataset
+from data.build_data import build_image_dataset, build_reid_dataset, build_reid_atmap_dataset, build_par_dataset
 from data.build_transform import build_transform
 from data.sampler import IdBasedSampler
 from torchvision.datasets.cifar import CIFAR10
@@ -144,3 +144,25 @@ def build_reid_loader(cfg):
         gallery_dataset, batch_size=cfg.INPUT.SIZE_TEST, shuffle=False, num_workers=num_workers, pin_memory=True, drop_last=False
     )
     return t_loader, q_loader, g_loader
+
+def build_par_loader(cfg):
+
+    dataset = init_img_dataset(cfg)
+
+    train_trans = build_transform(cfg)
+    val_trans = build_transform(cfg, isTrain=False)
+
+    train_dataset = build_par_dataset(dataset.train, train_trans)
+    val_dataset = build_par_dataset(dataset.val, val_trans)
+
+    num_workers = cfg.DATALOADER.NUM_WORKERS
+
+    t_loader = data.DataLoader(
+        train_dataset, batch_size=cfg.INPUT.SIZE_TRAIN, shuffle=True, num_workers=num_workers, pin_memory=True
+    )
+
+    v_loader = data.DataLoader(
+        val_dataset, batch_size=cfg.INPUT.SIZE_TEST, shuffle=False, num_workers=num_workers, pin_memory=True
+    )
+
+    return t_loader, v_loader
