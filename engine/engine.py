@@ -105,6 +105,8 @@ class Engine():
             scalar = []
             for _tensor in tensor:
                 scalar.append(_tensor.item())
+        elif isinstance(tensor, torch.Tensor) and tensor.dim() != 0:
+            scalar = tensor.numpy().tolist()
         else:
             scalar = tensor.item()
         return scalar
