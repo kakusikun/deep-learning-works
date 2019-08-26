@@ -28,8 +28,8 @@ class PAR():
         self.duke_dir = osp.join(self.dataset_dir, "dukemtmc-reid")
         self.market_dir = osp.join(self.dataset_dir, "market1501")
         self.wider_dir = osp.join(self.dataset_dir, "wider")
-        self.val_list = osp.join(self.dataset_dir, "PAR_test_dataset.txt")
-        self.train_list = osp.join(self.dataset_dir, "PAR_train_dataset.txt")
+        self.val_list = osp.join(self.dataset_dir, "par_test_dataset.txt")
+        self.train_list = osp.join(self.dataset_dir, "par_train_dataset.txt")
         self.category_names = ['gender', 'hair', 'shirt', 'plaid', 'stripe', 'sleeve',
                             'logo', 'shorts', 'skirt', 'hat', 'glasses', 'backpack', 'bag']
 
@@ -78,14 +78,10 @@ class PAR():
             for line in f:
                 line = line.strip().split(" ")
                 path = osp.join(self.dataset_dir, line[0])
-                x1 = int(float(line[1]))
-                y1 = int(float(line[2]))
-                x2 = int(float(line[3]))
-                y2 = int(float(line[4]))
                 attrs = []
-                for i in line[5:]:
+                for i in line[1:]:
                     attrs.append(int(i))
-                dataset.append((path, (x1,y1,x2,y2), attrs))
+                dataset.append((path, attrs))
         return dataset, len(dataset)
 
 class ImageNet():

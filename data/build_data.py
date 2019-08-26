@@ -146,12 +146,10 @@ class build_par_dataset(data.Dataset):
         self.transform = transform
            
     def __getitem__(self, index):
-        img_path, bbox, attrs = self.dataset[index]
+        img_path, attrs = self.dataset[index]
 
         img = Image.open(img_path)
-        if bbox[0] != -1:
-            img = img.crop(bbox)
-
+        
         if self.transform is not None:
             img = self.transform(img)
         
