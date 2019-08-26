@@ -47,7 +47,7 @@ class PARManager(TrainingManager):
             temp_target = torch.zeros_like(target)            
             temp_target[target>0] = 1            
             known_target = (target>-1).float()
-            p = self.alpha * known_target.mean(dim=1) + self.beta    
+            p = self.alpha * known_target.mean(dim=1).reshape(known_target.size(0),1) + self.beta    
             loss_table = p * bce(feat, temp_target)
             each_loss = torch.Tensor([loss_table[:,i][known_target[:,i]==1].mean() for i in range(loss_table.shape[1])])
             each_loss[each_loss != each_loss] = -1
@@ -78,7 +78,7 @@ def weights_init_classifier(module):
     for m in module.modules():
         if isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
             nn.init.normal_(m.weight, std=0.001)
-            if m.bias:
+            if m.bias is not None:
                 nn.init.constant_(m.bias, 0.0)
             
 class Model(nn.Module):
@@ -87,9 +87,9 @@ class Model(nn.Module):
         if cfg.MODEL.NAME == 'osnet':
             self.in_planes = 512
             if cfg.MODEL.PRETRAIN == "outside":
-                self.backbone = osnet_x1_0(task='trick') 
+                self.backbone = osnet_x1_0(task=cfg.MODEL.TASK) 
             else:
-                self.backbone = osnet_x1_0(cfg.MODEL.NUM_CLASSES, task='trick')        
+                self.backbone = osnet_x1_0(cfg.MODEL.NUM_CLASSES, task=cfg.MODEL.TASK)        
         else:
             logger.info("{} is not supported".format(cfg.MODEL.NAME))
      

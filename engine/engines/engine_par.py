@@ -12,9 +12,9 @@ import logging
 logger = logging.getLogger("logger")
 # recover = T.Compose([T.Normalize(mean = [-0.485/0.229, -0.456/0.224, -0.406/0.225], std = [1/0.229,1/0.224,1/0.225])])
 
-class ReIDEngine(Engine):
-    def __init__(self, cfg, opts, tdata, qdata, gdata, show, manager):
-        super(ReIDEngine, self).__init__(cfg, opts, tdata, None, qdata, gdata, show, manager)
+class PAREngine(Engine):
+    def __init__(self, cfg, opts, tdata, qdata, show, manager):
+        super(PAREngine, self).__init__(cfg, opts, tdata, None, qdata, None, show, manager)
             
     def _train_iter_start(self):
         self.iter += 1

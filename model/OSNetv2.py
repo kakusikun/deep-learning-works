@@ -204,7 +204,7 @@ class OSNet(nn.Module):
           https://arxiv.org/abs/1905.00953
     """
 
-    def __init__(self, num_classes, blocks, layers, channels, feature_dim=512, pooling='AVG', task='imagenet', attention=False, IN=False, **kwargs):
+    def __init__(self, num_classes, blocks, layers, channels, feature_dim=512, pooling='AVG', task='classifier', attention=False, IN=False, **kwargs):
         super(OSNet, self).__init__()
         num_blocks = len(blocks)
         assert num_blocks == len(layers)
@@ -231,7 +231,7 @@ class OSNet(nn.Module):
         if self.attention:
             self.att_incorp = AttentionIncorporation(channels[2])
 
-        if self.task == 'imagenet' or self.task == 'attention':
+        if self.task == 'classifier' or self.task == 'attention':
             # fully connected layer
             self.fc = self._construct_fc_layer(feature_dim, channels[3], dropout_p=None)
         
@@ -329,7 +329,7 @@ class OSNet(nn.Module):
                 return x, at_map
             return x
             
-        if self.task == 'imagenet':
+        if self.task == 'classifier':
             return x
 
 
@@ -337,12 +337,12 @@ class OSNet(nn.Module):
 ##########
 # Instantiation
 ##########
-def osnet_x1_0(num_classes=1000, pooling='AVG', task='imagenet', attention=False, **kwargs):
+def osnet_x1_0(num_classes=1000, pooling='AVG', task='classifier', attention=False, **kwargs):
     # standard size (width x1.0)
     return OSNet(num_classes, blocks=[OSBlock, OSBlock, OSBlock], layers=[2, 2, 2],
                  channels=[64, 256, 384, 512], pooling=pooling, task=task, **kwargs)
 
-def osnet_att_x1_0(num_classes=1000, pooling='AVG', task='imagenet', **kwargs):
+def osnet_att_x1_0(num_classes=1000, pooling='AVG', task='classifier', **kwargs):
     # standard size (width x1.0)
     return OSNet(num_classes, blocks=[OSBlock, OSBlock, OSBlock], layers=[2, 2, 2],
                  channels=[64, 256, 384, 512], pooling=pooling, task=task, attention=True, **kwargs)
