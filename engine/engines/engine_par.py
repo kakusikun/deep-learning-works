@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import torchvision.transforms as T
 import torchvision
 from engine.engine import Engine
-from tools.eval_reid_metrics import evaluate
+from tools.eval_par_metrics import eval_par_accuracy
 import numpy as np
 import logging
 logger = logging.getLogger("logger")
@@ -80,5 +80,5 @@ class PAREngine(Engine):
             logger.info("Threshold: {}  |  Precision: {:.2f}  |  TPR: {:.2f}  |  FPR: {:.2f}".format(thresh*0.01, total_precision[thresh], TPR[thresh], FPR[thresh]))
         logger.info("------------------")
 
-        
+        self._eval_epoch_end() 
 
