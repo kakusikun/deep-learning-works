@@ -101,8 +101,8 @@ class Model(nn.Module):
         x = self.gap(feat)
         local_feat = x.view(x.size(0), -1)
         x = self.BNNeck(x)
-        x = x.view(x.size(0), -1)
-        global_feat = self.id_fc(x)
+        x = x.view(x.size(0), -1)        
         if not self.training:
-            return x        
+            return x      
+        global_feat = self.id_fc(x)  
         return local_feat, global_feat
