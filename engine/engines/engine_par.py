@@ -77,7 +77,7 @@ class PAREngine(Engine):
         logger.info("Results ----------")
         logger.info("ROC curve")
         for thresh in [0, 25, 50, 75]:
-            logger.info("Threshold: {}  |  Precision: {:.2f}  |  TPR: {:.2f}  |  FPR: {:.2f}".format(thresh*0.01, total_precision[thresh], TPR[thresh], FPR[thresh]))
+            logger.info("Threshold: {:<3}  |  Precision: {:.2f}  |  TPR: {:.2f}  |  FPR: {:.2f}".format(thresh*0.01, total_precision[thresh], TPR[thresh], FPR[thresh]))
         logger.info("------------------")
 
         
