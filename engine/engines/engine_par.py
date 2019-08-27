@@ -13,8 +13,8 @@ logger = logging.getLogger("logger")
 # recover = T.Compose([T.Normalize(mean = [-0.485/0.229, -0.456/0.224, -0.406/0.225], std = [1/0.229,1/0.224,1/0.225])])
 
 class PAREngine(Engine):
-    def __init__(self, cfg, opts, tdata, qdata, show, manager):
-        super(PAREngine, self).__init__(cfg, opts, tdata, None, qdata, None, show, manager)
+    def __init__(self, cfg, opts, tdata, vdata, show, manager):
+        super(PAREngine, self).__init__(cfg, opts, tdata, vdata, None, None, show, manager)
             
     def _train_iter_start(self):
         self.iter += 1
@@ -57,7 +57,7 @@ class PAREngine(Engine):
         outputs = []
         targets = []
         with torch.no_grad():
-            for batch in tqdm(self.qdata, desc="Validation"):
+            for batch in tqdm(self.vdata, desc="Validation"):
                 
                 images, target = batch
                 if self.use_gpu: images = images.cuda()
