@@ -69,7 +69,7 @@ class PAREngine(Engine):
         pt = torch.cat(outputs, 0)
         gt = torch.cat(targets, 0)
         
-        TPR, FPR, total_precision = eval_par_accuracy(pt.numpy(), gt.numpy())
+        TPR, FPR, total_precision, _, _, _ = eval_par_accuracy(pt.numpy(), gt.numpy())
 
         self.accu = total_precision[50]
 

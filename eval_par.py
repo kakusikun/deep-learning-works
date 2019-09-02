@@ -49,21 +49,19 @@ if action == 'y':
     outputs = []
     targets = []
     with torch.no_grad():
-        for batch in tqdm(self.vdata, desc="Validation"):
+        for batch in tqdm(vdata, desc="Validation"):
             
             images, target = batch
-            if self.use_gpu: images = images.cuda()
+            if use_gpu: images = images.cuda()
             
-            output = self.core(images)
+            output = core(images)
             outputs.append(output.cpu())
             targets.append(target)
     
     pt = torch.cat(outputs, 0)
     gt = torch.cat(targets, 0)
     
-    TPR, FPR, total_precision = eval_par_accuracy(pt.numpy(), gt.numpy())
-
-    self.accu = total_precision[50]
+    TPR, FPR, total_precision, attr_TPR, attr_FPR, attr_total_precision = eval_par_accuracy(pt.numpy(), gt.numpy())
 
     logger.info("Computing Prec and Recall")
     logger.info("Results ----------")
