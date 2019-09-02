@@ -44,7 +44,6 @@ if action == 'y':
     if os.path.exists("{}_pt.npy".format(args.cache)):
         logger.info("Loading from cache")
         pt = np.load("{}_pt.npy".format(args.cache))
-        pt = torch.Tensor(pt).sigmoid().numpy()
         gt = np.load("{}_gt.npy".format(args.cache))
     else:
         use_gpu = True 
