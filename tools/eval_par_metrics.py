@@ -31,7 +31,7 @@ def eval_par_accuracy(predict, gt):
             attr_predicted_count.append((predicted_gt[:,i][known_gt[:,i]] == gt[:,i][known_gt[:,i]]).astype(float).sum())
 
             attr_TP_count.append((predicted_gt[:,i][known_gt[:,i]] * gt[:,i][known_gt[:,i]]).sum())
-            attr_P_count.append(gt[known_gt].sum())
+            attr_P_count.append(gt[:,i][known_gt[:,i]].sum())
 
             inverse_gt = np.invert(gt[:,i][known_gt[:,i]].astype(bool)).astype(float)
             attr_FP_count.append((predicted_gt[:,i][known_gt[:,i]] * inverse_gt).sum())
