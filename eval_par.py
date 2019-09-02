@@ -1,4 +1,5 @@
 import argparse
+import os
 import sys
 from tqdm import tqdm
 import torch
@@ -37,14 +38,16 @@ logger.info("Running with config:\n{}".format(cfg))
 
 action = input("Config Confirmed ? (Y/N)").lower().strip()
 if action == 'y':
+
+    model_manager = PARManager(cfg)
     
-    if os.path.exists("./{}_pt.npy".format(args.cache)):
-        pt = np.load("./{}_pt.npy".format(args.cache))
-        gt = np.load("./{}_gt.npy".format(args.cache))
+    if os.path.exists("{}_pt.npy".format(args.cache)):
+        logger.info("Loading from cache")
+        pt = np.load("{}_pt.npy".format(args.cache))
+        gt = np.load("{}_gt.npy".format(args.cache))
     else:
         use_gpu = True 
 
-        model_manager = PARManager(cfg)
         core = model_manager.model     
 
         core = core.cuda()
@@ -68,8 +71,8 @@ if action == 'y':
         gt = torch.cat(targets, 0).numpy()
         
         if args.cache:
-            np.save("./{}_pt.npy".format(args.cache), pt)
-            np.save("./{}_gt.npy".format(args.cache), gt)
+            np.save("{}_pt.npy".format(args.cache), pt)
+            np.save("{}_gt.npy".format(args.cache), gt)
 
     TPR, FPR, total_precision, attr_TPR, attr_FPR, attr_total_precision = eval_par_accuracy(pt, gt)
 
@@ -80,7 +83,7 @@ if action == 'y':
         logger.info("Threshold: {:5}".format(thresh*0.01))
         logger.info("{:10}  |  Precision: {:.2f}  |  TPR: {:.2f}  |  FPR: {:.2f}".format("Total", total_precision[thresh], TPR[thresh], FPR[thresh]))
         for i, attr in enumerate(model_manager.category_names):
-            logger.info("{:10}  |  Precision: {:.2f}  |  TPR: {:.2f}  |  FPR: {:.2f}".format(attr, attr_total_precision[i][thresh], attr_TPR[i][thresh], attr_FPR[i][thresh]))
+            logger.info("{:10}  |  Precision: {:.2f}  |  TPR: {:.2f}  |  FPR: {:.2f}".format(attr, attr_total_precision[thresh][i], attr_TPR[thresh][i], attr_FPR[thresh][i]))
         logger.info("##################")
 
     logger.info("------------------")
