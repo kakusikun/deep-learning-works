@@ -80,7 +80,7 @@ if action == 'y':
         logger.info("Threshold: {:5}".format(thresh*0.01))
         logger.info("{:10}  |  Precision: {:.2f}  |  TPR: {:.2f}  |  FPR: {:.2f}".format("Total", total_precision[thresh], TPR[thresh], FPR[thresh]))
         for i, attr in enumerate(model_manager.category_names):
-            logger.info("{:10}  |  Precision: {:.2f}  |  TPR: {:.2f}  |  FPR: {:.2f}".format(attr, attr_total_precision[i][thresh], attr_TPR[i][thresh], attr_FPR[i][thresh]))
+            logger.info("{:10}  |  Precision: {:.2f}  |  TPR: {:.2f}  |  FPR: {:.2f}".format(attr, attr_total_precision[thresh][i], attr_TPR[thresh][i], attr_FPR[thresh][i]))
         logger.info("##################")
 
     logger.info("------------------")
