@@ -3,6 +3,7 @@ import sys
 import torch
 import math
 import torch.nn as nn
+import torch.nn.functional as F
 from collections import OrderedDict
 from model.OSNetv2 import osnet_x1_0
 from model.RMNet import RMNet
@@ -54,7 +55,7 @@ class PARManager(TrainingManager):
             loss = loss_table[known_target==1].mean()    
                     
             predicted_target = torch.zeros_like(feat)
-            predicted_target[feat>=0.5] = 1
+            predicted_target[feat.sigmoid()>=0.5] = 1
             accu = (predicted_target[known_target==1] == target[known_target==1]).sum() / known_target.sum()
             return loss, each_loss, accu
 
@@ -101,4 +102,6 @@ class Model(nn.Module):
         # use trick: BNNeck, feature before BNNeck to triplet GAP and feature w/o fc forward in backbone
         x = self.backbone(x)
         x = self.attr_fc(x)
+        if not self.training:
+            return x.sigmoid()
         return x
