@@ -41,8 +41,8 @@ def eval_par_accuracy(predict, gt):
         TPR.append(np.array(attr_TP_count).sum() / (np.array(attr_P_count).sum() + 1e-10))
         FPR.append(np.array(attr_FP_count).sum() / (np.array(attr_N_count).sum() + 1e-10))
 
-        attr_total_precision.append(np.array(attr_predicted_count).sum(axis=0) / (known_gt.sum(axis=0) + 1e-10))
-        attr_TPR.append(np.array(attr_TP_count).sum(axis=0) / (np.array(attr_P_count).sum(axis=0) + 1e-10))
-        attr_FPR.append(np.array(attr_FP_count).sum(axis=0) / (np.array(attr_N_count).sum(axis=0) + 1e-10))
+        attr_total_precision.append(np.array(attr_predicted_count) / (known_gt.sum(axis=0) + 1e-10))
+        attr_TPR.append(np.array(attr_TP_count) / (np.array(attr_P_count) + 1e-10))
+        attr_FPR.append(np.array(attr_FP_count) / (np.array(attr_N_count) + 1e-10))
 
     return TPR, FPR, total_precision, attr_TPR, attr_FPR, attr_total_precision
