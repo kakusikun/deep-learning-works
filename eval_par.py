@@ -44,6 +44,7 @@ if action == 'y':
     if os.path.exists("{}_pt.npy".format(args.cache)):
         logger.info("Loading from cache")
         pt = np.load("{}_pt.npy".format(args.cache))
+        pt = torch.Tensor(pt).sigmoid().numpy()
         gt = np.load("{}_gt.npy".format(args.cache))
     else:
         use_gpu = True 
@@ -79,7 +80,7 @@ if action == 'y':
     logger.info("Computing Prec and Recall")
     logger.info("Results ----------")
     logger.info("ROC curve")
-    for thresh in [0, 25, 50, 75]:
+    for thresh in [25, 50, 75]:
         logger.info("Threshold: {:5}".format(thresh*0.01))
         logger.info("{:10}  |  Precision: {:.2f}  |  TPR: {:.2f}  |  FPR: {:.2f}".format("Total", total_precision[thresh], TPR[thresh], FPR[thresh]))
         for i, attr in enumerate(model_manager.category_names):

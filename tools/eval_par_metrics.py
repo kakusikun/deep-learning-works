@@ -22,13 +22,13 @@ def eval_par_accuracy(predict, gt):
         predicted_gt = np.zeros_like(predict)
         predicted_gt[predict >= thresh] = 1
 
-        attr_predicted_count = []
+        attr_PP_count = []
         attr_TP_count = []
         attr_FP_count = []
         attr_P_count = []
         attr_N_count = []
         for i in range(known_gt.shape[1]):
-            attr_predicted_count.append((predicted_gt[:,i][known_gt[:,i]] == gt[:,i][known_gt[:,i]]).astype(float).sum())
+            attr_PP_count.append((predicted_gt[:,i][known_gt[:,i]]).sum())
 
             attr_TP_count.append((predicted_gt[:,i][known_gt[:,i]] * gt[:,i][known_gt[:,i]]).sum())
             attr_P_count.append(gt[:,i][known_gt[:,i]].sum())
@@ -37,11 +37,11 @@ def eval_par_accuracy(predict, gt):
             attr_FP_count.append((predicted_gt[:,i][known_gt[:,i]] * inverse_gt).sum())
             attr_N_count.append(inverse_gt.sum())
 
-        total_precision.append(np.array(attr_predicted_count).sum() / (known_gt.sum() + 1e-10))
+        total_precision.append(np.array(attr_TP_count).sum() / (np.array(attr_PP_count).sum() + 1e-10))
         TPR.append(np.array(attr_TP_count).sum() / (np.array(attr_P_count).sum() + 1e-10))
         FPR.append(np.array(attr_FP_count).sum() / (np.array(attr_N_count).sum() + 1e-10))
 
-        attr_total_precision.append(np.array(attr_predicted_count) / (known_gt.sum(axis=0) + 1e-10))
+        attr_total_precision.append(np.array(attr_TP_count) / (np.array(attr_PP_count) + 1e-10))
         attr_TPR.append(np.array(attr_TP_count) / (np.array(attr_P_count) + 1e-10))
         attr_FPR.append(np.array(attr_FP_count) / (np.array(attr_N_count) + 1e-10))
 
