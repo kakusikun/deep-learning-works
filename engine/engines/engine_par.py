@@ -56,16 +56,21 @@ class PAREngine(Engine):
         self._eval_epoch_start()
         outputs = []
         targets = []
+        test_loss = []
         with torch.no_grad():
             for batch in tqdm(self.vdata, desc="Validation"):
                 
                 images, target = batch
-                if self.use_gpu: images = images.cuda()
-                
+                if self.use_gpu: images, target = images.cuda(), target.cuda()
+
                 output = self.core(images)
+                loss, _, _ = self.manager.loss_func(output, target)
+
+                test_loss.append(loss.cpu())
                 outputs.append(output.cpu())
                 targets.append(target)
                 
+        self.test_loss = torch.Tensor(test_loss).mean()
         pt = torch.cat(outputs, 0)
         gt = torch.cat(targets, 0)
         

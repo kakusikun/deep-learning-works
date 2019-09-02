@@ -9,6 +9,7 @@ MODEL:
   NAME: "osnet"
   PRETRAIN: "own"
   TASK: "classifier"
+  SAVE_CRITERION: "loss"
 
 INPUT:
   IMAGE_PAD: 10

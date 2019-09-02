@@ -31,7 +31,10 @@ class Engine():
         self.each_loss = None
         self.train_accu = 0.0
         self.best_accu = 0.0
+        self.min_loss = 1e5
+        self.test_loss = 0.0
         self.accu = 0.0
+        self.save_criterion = cfg.MODEL.SAVE_CRITERION
 
     def _start(self):
         logger.info("Training start")
@@ -65,12 +68,20 @@ class Engine():
         raise NotImplementedError
 
     def _eval_epoch_end(self):
-        logger.info("Epoch {} evaluation ends, accuracy {:.4f}".format(self.epoch, self.accu))
-        if self.accu > self.best_accu:
-            logger.info("Save checkpoint, with {:.4f} improvement".format(self.accu - self.best_accu))
-            self.manager.save_model(self.epoch, self.opts, self.accu)
-            self.best_accu = self.accu
-        self.show.add_scalar('val/accuracy', self.best_accu, self.epoch)
+        if self.save_criterion == 'loss':
+            logger.info("Epoch {} evaluation ends, loss {:.4f}".format(self.epoch, self.test_loss))
+            if self.min_loss > self.test_loss:
+                logger.info("Save checkpoint, with {:.4f} improvement".format(self.min_loss - self.test_loss))
+                self.manager.save_model(self.epoch, self.opts, self.test_loss)
+                self.min_loss = self.test_loss
+            self.show.add_scalar('val/loss', self.min_loss, self.epoch)
+        else:
+            logger.info("Epoch {} evaluation ends, accuracy {:.4f}".format(self.epoch, self.accu))
+            if self.accu > self.best_accu:
+                logger.info("Save checkpoint, with {:.4f} improvement".format(self.accu - self.best_accu))
+                self.manager.save_model(self.epoch, self.opts, self.accu)
+                self.best_accu = self.accu
+            self.show.add_scalar('val/accuracy', self.best_accu, self.epoch)
 
     def _train_once(self):
         raise NotImplementedError

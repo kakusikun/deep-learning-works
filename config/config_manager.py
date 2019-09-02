@@ -27,6 +27,7 @@ _C.MODEL.NAME = ""
 _C.MODEL.PRETRAIN = "own"
 _C.MODEL.TASK = "classifier"
 _C.MODEL.POOLING = "AVG"
+_C.MODEL.SAVE_CRITERION = "acc"
 
 # -----------------------------------------------------------------------------
 # INPUT
