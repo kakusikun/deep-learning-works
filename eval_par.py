@@ -30,44 +30,59 @@ if args.opts != None:
     cfg.merge_from_list(args.opts)
 
 log_name = "{}_evaluation_{}_{}".format(args.type, cfg.DATASET.NAME, cfg.EVALUATE.split("/")[-1])
+if not os.path.exists("./evaluation/"):
+    os.mkdir("./evaluation/")
 logger = setup_logger("./evaluation/", log_name)
 logger.info("Running with config:\n{}".format(cfg))
 
 action = input("Config Confirmed ? (Y/N)").lower().strip()
 if action == 'y':
     
-    use_gpu = True 
+    if os.path.exists("./{}_pt.npy".format(args.cache)):
+        pt = np.load("./{}_pt.npy".format(args.cache))
+        gt = np.load("./{}_gt.npy".format(args.cache))
+    else:
+        use_gpu = True 
 
-    model_manager = PARManager(cfg)
-    core = model_manager.model     
+        model_manager = PARManager(cfg)
+        core = model_manager.model     
 
-    core = core.cuda()
-    core.eval()
+        core = core.cuda()
+        core.eval()
 
-    _, vdata = build_par_loader(cfg)
+        _, vdata = build_par_loader(cfg)
 
-    outputs = []
-    targets = []
-    with torch.no_grad():
-        for batch in tqdm(vdata, desc="Validation"):
-            
-            images, target = batch
-            if use_gpu: images = images.cuda()
-            
-            output = core(images)
-            outputs.append(output.cpu())
-            targets.append(target)
-    
-    pt = torch.cat(outputs, 0)
-    gt = torch.cat(targets, 0)
-    
-    TPR, FPR, total_precision, attr_TPR, attr_FPR, attr_total_precision = eval_par_accuracy(pt.numpy(), gt.numpy())
+        outputs = []
+        targets = []
+        with torch.no_grad():
+            for batch in tqdm(vdata, desc="Validation"):
+                
+                images, target = batch
+                if use_gpu: images = images.cuda()
+                
+                output = core(images)
+                outputs.append(output.cpu())
+                targets.append(target)
+        
+        pt = torch.cat(outputs, 0).numpy()
+        gt = torch.cat(targets, 0).numpy()
+        
+        if args.cache:
+            np.save("./{}_pt.npy".format(args.cache), pt)
+            np.save("./{}_gt.npy".format(args.cache), gt)
+
+    TPR, FPR, total_precision, attr_TPR, attr_FPR, attr_total_precision = eval_par_accuracy(pt, gt)
 
     logger.info("Computing Prec and Recall")
     logger.info("Results ----------")
     logger.info("ROC curve")
     for thresh in [0, 25, 50, 75]:
-        logger.info("Threshold: {:<3}  |  Precision: {:.2f}  |  TPR: {:.2f}  |  FPR: {:.2f}".format(thresh*0.01, total_precision[thresh], TPR[thresh], FPR[thresh]))
+        logger.info("Threshold: {:5}".format(thresh*0.01))
+        logger.info("{:10}  |  Precision: {:.2f}  |  TPR: {:.2f}  |  FPR: {:.2f}".format("Total", total_precision[thresh], TPR[thresh], FPR[thresh]))
+        for i, attr in enumerate(model_manager.category_names):
+            logger.info("{:10}  |  Precision: {:.2f}  |  TPR: {:.2f}  |  FPR: {:.2f}".format(attr, attr_total_precision[i][thresh], attr_TPR[i][thresh], attr_FPR[i][thresh]))
+        logger.info("##################")
+
     logger.info("------------------")
 
  
