@@ -19,6 +19,7 @@ parser = argparse.ArgumentParser(description="PyTorch Template MNIST Training")
 parser.add_argument("--config_file", default="", help="path to config file", type=str)
 parser.add_argument("--opts", help="Modify config options using the command-line", default=None,
                     nargs=argparse.REMAINDER)
+parser.add_argument("--type", default="roc", help="evaluation mode", type=str)
 parser.add_argument("--cache", default="", help="evaluation type", type=str)
 
 args = parser.parse_args()
