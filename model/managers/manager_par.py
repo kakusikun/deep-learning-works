@@ -3,6 +3,7 @@ import sys
 import torch
 import math
 import torch.nn as nn
+import torch.nn.functional as F
 from collections import OrderedDict
 from model.OSNetv2 import osnet_x1_0
 from model.RMNet import RMNet
@@ -101,4 +102,6 @@ class Model(nn.Module):
         # use trick: BNNeck, feature before BNNeck to triplet GAP and feature w/o fc forward in backbone
         x = self.backbone(x)
         x = self.attr_fc(x)
+        if not self.training:
+            x = F.sigmoid(x)
         return x
