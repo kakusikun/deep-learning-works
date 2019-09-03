@@ -207,7 +207,6 @@ class WarmupCosineLR():
         num_iter_per_epoch,
         warmup_factor=1.0 / 3,
         warmup_iters=10,
-        last_iter=0, 
         anneal_mult=2,
         anneal_period=10,
     ):

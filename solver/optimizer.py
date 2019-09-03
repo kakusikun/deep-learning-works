@@ -1,3 +1,4 @@
+import sys
 import torch
 import math
 import numpy as np 
@@ -46,8 +47,17 @@ class Solver():
                                                             warmup_factor=1.0/3,#self.warmup_factor,
                                                             warmup_iters=self.warmup_iters,
                                                             )
+        elif self.lr_policy == "cosine":
+            self.scheduler = WarmupCosineLR(optimizer=self.opt,
+                                            num_iter_per_epoch=self.num_iter_per_epoch,
+                                            warmup_factor=1.0/3,
+                                            warmup_iters=self.warmup_iters,
+                                            anneal_mult=self.cycle_mult,
+                                            anneal_period=self.cycle_len,
+                                            )
         else:
-            self.scheduler = None
+            logger.info("LR policy is not specified")
+            sys.exit(1)
         
         logger.info("{} policy is used".format(self.lr_policy))
 
