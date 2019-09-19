@@ -65,7 +65,7 @@ def weights_init_classifier(module):
     for m in module.modules():
         if isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
             nn.init.normal_(m.weight, std=0.001)
-            if m.bias:
+            if m.bias is not None:
                 nn.init.constant_(m.bias, 0.0)
             
 class Model(nn.Module):
