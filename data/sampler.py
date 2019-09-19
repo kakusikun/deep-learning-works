@@ -25,14 +25,6 @@ class IdBasedSampler(sampler.Sampler):
             self.index_dic[pid].append(index)
         self.pids = list(self.index_dic.keys())
 
-        # estimate number of examples in an epoch
-        self.length = 0
-        for pid in self.pids:
-            idxs = self.index_dic[pid]
-            num = len(idxs)
-            if num < self.num_instances:
-                num = self.num_instances
-            self.length += num - num % self.num_instances
 
     def __iter__(self):
         batch_idxs_dict = defaultdict(list)
@@ -66,4 +58,22 @@ class IdBasedSampler(sampler.Sampler):
     def __len__(self):
         return self.length
 
+# class BlancedPARSampler(sampler.Sampler):
+#     def __init__(self, data_source, batch_size, num_instances):
+#         self.data_source = data_source
+#         self.batch_size = batch_size
+#         self.num_instances = num_instances
+#         self.num_pids_per_batch = self.batch_size // self.num_instances
+#         self.index_dic = defaultdict(list)
+#         for index, (_, pid, _) in enumerate(self.data_source):
+#             self.index_dic[pid].append(index)
+#         self.pids = list(self.index_dic.keys())
 
+#         # estimate number of examples in an epoch
+#         self.length = 0
+#         for pid in self.pids:
+#             idxs = self.index_dic[pid]
+#             num = len(idxs)
+#             if num < self.num_instances:
+#                 num = self.num_instances
+#             self.length += num - num % self.num_instances

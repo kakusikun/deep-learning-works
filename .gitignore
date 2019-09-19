@@ -1,6 +1,7 @@
 result*
 __pycache__
-!notebook/
+notebook/
+caffe_models/
 *.ipynb
 *.json
 *.swp
@@ -10,3 +11,4 @@ __pycache__
 *.csv
 *.jpg
 *.pyc
+*.yml
