@@ -88,13 +88,15 @@ class MobileNetv1(nn.Module):
         self.caffe_net = caffe_net
         img = np.random.rand(*input_size)
         x = torch.tensor(img.copy(), dtype=torch.float32)
-        self.model.eval()
+        
+        self.train(False)
         with torch.no_grad():
             cls_results = self.model(x)
 
         caffe_net.blobs['data'].data[...] = img.copy()
-        caffe_results = caffe_net.forward(blobs=['fc'])
-        cls_results_caffe = caffe_results['fc']
+        caffe_results = caffe_net.forward()
+        blob_name = list(caffe_results.keys())[0]
+        cls_results_caffe = caffe_results[blob_name]
         assert_diff(cls_results, cls_results_caffe)
 
     def forward(self, x):

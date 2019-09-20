@@ -1,10 +1,13 @@
 import os
 import os.path as osp
 import sys
-import torch
+import numpy as np
 import math
-import torch.nn as nn
 from collections import OrderedDict
+
+import torch
+import torch.nn as nn
+
 from model.MobileNetv1 import MobileNetv1
 from model.t2c import *
 from model.model_manager import TrainingManager
@@ -70,7 +73,7 @@ def weights_init_classifier(module):
 class GAE(nn.Module):
     def __init__(self, num_classes):
         super(GAE, self).__init__()
-        in_features = 7*7*1024
+        in_features = 4*4*1024
         
         self.gender = g_name("gender", nn.Linear(in_features, num_classes[0]))
         self.age = g_name("age", nn.Linear(in_features, num_classes[1]))
@@ -113,6 +116,22 @@ class Model(nn.Module):
         layer = self.gae.generate_caffe_prototxt(caffe_net, layer)
         
     def convert_to_caffe(self, name, path, input_size):
+        def assert_diff(a, b):
+            if isinstance(a, torch.Tensor):
+                a = a.detach().cpu().numpy()
+            if isinstance(b, torch.Tensor):
+                b = b.detach().cpu().numpy()
+            print(a.shape, b.shape)
+            a = a.reshape(-1)
+            b = b.reshape(-1)
+            assert a.shape == b.shape
+            print(a, b)
+            diff = np.abs(a - b)
+            print('mean diff = %f' % diff.mean())
+            assert diff.mean() < 0.001
+            print('max diff = %f' % diff.max())
+            assert diff.max() < 0.001
+
         caffe_net = caffe.NetSpec()
         layer = L.Input(shape=dict(dim=input_size))
         caffe_net.tops['data'] = layer
@@ -123,6 +142,22 @@ class Model(nn.Module):
         caffe_net = caffe.Net(osp.join(path, "{}.prototxt".format(name)), caffe.TEST)
         convert_pytorch_to_caffe(self, caffe_net)
         caffe_net.save(osp.join(path, "{}.caffemodel".format(name)))
+        self.caffe_net = caffe_net
+        img = np.random.rand(*input_size)
+        x = torch.tensor(img.copy(), dtype=torch.float32)
+        
+        self.train(False)
+        with torch.no_grad():
+            x = self.backbone(x)
+            gender, age, emotion = self.gae(x)
+
+        caffe_net.blobs['data'].data[...] = img.copy()
+        caffe_results = caffe_net.forward()
+        gender_caffe, age_caffe, emotion_caffe = caffe_results['gender'], caffe_results['age'], caffe_results['emotion']
+
+        assert_diff(gender, gender_caffe)
+        assert_diff(age, age_caffe)
+        assert_diff(emotion, emotion_caffe)
 
 if __name__ == '__main__':
     net = Model(num_classes=[1,101,3], model_name='gae')
