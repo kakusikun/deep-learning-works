@@ -245,8 +245,11 @@ def convert_pytorch_to_caffe(torch_net, caffe_net):
             if m.affine:
                 caffe_net.params[m.g_name + '/scale'][0].data[...] = m.weight.data.cpu().numpy()
                 caffe_net.params[m.g_name + '/scale'][1].data[...] = m.bias.data.cpu().numpy()
-        if isinstance(m. nn.Linear):
-            
+        if isinstance(m, nn.Linear):
+            print('convert fc:', name, m.g_name, m)
+            caffe_net.params[m.g_name][0].data[...] = m.weight.data.cpu().numpy()
+            if m.bias is not None:
+                caffe_net.params[m.g_name][1].data[...] = m.bias.data.cpu().numpy()         
 
 
 def conv_bn_relu(name, in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1, groups=1):
