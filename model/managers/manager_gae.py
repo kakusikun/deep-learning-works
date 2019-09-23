@@ -76,13 +76,14 @@ class GAE(nn.Module):
         in_features = 4*4*1024
         
         self.gender = g_name("gender", nn.Linear(in_features, num_classes[0]))
+        self.sigmoid = g_name("sigmoid", nn.Sigmoid())
         self.age = g_name("age", nn.Linear(in_features, num_classes[1]))
         self.emotion = g_name("emotion", nn.Linear(in_features, num_classes[2]))
         self.flatten = flatten("reshape", 1)
 
     def forward(self, x):
         x = self.flatten(x)
-        gender = self.gender(x)
+        gender = self.sigmoid(self.gender(x))
         age = self.age(x)
         emotion = self.emotion(x)
         return gender, age, emotion
@@ -90,6 +91,7 @@ class GAE(nn.Module):
     def generate_caffe_prototxt(self, caffe_net, layer):
         layer = self.flatten.generate_caffe_prototxt(caffe_net, layer)
         gender_layer = generate_caffe_prototxt(self.gender, caffe_net, layer)
+        gender_layer = generate_caffe_prototxt(self.sigmoid, caffe_net, gender_layer)
         age_layer = generate_caffe_prototxt(self.age, caffe_net, layer)
         emotion_layer = generate_caffe_prototxt(self.emotion, caffe_net, layer)
 

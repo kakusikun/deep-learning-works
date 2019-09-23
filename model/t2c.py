@@ -80,6 +80,8 @@ class Flatten(nn.Module):
 def flatten(name, axis):
     return g_name(name, Flatten(axis))
 
+
+
 def generate_caffe_prototxt(m, caffe_net, layer):
     if hasattr(m, 'generate_caffe_prototxt'):
         return m.generate_caffe_prototxt(caffe_net, layer)
@@ -216,6 +218,7 @@ def generate_caffe_prototxt(m, caffe_net, layer):
         layer = L.Pooling(layer, pooling_param=pooling_param)
         caffe_net.tops[m.g_name] = layer
         return layer
+
     if isinstance(m, nn.AdaptiveAvgPool2d) or isinstance(m, nn.AdaptiveMaxPool2d):
         if isinstance(m, nn.AdaptiveAvgPool2d):
             pooling_param = dict(pool=P.Pooling.AVE)
@@ -226,7 +229,12 @@ def generate_caffe_prototxt(m, caffe_net, layer):
         layer = L.Pooling(layer, pooling_param=pooling_param)
         caffe_net.tops[m.g_name] = layer
         return layer
-
+    
+    if isinstance(m, nn.Sigmoid):
+        layer = L.Sigmoid(layer)
+        caffe_net.tops[m.g_name] = layer
+        return layer
+        
     raise Exception("Unknow module '%s' to generate caffe prototxt." % m)
 
 
@@ -378,7 +386,3 @@ if __name__ == '__main__':
             convert_pytorch_to_caffe(self, caffe_net)
             caffe_net.save(name + '.caffemodel')
 
-
-    network = Network(1000, 8)
-    print(network)
-    network.convert_to_caffe('net')

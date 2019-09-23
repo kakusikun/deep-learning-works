@@ -11,3 +11,4 @@ with methods of
 * SGDR
 * Learning rate Cosine annealing
 * Attention Mechanism
+
