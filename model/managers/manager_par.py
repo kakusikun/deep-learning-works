@@ -42,7 +42,7 @@ class PARManager(TrainingManager):
 
         bce = nn.BCEWithLogitsLoss(reduction='none')
 
-        self.loss_name = ["BCE_{}".format(c) for c in self.category_names]
+        self.loss_name = ["BCE_{}".format(c) for c in range(self.cfg.NUM_CLASSES)]
 
         def loss_func(feat, target):
             temp_target = torch.zeros_like(target)            
@@ -52,12 +52,49 @@ class PARManager(TrainingManager):
             loss_table = p * bce(feat, temp_target)
             each_loss = torch.Tensor([loss_table[:,i][known_target[:,i]==1].mean() for i in range(loss_table.shape[1])])
             each_loss[each_loss != each_loss] = -1
-            loss = loss_table[known_target==1].mean()    
+            loss = loss_table[known_target==1].mean()
                     
             predicted_target = torch.zeros_like(feat)
             predicted_target[feat.sigmoid()>=0.5] = 1
             accu = (predicted_target[known_target==1] == target[known_target==1]).sum() / known_target.sum()
             return loss, each_loss, accu
+
+        self.loss_func = loss_func
+
+class SinglePARManager(TrainingManager):
+    def __init__(self, cfg):
+        super(SinglePARManager, self).__init__(cfg)        
+        
+        if cfg.TASK == "par":
+            self._make_model()
+            self._make_loss()
+        else:
+            logger.info("Task {} is not supported".format(cfg.TASK))  
+            sys.exit(1)
+
+        self._check_model()            
+                        
+    def _make_model(self):
+        self.model = Model(self.cfg)
+
+    def _make_loss(self):
+        if self.cfg.MODEL.NAME == 'osnet':
+            feat_dim = 512
+        else:
+            logger.info("{} is not supported".format(cfg.MODEL.NAME))
+            sys.exit(1)       
+
+        bce = nn.BCEWithLogitsLoss()
+
+        self.loss_name = ["BCE"]
+
+        def loss_func(feat, target):
+            loss = bce(feat, target)
+            each_loss = loss
+            predicted_target = torch.zeros_like(feat)
+            predicted_target[feat.sigmoid()>=0.5] = 1
+            accu = (predicted_target == target).mean()
+            return loss, loss, accu
 
         self.loss_func = loss_func
 
@@ -88,7 +125,7 @@ class Model(nn.Module):
         if cfg.MODEL.NAME == 'osnet':
             self.in_planes = 512
             if cfg.MODEL.PRETRAIN == "outside":
-                self.backbone = osnet_x1_0(task=cfg.MODEL.TASK) 
+                self.backbone = osnet_x1_0(task=cfg.MODEL.TASK)  
             else:
                 self.backbone = osnet_x1_0(cfg.MODEL.NUM_CLASSES, task=cfg.MODEL.TASK)        
         else:
