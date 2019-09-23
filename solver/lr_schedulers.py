@@ -220,7 +220,7 @@ class WarmupCosineLR():
         self.warmup_iters = warmup_iters
         self.anneal_mult = anneal_mult
         self.anneal_period = anneal_period
-        self.last_iter = last_iter
+        self.last_iter = 0
 
         for group in self.optimizer.param_groups:
             group.setdefault('initial_lr', group['lr'])
