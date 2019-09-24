@@ -17,7 +17,7 @@ from tools.logger import setup_logger
 
 
 parser = argparse.ArgumentParser(description="PyTorch Template MNIST Training")
-parser.add_argument("--config_file", default="", help="path to config file", type=str)
+parser.add_argument("--config", default="", help="path to config file", type=str)
 parser.add_argument("--opts", help="Modify config options using the command-line", default=None,
                     nargs=argparse.REMAINDER)
 parser.add_argument("--type", default="roc", help="evaluation mode", type=str)
@@ -25,8 +25,8 @@ parser.add_argument("--cache", default="", help="evaluation type", type=str)
 
 args = parser.parse_args()
 
-if args.config_file != "":
-    cfg.merge_from_file(args.config_file)
+if args.config != "":
+    cfg.merge_from_file(args.config)
 if args.opts != None:
     cfg.merge_from_list(args.opts)
 

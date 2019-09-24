@@ -36,23 +36,23 @@ def train(cfg):
 def main():
     parser = argparse.ArgumentParser(description="PyTorch Template MNIST Training")
     parser.add_argument(
-        "--config_file", default="", help="path to config file", type=str
+        "--config", default="", help="path to config file", type=str
     )
     parser.add_argument("opts", help="Modify config options using the command-line", default=None,
                         nargs=argparse.REMAINDER)
 
     args = parser.parse_args()
 
-    if args.config_file != "":
-        cfg.merge_from_file(args.config_file)
+    if args.config != "":
+        cfg.merge_from_file(args.config)
     cfg.merge_from_list(args.opts)
     
     time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     cfg.OUTPUT_DIR = "{}_{}_{}".format(cfg.OUTPUT_DIR, time, cfg.EXPERIMENT)
     if cfg.OUTPUT_DIR and not os.path.exists(cfg.OUTPUT_DIR):
         mkdir(cfg.OUTPUT_DIR)
-        if args.config_file != "":
-            shutil.copy(args.config_file, os.path.join(cfg.OUTPUT_DIR, args.config_file.split("/")[-1]))
+        if args.config != "":
+            shutil.copy(args.config, os.path.join(cfg.OUTPUT_DIR, args.config.split("/")[-1]))
 
     logger = setup_logger(cfg.OUTPUT_DIR)
 
