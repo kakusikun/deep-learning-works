@@ -11,7 +11,7 @@ from data.build_loader import build_par_loader
 from engine.engines.engine_par import PAREngine
 from solver.optimizer import Solver
 from visualizer.visualizer import Visualizer
-from model.managers.manager_par import PARManager
+from model.managers.manager_par import PARManager, SinglePARManager
 from tools.logger import setup_logger
 import torch.nn as nn
 
@@ -19,7 +19,7 @@ def train(cfg):
 
     train_loader, val_loader = build_par_loader(cfg)
 
-    model_manager = PARManager(cfg)
+    model_manager = PARManager(cfg) if cfg.PAR.SELECT_CAT == -1 else SinglePARManager(cfg)
 
     cfg.SOLVER.ITERATIONS_PER_EPOCH = len(train_loader)
 
