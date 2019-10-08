@@ -17,7 +17,8 @@ class PARManager(TrainingManager):
     def __init__(self, cfg):
         super(PARManager, self).__init__(cfg)        
         self.category_names = ['gender', 'hair', 'shirt', 'plaid', 'stripe', 'sleeve',
-                            'logo', 'shorts', 'skirt', 'hat', 'glasses', 'backpack', 'bag']
+                               'logo', 'shorts', 'skirt', 'hat', 'glasses', 'backpack', 
+                               'bag']
         self.alpha = -4.45
         self.beta = 5.45
 
@@ -90,11 +91,11 @@ class SinglePARManager(TrainingManager):
 
         def loss_func(feat, target):
             loss = bce(feat, target)
-            each_loss = loss
+            each_loss = [loss]
             predicted_target = torch.zeros_like(feat)
             predicted_target[feat.sigmoid()>=0.5] = 1
-            accu = (predicted_target == target).mean()
-            return loss, loss, accu
+            accu = (predicted_target == target).float().mean()
+            return loss, each_loss, accu
 
         self.loss_func = loss_func
 
