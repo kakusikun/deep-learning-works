@@ -61,7 +61,7 @@ class PAR():
                                               for f in files if '.jpg' in f or '.png' in f])
         dataset = []
         for img in imgs:
-            _attrs = img.split(".")[0].split("__")[-1].split('_')
+            _attrs = img.split("__")[-1].split(".")[0].split('_')
             if self.cat != -1:
                 if int(_attrs[self.cat]) == -1:
                     continue
