@@ -75,7 +75,7 @@ class PAREngine(Engine):
         gt = torch.cat(targets, 0)
         
         if self.use_gpu:
-        TPR, FPR, total_precision, _, _, _ = eval_par_accuracy(pt.cpu().numpy(), gt.cpu().numpy())
+            TPR, FPR, total_precision, _, _, _ = eval_par_accuracy(pt.cpu().numpy(), gt.cpu().numpy())
         else:
             TPR, FPR, total_precision, _, _, _ = eval_par_accuracy(pt.numpy(), gt.numpy())
 

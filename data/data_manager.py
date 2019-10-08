@@ -30,6 +30,7 @@ class PAR():
         self._check_before_run()
 
         self.cat = cfg.PAR.SELECT_CAT
+        self.ignore = cfg.PAR.IGNORE_CAT
 
         train, train_num_images = self._process_dir(self.train_dir)
         val, val_num_images = self._process_dir(self.val_dir)
@@ -62,6 +63,9 @@ class PAR():
         dataset = []
         for img in imgs:
             _attrs = img.split("__")[-1].split(".")[0].split('_')
+            if len(self.ignore) > 0:
+                for ig in self.ignore:
+                    _attrs.pop(ig-1)
             if self.cat != -1:
                 if int(_attrs[self.cat]) == -1:
                     continue

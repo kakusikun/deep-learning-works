@@ -1,15 +1,15 @@
-EXPERIMENT: "OSNet_par_bces_SGD_lr_0.001_warmup_10_0.01_plateau_10_flip_crop_imagenet"
+EXPERIMENT: "OSNet_par_gender_bce_SGD_lr_0.001_warmup_10_0.01_plateau_10_flip_crop_imagenet"
 # [modelname]_[task]_[loss]_[opt]_[lr]_[trick]_[pretrain]
 
 TASK: "par"
 
 MODEL:
   NUM_GPUS: 2
-  NUM_CLASSES: 13
+  NUM_CLASSES: 12
   NAME: "osnet"
-  PRETRAIN: "own"
+  PRETRAIN: "outside"
   TASK: "classifier"
-  SAVE_CRITERION: "loss"
+  SAVE_CRITERION: "accu"
 
 INPUT:
   IMAGE_PAD: 10
@@ -20,6 +20,10 @@ INPUT:
   PIXEL_MEAN: [0.485, 0.456, 0.406]
   PIXEL_STD: [0.229, 0.224, 0.225]
   
+PAR:
+  SELECT_CAT: -1
+  IGNORE_CAT: [13]
+
 DATALOADER:
   NUM_WORKERS: 1
 
