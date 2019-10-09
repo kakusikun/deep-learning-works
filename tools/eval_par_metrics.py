@@ -3,46 +3,31 @@ import numpy as np
 import copy
 from collections import defaultdict
 import sys
+from sklearn.metrics import f1_score, recall_score, precision_score
 from tqdm import tqdm
 
-def eval_par_accuracy(predict, gt):
-    known_gt = gt > -1
+def eval_par_accuracy(predict_proba, gt):
+    known_gt = gt > -1 
 
-    TPR = []
-    FPR = []
-    total_precision = []
-
-    attr_TPR = []
-    attr_FPR = []
-    attr_total_precision = []
-    
+    attr_precs = []
+    attr_recalls = []  
     
     for thresh in tqdm(range(0, 100), desc="PAR Accuracy"):
         thresh *= 0.01
-        predicted_gt = np.zeros_like(predict)
-        predicted_gt[predict >= thresh] = 1
-
-        attr_PP_count = []
-        attr_TP_count = []
-        attr_FP_count = []
-        attr_P_count = []
-        attr_N_count = []
+        predict = np.zeros_like(predict_proba)
+        predict[predict_proba >= thresh] = 1
+        attr_prec = []
+        attr_recall = [] 
         for i in range(known_gt.shape[1]):
-            attr_PP_count.append((predicted_gt[:,i][known_gt[:,i]]).sum())
+            p = precision_score(gt[:,i][known_gt[;,i]], predict[:,i][known_gt[;,i]], average='macro')
+            r = recall_score(gt[:,i][known_gt[;,i]], predict[:,i][known_gt[;,i]], average='macro')    
+            attr_prec.append(p)
+            attr_recall.append(r)
 
-            attr_TP_count.append((predicted_gt[:,i][known_gt[:,i]] * gt[:,i][known_gt[:,i]]).sum())
-            attr_P_count.append(gt[:,i][known_gt[:,i]].sum())
+        attr_precs.append(attr_prec)
+        attr_recalls.append(attr_recall)
 
-            inverse_gt = np.invert(gt[:,i][known_gt[:,i]].astype(bool)).astype(float)
-            attr_FP_count.append((predicted_gt[:,i][known_gt[:,i]] * inverse_gt).sum())
-            attr_N_count.append(inverse_gt.sum())
+    attr_precs = np.array(attr_precs)
+    attr_recalls = np.array(attr_recalls)
 
-        total_precision.append(np.array(attr_TP_count).sum() / (np.array(attr_PP_count).sum() + 1e-10))
-        TPR.append(np.array(attr_TP_count).sum() / (np.array(attr_P_count).sum() + 1e-10))
-        FPR.append(np.array(attr_FP_count).sum() / (np.array(attr_N_count).sum() + 1e-10))
-
-        attr_total_precision.append(np.array(attr_TP_count) / (np.array(attr_PP_count) + 1e-10))
-        attr_TPR.append(np.array(attr_TP_count) / (np.array(attr_P_count) + 1e-10))
-        attr_FPR.append(np.array(attr_FP_count) / (np.array(attr_N_count) + 1e-10))
-
-    return TPR, FPR, total_precision, attr_TPR, attr_FPR, attr_total_precision
+    return attr_precs, attr_recalls

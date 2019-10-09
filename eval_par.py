@@ -74,16 +74,17 @@ if action == 'y':
             np.save("{}_pt.npy".format(args.cache), pt)
             np.save("{}_gt.npy".format(args.cache), gt)
 
-    TPR, FPR, total_precision, attr_TPR, attr_FPR, attr_total_precision = eval_par_accuracy(pt, gt)
-
-    logger.info("Computing Prec and Recall")
+    precs, recalls = eval_par_accuracy(pt, gt)
+    t_precs = precs.mean(axis=1)
+    t_recalls = recalls.mean(axis=1)
+    logger.info("Computing Precision and Recall")
     logger.info("Results ----------")
-    logger.info("ROC curve")
     for thresh in [25, 50, 75]:
         logger.info("Threshold: {:5}".format(thresh*0.01))
-        logger.info("{:10}  |  Precision: {:.2f}  |  TPR: {:.2f}  |  FPR: {:.2f}".format("Total", total_precision[thresh], TPR[thresh], FPR[thresh]))
+        logger.info("{:10}  |  Precision: {:.2f}  |  Recall: {:.2f}".format("Total", t_precs[thresh], t_recalls[thresh]))
         for i, attr in enumerate(model_manager.category_names):
-            logger.info("{:10}  |  Precision: {:.2f}  |  TPR: {:.2f}  |  FPR: {:.2f}".format(attr, attr_total_precision[thresh][i], attr_TPR[thresh][i], attr_FPR[thresh][i]))
+            if i+1 is not in cfg.PAR.IGNORE_CAT:
+                logger.info("{:10}  |  Precision: {:.2f}  |  Recall: {:.2f}".format(attr, precs[thresh][i], recalls[thresh][i]))
         logger.info("##################")
 
     logger.info("------------------")
