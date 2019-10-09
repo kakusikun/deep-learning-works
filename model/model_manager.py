@@ -39,7 +39,7 @@ class TrainingManager():
             opt_state = opt.opt.state_dict()
             state[opt_name] = opt_state
 
-        if isinstance(self.model, torch.nn.DataParallel):
+        if isinstance(self.model, torch.nn.DataParallel): 
             model_state = self.model.module.state_dict()
         else:
             model_state = self.model.state_dict()
@@ -111,4 +111,14 @@ class TrainingManager():
 
     def _initialize_weights(self):
         raise NotImplementedError
+
+    def _check_gpu(self): 
+        if self.model is not None and self.cfg.MODEL.NUM_GPUS > 0 and torch.cuda.is_available():
+            self.use_gpu = True
+            logger.info("{} GPUs available".format(torch.cuda.device_count()))
+        
+            if self.cfg.MODEL.NUM_GPUS > 1 and torch.cuda.device_count() > 1:
+                self.model = torch.nn.DataParallel(self.model).cuda()
+            else:
+                self.model = self.model.cuda()
                         

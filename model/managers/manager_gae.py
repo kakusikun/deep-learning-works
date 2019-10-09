@@ -29,6 +29,8 @@ class GAEManager(TrainingManager):
         
         self.loss_name = ["cels"]
                         
+        self._check_gpu() 
+        
     def _make_model(self):
         self.model = Model(self.cfg.MODEL.NUM_CLASSES, self.cfg.MODEL.NAME)
 

@@ -25,7 +25,7 @@ class Engine():
         self.iter = 0
         self.epoch = 0
         self.max_epoch = cfg.SOLVER.MAX_EPOCHS
-        self.use_gpu = False   
+        self.use_gpu = next(self.core.parameters()).is_cuda 
         self.train = True  
         self.total_loss = 0.0
         self.each_loss = None
@@ -99,16 +99,6 @@ class Engine():
 
     def _evaluate(self):
         raise NotImplementedError        
-
-    def _check_gpu(self):
-        if self.cfg.MODEL.NUM_GPUS > 0 and torch.cuda.is_available():
-            self.use_gpu = True
-            logger.info("{} GPUs available".format(torch.cuda.device_count()))
-        
-            if self.cfg.MODEL.NUM_GPUS > 1 and torch.cuda.device_count() > 1:
-                self.core = torch.nn.DataParallel(self.core).cuda()
-            else:
-                self.core = self.core.cuda()
 
     @staticmethod
     def tensor_to_scalar(tensor):
