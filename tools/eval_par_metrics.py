@@ -19,8 +19,8 @@ def eval_par_accuracy(predict_proba, gt):
         attr_prec = []
         attr_recall = [] 
         for i in range(known_gt.shape[1]):
-            p = precision_score(gt[:,i][known_gt[;,i]], predict[:,i][known_gt[;,i]], average='macro')
-            r = recall_score(gt[:,i][known_gt[;,i]], predict[:,i][known_gt[;,i]], average='macro')    
+            p = precision_score(gt[:,i][known_gt[:,i]], predict[:,i][known_gt[:,i]], average='macro')
+            r = recall_score(gt[:,i][known_gt[:,i]], predict[:,i][known_gt[:,i]], average='macro')    
             attr_prec.append(p)
             attr_recall.append(r)
 
