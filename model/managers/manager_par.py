@@ -45,7 +45,7 @@ class PARManager(TrainingManager):
 
         bce = nn.BCEWithLogitsLoss(reduction='none')
 
-        self.loss_name = ["BCE_{}".format(c) for c in range(self.cfg.NUM_CLASSES)]
+        self.loss_name = ["BCE_{}".format(c) for c in range(self.cfg.MODEL.NUM_CLASSES)]
 
         def loss_func(feat, target):
             temp_target = torch.zeros_like(target)            
