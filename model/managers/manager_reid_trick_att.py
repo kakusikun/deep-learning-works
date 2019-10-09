@@ -24,8 +24,6 @@ class AttentionManager(TrainingManager):
             sys.exit(1)
 
         self._check_model()      
-
-        self._check_gpu()       
                         
     def _make_model(self):
         self.model = Model(self.cfg)

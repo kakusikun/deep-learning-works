@@ -112,13 +112,18 @@ class TrainingManager():
     def _initialize_weights(self):
         raise NotImplementedError
 
-    def _check_gpu(self): 
+    def use_gpu(self):
         if self.model is not None and self.cfg.MODEL.NUM_GPUS > 0 and torch.cuda.is_available():
-            self.use_gpu = True
-            logger.info("{} GPUs available".format(torch.cuda.device_count()))
-        
-            if self.cfg.MODEL.NUM_GPUS > 1 and torch.cuda.device_count() > 1:
+            if self.cfg.MODEL.NUM_GPUS > 1:
+                logger.info("Use Multi-GPUs")
                 self.model = torch.nn.DataParallel(self.model).cuda()
             else:
+                logger.info("Use GPU")
                 self.model = self.model.cuda()
-                        
+        else:
+            if self.model is None:
+                logger.info("Initial model first")
+            elif torch.cuda.is_available():
+                logger.info("GPU is no found")
+            else self.cfg.MODEL.NUM_GPUS == 0:
+                logger.info("GPU is not used")

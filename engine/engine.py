@@ -41,7 +41,6 @@ class Engine():
         self.iter = self.cfg.SOLVER.START_EPOCH * len(self.tdata)
         self.epoch = self.cfg.SOLVER.START_EPOCH
 
-        self._check_gpu()      
 
     def _train_epoch_start(self): 
         self.epoch += 1
