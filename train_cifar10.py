@@ -25,6 +25,8 @@ def train(cfg):
 
     model_manager = TrainingManager(cfg)
 
+    model_manager.use_multigpu()
+
     if cfg.EVALUATE:
         engine = ImageNetEngine(cfg, None, None, None, val_loader, None, model_manager)
         engine.Inference()

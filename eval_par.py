@@ -40,6 +40,8 @@ action = input("Config Confirmed ? (Y/N)").lower().strip()
 if action == 'y':
 
     model_manager = PARManager(cfg)
+
+    model_manager.use_multigpu()
     
     if os.path.exists("{}_pt.npy".format(args.cache)):
         logger.info("Loading from cache")

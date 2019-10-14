@@ -21,6 +21,8 @@ def train(cfg):
 
     model_manager = TrickManager(cfg)
 
+    model_manager.use_multigpu()
+
     cfg.SOLVER.ITERATIONS_PER_EPOCH = len(train_loader)
 
     opts = []    
