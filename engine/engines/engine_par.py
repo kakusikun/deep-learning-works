@@ -25,7 +25,7 @@ class PAREngine(Engine):
     def _train_iter_end(self):  
         for opt in self.opts:
             opt.step()
-
+ 
         self.show.add_scalar('train/total_loss', self.total_loss, self.iter)              
         for i in range(len(self.each_loss)):
             self.show.add_scalar('train/loss/{}'.format(self.manager.loss_name[i]), self.each_loss[i], self.iter)
@@ -75,18 +75,25 @@ class PAREngine(Engine):
         gt = torch.cat(targets, 0)
         
         if self.use_gpu:
-            TPR, FPR, total_precision, _, _, _ = eval_par_accuracy(pt.cpu().numpy(), gt.cpu().numpy())
+            precs, recalls = eval_par_accuracy(pt.cpu().numpy(), gt.cpu().numpy())
         else:
-            TPR, FPR, total_precision, _, _, _ = eval_par_accuracy(pt.numpy(), gt.numpy())
+            precs, recalls = eval_par_accuracy(pt.numpy(), gt.numpy())
 
-        self.accu = total_precision[50]
-
-        logger.info("Computing Prec and Recall")
+        t_precs = precs.mean(axis=1)
+        t_recalls = recalls.mean(axis=1)
+        logger.info("Computing Precision and Recall")
         logger.info("Results ----------")
-        logger.info("ROC curve")
-        for thresh in [0, 25, 50, 75]:
-            logger.info("Threshold: {:<3}  |  Precision: {:.2f}  |  TPR: {:.2f}  |  FPR: {:.2f}".format(thresh*0.01, total_precision[thresh], TPR[thresh], FPR[thresh]))
+        for thresh in [25, 50, 75]:
+            logger.info("Threshold: {:5}".format(thresh*0.01))
+            logger.info("{:10}  |  Precision: {:.2f}  |  Recall: {:.2f}".format("Total", t_precs[thresh], t_recalls[thresh]))
+            for i, attr in enumerate(model_manager.category_names):
+                if (i+1) not in cfg.PAR.IGNORE_CAT:
+                    logger.info("{:10}  |  Precision: {:.2f}  |  Recall: {:.2f}".format(attr, precs[thresh][i], recalls[thresh][i]))
+            logger.info("##################")
+
         logger.info("------------------")
+
+        self.accu = t_precs[50]
 
         self._eval_epoch_end() 
 
