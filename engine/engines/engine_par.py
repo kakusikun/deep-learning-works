@@ -86,7 +86,7 @@ class PAREngine(Engine):
         for thresh in [25, 50, 75]:
             logger.info("Threshold: {:5}".format(thresh*0.01))
             logger.info("{:10}  |  Precision: {:.2f}  |  Recall: {:.2f}".format("Total", t_precs[thresh], t_recalls[thresh]))
-            for i, attr in enumerate(model_manager.category_names):
+            for i, attr in enumerate(self.manager.category_names):
                 if (i+1) not in cfg.PAR.IGNORE_CAT:
                     logger.info("{:10}  |  Precision: {:.2f}  |  Recall: {:.2f}".format(attr, precs[thresh][i], recalls[thresh][i]))
             logger.info("##################")
