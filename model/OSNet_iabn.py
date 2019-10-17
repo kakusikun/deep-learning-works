@@ -12,8 +12,6 @@ import torchvision
 
 from inplace_abn import InPlaceABN as IABN
 
-def BN(num_features, activation='elu'):
-    return IABN(num_features, activation=activation, activation_param=1e-3)
 
 ##########
 # Basic layers
@@ -25,7 +23,7 @@ class ConvLayer(nn.Module):
         super(ConvLayer, self).__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride,
                               padding=padding, bias=False, groups=groups)
-        self.bn = BN(out_channels)
+        self.bn = IABN(out_channels)
 
     def forward(self, x):
         x = self.conv(x)
@@ -40,7 +38,7 @@ class Conv1x1(nn.Module):
         super(Conv1x1, self).__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, 1, stride=stride, padding=0,
                               bias=False, groups=groups)
-        self.bn = BN(out_channels)
+        self.bn = IABN(out_channels)
 
     def forward(self, x):
         x = self.conv(x)
@@ -54,7 +52,7 @@ class Conv1x1Linear(nn.Module):
     def __init__(self, in_channels, out_channels, stride=1):
         super(Conv1x1Linear, self).__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, 1, stride=stride, padding=0, bias=False)
-        self.bn = BN(out_channels, activation='identity')
+        self.bn = IABN(out_channels, activation='identity')
 
     def forward(self, x):
         x = self.conv(x)
@@ -69,7 +67,7 @@ class Conv3x3(nn.Module):
         super(Conv3x3, self).__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, 3, stride=stride, padding=1,
                               bias=False, groups=groups)
-        self.bn = BN(out_channels)
+        self.bn = IABN(out_channels)
 
     def forward(self, x):
         x = self.conv(x)
@@ -86,7 +84,7 @@ class LightConv3x3(nn.Module):
         super(LightConv3x3, self).__init__()
         self.conv1 = nn.Conv2d(in_channels, out_channels, 1, stride=1, padding=0, bias=False)
         self.conv2 = nn.Conv2d(out_channels, out_channels, 3, stride=1, padding=1, bias=False, groups=out_channels)
-        self.bn = BN(out_channels)
+        self.bn = IABN(out_channels)
 
     def forward(self, x):
         x = self.conv1(x)
@@ -112,7 +110,7 @@ class ChannelGate(nn.Module):
         self.norm1 = None
         if layer_norm:
             self.norm1 = nn.LayerNorm((in_channels//reduction, 1, 1))
-        self.elu = nn.ELU(inplace=True)
+        self.elu = nn.ReLU(inplace=True)
         self.fc2 = nn.Conv2d(in_channels//reduction, num_gates, kernel_size=1, bias=True, padding=0)
         if gate_activation == 'sigmoid':
             self.gate_activation = nn.Sigmoid()        
@@ -177,7 +175,7 @@ class OSBlock(nn.Module):
             residual = self.downsample(residual)
         out = x3 + residual
         
-        return F.elu(out, alpha=1e-3)
+        return F.relu(out)
 
 
 ##########
@@ -224,12 +222,12 @@ class OSNet(nn.Module):
         
         self._init_params()
 
-    def _make_layer(self, block, layer, in_channels, out_channels, reduce_spatial_size, IN=False):
+    def _make_layer(self, block, layer, in_channels, out_channels, reduce_spatial_size):
         layers = []
         
-        layers.append(block(in_channels, out_channels, IN=IN))
+        layers.append(block(in_channels, out_channels))
         for i in range(1, layer):
-            layers.append(block(out_channels, out_channels, IN=IN))
+            layers.append(block(out_channels, out_channels))
         
         if reduce_spatial_size:
             layers.append(

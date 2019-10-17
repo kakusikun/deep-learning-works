@@ -125,10 +125,9 @@ class data_prefetcher():
 
     def preload(self):
         try:
-            self.next_input, self.next_target = next(self.loader)
+            self.next_batch = next(self.loader)
         except StopIteration:
-            self.next_input = None
-            self.next_target = None
+            self.next_batch = None
             return
         # if record_stream() doesn't work, another option is to make sure device inputs are created
         # on the main stream.
@@ -138,8 +137,8 @@ class data_prefetcher():
         # at the time we start copying to next_*:
         # self.stream.wait_stream(torch.cuda.current_stream())
         with torch.cuda.stream(self.stream):
-            self.next_input = self.next_input.cuda(non_blocking=True)
-            self.next_target = self.next_target.cuda(non_blocking=True)
+            for i in range(len(self.next_batch)):
+                self.next_batch[i] = self.next_batch[i].cuda(non_blocking=True))
             # more code for the alternative if record_stream() doesn't work:
             # copy_ will record the use of the pinned source tensor in this side stream.
             # self.next_input_gpu.copy_(self.next_input, non_blocking=True)
@@ -151,15 +150,12 @@ class data_prefetcher():
             # if args.fp16:
             #     self.next_input = self.next_input.half()
             # else:
-            self.next_input = self.next_input.float()
             
     def next(self):
         torch.cuda.current_stream().wait_stream(self.stream)
-        input = self.next_input
-        target = self.next_target
-        if input is not None:
-            input.record_stream(torch.cuda.current_stream())
-        if target is not None:
-            target.record_stream(torch.cuda.current_stream())
+        batch = self.next_batch
+        if batch is not None:
+            for i in range(len(batch)):
+                batch[i].record_stream(torch.cuda.current_stream())
         self.preload()
-        return input, target
+        return batch
