@@ -138,7 +138,7 @@ class data_prefetcher():
         # self.stream.wait_stream(torch.cuda.current_stream())
         with torch.cuda.stream(self.stream):
             for i in range(len(self.next_batch)):
-                self.next_batch[i] = self.next_batch[i].cuda(non_blocking=True))
+                self.next_batch[i] = self.next_batch[i].cuda(non_blocking=True)
             # more code for the alternative if record_stream() doesn't work:
             # copy_ will record the use of the pinned source tensor in this side stream.
             # self.next_input_gpu.copy_(self.next_input, non_blocking=True)
