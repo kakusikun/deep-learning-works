@@ -13,6 +13,7 @@ from solver.optimizer import Solver
 from visualizer.visualizer import Visualizer
 from model.managers.manager_reid_ssg import SSGManager
 from model.utility import get_self_label
+
 from tools.logger import setup_logger
 import torch.nn as nn
 import torch
@@ -23,26 +24,14 @@ def train(cfg):
     trt_train_loader, _, _ = build_plain_reid_loader(cfg)
 
     manager = SSGManager(cfg)
-    manager.use_multigpu()
-
-    opts = []    
-    for _loss in manager.loss_has_param:
-        opts.append(Solver(cfg, _loss.named_parameters(), _lr=cfg.SOLVER.CENTER_LOSS_LR, _name="SGD", _lr_policy="none"))
-    opts.append(Solver(cfg, manager.model.named_parameters()))
-    visualizer = Visualizer(cfg)
-    
+    manager.use_multigpu()   
 
     for cycle in range(0, cfg.REID.CYCLE):
+        manager.set_save_path("cycle_{}".format(cycle))
+        opts = [Solver(cfg, manager.model.named_parameters())]
+        visualizer = Visualizer(cfg, "cycle_{}/log".format(cycle))
         trt_feats = manager.extract_features(trt_train_loader, cycle)
-
-        dists = []
-        for feat in trt_feats:
-            m = feat.size(0)
-            distmat = torch.pow(feat, 2).sum(dim=1, keepdim=True).expand(m, m) + \
-                        torch.pow(feat, 2).sum(dim=1, keepdim=True).expand(m, m).t()
-            distmat.addmm_(1, -2, feat, feat.t())
-            dists.append(distmat.numpy())
-    
+        dists = manager.get_feature_dist(trt_feats)    
         labels = manager.get_self_label(dists, cycle)
 
         trt_update_train_loader, trt_query_loader, trt_gallery_loader = build_update_reid_loader(cfg, labels)

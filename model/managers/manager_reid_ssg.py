@@ -99,6 +99,17 @@ class SSGManager(TrainingManager):
 
         return labels_list
 
+    def get_feature_dist(self, feats):
+        dists = []
+        for feat in feats:
+            m = feat.size(0)
+            distmat = torch.pow(feat, 2).sum(dim=1, keepdim=True).expand(m, m) + \
+                        torch.pow(feat, 2).sum(dim=1, keepdim=True).expand(m, m).t()
+            distmat = distmat.addmm_(1, -2, feat, feat.t()).cpu().numpy()
+            distmat = np.sqrt(distmat + np.eye(m)) * (np.ones_like(distmat) - np.eye(m))
+            dists.append(distmat)
+        return dists
+
 def fliplr(img):
     '''flip horizontal'''
     inv_idx = torch.arange(img.size(3)-1,-1,-1).long()  # N x C x H x W
