@@ -175,7 +175,7 @@ class OSBlock(nn.Module):
             residual = self.downsample(residual)
         out = x3 + residual
         
-        return F.relu(out)
+        return F.leaky_relu(out)
 
 
 ##########
