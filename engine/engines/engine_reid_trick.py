@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 import torchvision.transforms as T
 import torchvision
-from engine.engine import Engine
+from engine.engine import Engine, data_prefetcher
 from tools.eval_reid_metrics import evaluate
 import numpy as np
 import logging
@@ -15,7 +15,8 @@ logger = logging.getLogger("logger")
 class ReIDEngine(Engine):
     def __init__(self, cfg, opts, tdata, qdata, gdata, show, manager):
         super(ReIDEngine, self).__init__(cfg, opts, tdata, None, qdata, gdata, show, manager)
-            
+        self.prefetcher = data_prefetcher(self.tdata)
+
     def _train_iter_start(self):
         self.iter += 1
         for opt in self.opts:
@@ -34,12 +35,15 @@ class ReIDEngine(Engine):
             self.show.add_scalar('train/opt/{}/lr'.format(i), self.opts[i].monitor_lr, self.iter)
 
     def _train_once(self):
-        for batch in tqdm(self.tdata, desc="Epoch[{}/{}]".format(self.epoch, self.max_epoch)):
+        for _ in tqdm(range(len(self.tdata)), desc="Epoch[{}/{}]".format(self.epoch, self.max_epoch)):
             self._train_iter_start()
 
-            images, target, _ = batch
-            if self.use_gpu: images, target = images.cuda(), target.cuda()
-            
+            batch = self.prefetcher.next()
+            if batch is None:
+                break
+            images, target, _ = batch            
+
+
             local, glob = self.core(images) 
             self.total_loss, self.each_loss = self.manager.loss_func(local, glob, target)
             self.total_loss.backward()

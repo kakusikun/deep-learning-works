@@ -35,9 +35,10 @@ class ImageNetEngine(Engine):
         for _ in tqdm(range(len(self.tdata)), desc="Epoch[{}/{}]".format(self.epoch, self.max_epoch)):
             self._train_iter_start()
 
-            # images, target = batch
-            # if self.use_gpu: images, target = images.cuda(), target.cuda()
-            images, target = self.prefetcher.next()
+            batch = self.prefetcher.next()
+            if batch is None:
+                break
+            images, target = batch  
             
             outputs = self.core(images)
 
