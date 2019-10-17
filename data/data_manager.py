@@ -80,13 +80,12 @@ class ImageNet():
         self.dataset_dir = cfg.DATASET.TRAIN_PATH
         self.train_dir = osp.join(self.dataset_dir, "ilsvrc2012_train")
         self.val_dir = osp.join(self.dataset_dir, "ilsvrc2012_val")
-        self.val_gt_list = osp.join(self.dataset_dir, "ILSVRC2012_validation_ground_truth.txt")
         self.train_list = osp.join(self.dataset_dir, "ilsvrc2012_train.txt")
         self.val_list = osp.join(self.dataset_dir, "ilsvrc2012_val.txt")
         self.train_lmdb = osp.join(self.dataset_dir, "imagenet_256x256_lmdb_train")
         self.val_lmdb = osp.join(self.dataset_dir, "imagenet_256x256_lmdb_val")
         self.use_lmdb = False
-
+        self.class_dict = {}
         self._check_before_run()
 
         train, train_num_images, train_num_classes = self._process_train_dir()
@@ -113,8 +112,10 @@ class ImageNet():
             raise RuntimeError("'{}' is not available".format(self.train_dir))
         if not osp.exists(self.val_dir):
             raise RuntimeError("'{}' is not available".format(self.val_dir))
-        if not osp.exists(self.val_gt_list):
-            raise RuntimeError("'{}' is not available".format(self.val_gt_list))
+        if not osp.exists(self.train_list):
+            raise RuntimeError("'{}' is not available".format(self.train_list))
+        if not osp.exists(self.val_list):
+            raise RuntimeError("'{}' is not available".format(self.val_list))
         if osp.exists(self.train_lmdb) and osp.exists(self.val_lmdb):
             self.use_lmdb = True
             logger.info("Training LMDB is used: {}".format(self.train_lmdb))
@@ -125,49 +126,24 @@ class ImageNet():
             
 
     def _process_train_dir(self):
-        img_paths = sorted([osp.join(root, f) for root, _, files in os.walk(self.train_dir)
-                                              for f in files if '.JPEG' in f])
-        classes = sorted(os.listdir(self.train_dir))
-        class_dict = {}
-        for idx, c in enumerate(classes):
-            class_dict[c] = idx
-
-        if not osp.exists(self.train_list):            
-            file_handler = open(self.train_list, 'w')
-            pattern = re.compile(r"(n\d+)/(n\d+_\d+.JPEG)")
-            for img_path in img_paths:
-                c, img = pattern.search(img_path).groups()
-                file_handler.write("{} {}\n".format(osp.join(c, img), class_dict[c]))
-            file_handler.close()
-        
         dataset = []
         with open(self.train_list, 'r') as f:
             for line in f:
                 img, label = line.strip().split(" ")
                 if not self.use_lmdb:
-                    dataset.append((osp.join(self.train_dir, img), int(label)))
+                    dataset.append((osp.join(self.train_dir, img), int(label)))                    
                 else:
                     dataset.append((img, int(label)))
+
+                class_name = img.split("/")[0]
+                if class_name not in self.class_dict:
+                    self.class_dict[class_name] = int(label)
                 
-        self.class_dict = class_dict
+        return dataset, len(dataset), len(self.class_dict)
 
-        return dataset, len(dataset), len(class_dict)
-
-    def _process_val_dir(self):
-        img_paths = sorted([osp.join(root, f) for root, _, files in os.walk(self.val_dir)
-                                              for f in files if '.JPEG' in f])
-        file_handler = open(self.val_gt_list, 'r')
-        gt = [self.class_dict[line.strip()] for line in file_handler]
-
-        if not osp.exists(self.val_list):            
-            file_handler = open(self.val_list, 'w')
-            pattern = re.compile(r"\w+_\w+_\d+.JPEG")
-            for idx, img_path in enumerate(img_paths):
-                img = pattern.search(img_path).group()
-                file_handler.write("{} {}\n".format(osp.join(img), gt[idx]))
-            file_handler.close()
-        
+    def _process_val_dir(self):        
         dataset = []
+        gt = []
         with open(self.val_list, 'r') as f:
             for line in f:
                 img, label = line.strip().split(" ")
@@ -175,6 +151,7 @@ class ImageNet():
                     dataset.append((osp.join(self.val_dir, img), int(label)))
                 else:
                     dataset.append((img, int(label)))
+                gt.append(int(label))
         
         return dataset, len(dataset), len(set(gt))
 

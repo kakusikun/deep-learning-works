@@ -4,7 +4,7 @@ import torch
 import math
 import torch.nn as nn
 from collections import OrderedDict
-from model.OSNetv2 import osnet_x1_0
+from model.OSNet_iabn import osnet_x1_0
 from model.RMNet import RMNet
 from model.ResNet import ResNet, BasicBlock
 from model.utility import ConvFC, CrossEntropyLossLS
