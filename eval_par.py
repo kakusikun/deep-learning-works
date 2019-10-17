@@ -90,6 +90,8 @@ if action == 'y':
         logger.info("##################")
 
     logger.info("------------------")
+    np.save("evaluation/{}_prec.npy".format(log_name), precs)
+    np.save("evaluation/{}_recall.npy".format(log_name), recalls)
 
  
 else:
