@@ -31,7 +31,7 @@ class ImageNetEngine(Engine):
             self.show.add_scalar('train/opt/{}/lr'.format(i), self.opts[i].monitor_lr, self.iter) 
 
     def _train_once(self):
-        for batch in tqdm(self.tdata), desc="Epoch[{}/{}]".format(self.epoch, self.max_epoch)):
+        for batch in tqdm(self.tdata, desc="Epoch[{}/{}]".format(self.epoch, self.max_epoch)):
             self._train_iter_start()
 
             images, target = batch
