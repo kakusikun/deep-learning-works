@@ -21,19 +21,19 @@ def train(cfg):
 
     train_loader, val_loader = build_imagenet_loader(cfg)
 
-    model_manager = ImageNetManager(cfg)
+    manager = ImageNetManager(cfg)
 
-    model_manager.use_multigpu()
+    manager.use_multigpu()
 
     cfg.SOLVER.ITERATIONS_PER_EPOCH = len(train_loader)
 
     opts = []    
-    opts.append(Solver(cfg, model_manager.model.named_parameters()))
+    opts.append(Solver(cfg, manager.model.named_parameters()))
 
     visualizer = Visualizer(cfg)
     
-    # engine = ImageNetEngine(cfg, nn.CrossEntropyLoss(), opt, train_loader, val_loader, visualizer, model_manager)
-    engine = ImageNetEngine(cfg, opts, train_loader, val_loader, visualizer, model_manager)  
+    # engine = ImageNetEngine(cfg, nn.CrossEntropyLoss(), opt, train_loader, val_loader, visualizer, manager)
+    engine = ImageNetEngine(cfg, opts, train_loader, val_loader, visualizer, manager)  
     engine.Train()
 
 def main():
