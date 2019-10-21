@@ -1,3 +1,8 @@
+import os
+import sys
+import datetime
+import shutil
+
 from yacs.config import CfgNode as CN
 
 # -----------------------------------------------------------------------------
@@ -151,6 +156,14 @@ _C.SOLVER.MODEL_FREEZE_PEROID = 0
 # ---------------------------------------------------------------------------- #
 # Misc options
 # ---------------------------------------------------------------------------- #
-_C.OUTPUT_DIR = "./result"
+_C.OUTPUT_DIR = ""
 _C.RESUME = ""
 _C.EVALUATE = ""
+
+def build_output(cfg, config_file=""):
+    time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    cfg.OUTPUT_DIR = os.path.join("result", cfg.TASK, cfg.EXPERIMENT, time)
+    if cfg.OUTPUT_DIR and not os.path.exists(cfg.OUTPUT_DIR):
+        os.makedirs(cfg.OUTPUT_DIR)
+        if config_file != "":
+            shutil.copy(config_file, os.path.join(cfg.OUTPUT_DIR, config_file.split("/")[-1]))
