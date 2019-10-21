@@ -7,7 +7,8 @@ from collections import Counter
 from functools import partial
 
 from torch.optim import Optimizer
-
+import logging
+logger = logging.getLogger("logger")
 
 # FIXME ideally this would be achieved with a CombinedLRScheduler,
 # separating MultiStepLR with WarmupLR
@@ -90,7 +91,7 @@ class WarmupReduceLROnPlateau(object):
         self.threshold = threshold
         self.threshold_mode = threshold_mode
         self.best = None
-        self.num_bad_epochs = None
+        self.num_bad_iters = None
         self.mode_worse = None  # the worse value for the chosen mode
         self.is_better = None
         self.eps = eps
@@ -106,11 +107,13 @@ class WarmupReduceLROnPlateau(object):
         self.base_lrs = list(map(lambda group: group['initial_lr'], self.optimizer.param_groups))
         self.monitor_lrs = self.base_lrs
 
+        logger.info("Plateau lr policy is used")
+
     def _reset(self):
-        """Resets num_bad_epochs counter and cooldown counter."""
+        """Resets num_bad_iters counter and cooldown counter."""
         self.best = self.mode_worse
         self.cooldown_counter = 0
-        self.num_bad_epochs = 0
+        self.num_bad_iters = 0
 
     def step(self, metrics=None, iters=None):
         # convert `metrics` to float, in case it's a zero-dim Tensor
@@ -128,20 +131,23 @@ class WarmupReduceLROnPlateau(object):
 
             self._warmup_lr([base_lr * warmup_factor for base_lr in self.base_lrs])
         else:
+
             if self.is_better(current, self.best):
                 self.best = current
-                self.num_bad_epochs = 0
+                self.num_bad_iters = 0
             else:
-                self.num_bad_epochs += 1
+                self.num_bad_iters += 1
+                if self.num_bad_iters % 100 == 0:            
+                    logger.info('Iteration {:5d}: has been {} stagnants.'.format(iters, self.num_bad_iters))
 
             if self.in_cooldown:
                 self.cooldown_counter -= 1
-                self.num_bad_epochs = 0  # ignore any bad epochs in cooldown
+                self.num_bad_iters = 0  # ignore any bad epochs in cooldown
 
-            if self.num_bad_epochs > self.patience:
+            if self.num_bad_iters > self.patience:
                 self._reduce_lr(iters)
                 self.cooldown_counter = self.cooldown
-                self.num_bad_epochs = 0
+                self.num_bad_iters = 0
 
     def _reduce_lr(self, iters):
         self.monitor_lrs = []
@@ -151,8 +157,7 @@ class WarmupReduceLROnPlateau(object):
             if old_lr - new_lr > self.eps:
                 param_group['lr'] = new_lr                
             self.monitor_lrs.append(new_lr)
-        if self.verbose:
-            print('Iteration {:5d}: reducing learning rate to {:.4e} with {} stagnant.'.format(iters, new_lr, self.num_bad_epochs))
+        logger.info('Iteration {:5d}: reducing learning rate to {:.4e} with {} stagnant.'.format(iters, new_lr, self.num_bad_iters))
 
     def _warmup_lr(self, lrs):
         self.monitor_lrs = []
@@ -226,6 +231,8 @@ class WarmupCosineLR():
             group.setdefault('initial_lr', group['lr'])
         self.base_lrs = list(map(lambda group: group['initial_lr'], self.optimizer.param_groups))
         self.monitor_lrs = []
+
+        logger.info("Cosine lr policy is used")
 
     def step(self, metrics=None, iters=None):
         if iters is None:

@@ -59,7 +59,7 @@ class Solver():
             logger.info("LR policy is not specified")
             sys.exit(1)
         
-        logger.info("{} policy is used".format(self.lr_policy))
+        
 
 
     def _model_analysis(self, params):
