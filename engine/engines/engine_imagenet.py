@@ -12,7 +12,6 @@ logger = logging.getLogger("logger")
 class ImageNetEngine(Engine):
     def __init__(self, cfg, opts, tdata, vdata, show, manager):
         super(ImageNetEngine, self).__init__(cfg, opts, tdata, vdata, None, None, show, manager)
-        self.prefetcher = data_prefetcher(self.tdata)
         
     def _train_iter_start(self):
         self.iter += 1
@@ -32,10 +31,11 @@ class ImageNetEngine(Engine):
             self.show.add_scalar('train/opt/{}/lr'.format(i), self.opts[i].monitor_lr, self.iter) 
 
     def _train_once(self):
-        for _ in tqdm(range(len(self.tdata)), desc="Epoch[{}/{}]".format(self.epoch, self.max_epoch)):
+        prefetcher = data_prefetcher(self.tdata)
+        for _ in tqdm(range(len(self.tdata)+5), desc="Epoch[{}/{}]".format(self.epoch, self.max_epoch)):
             self._train_iter_start()
 
-            batch = self.prefetcher.next()
+            batch = prefetcher.next()
             if batch is None:
                 break
             images, target = batch  
