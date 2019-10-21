@@ -1,12 +1,8 @@
 
 import argparse
-import os
-import sys
-from os import mkdir
-import datetime
-import shutil
 
 from config.config_manager import _C as cfg
+from config.config_manager import build_output
 from data.build_loader import build_imagenet_loader
 from engine.engines.engine_imagenet import ImageNetEngine
 from solver.optimizer import Solver
@@ -50,12 +46,7 @@ def main():
         cfg.merge_from_file(args.config)
     cfg.merge_from_list(args.opts)
     
-    time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    cfg.OUTPUT_DIR = "{}_{}_{}".format(cfg.OUTPUT_DIR, cfg.EXPERIMENT, time)
-    if cfg.OUTPUT_DIR and not os.path.exists(cfg.OUTPUT_DIR):
-        mkdir(cfg.OUTPUT_DIR)
-        if args.config != "":
-            shutil.copy(args.config, os.path.join(cfg.OUTPUT_DIR, args.config.split("/")[-1]))
+    build_output(cfg, args.config)
 
     logger = setup_logger(cfg.OUTPUT_DIR)
     logger.info("Running with config:\n{}".format(cfg))
