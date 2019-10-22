@@ -27,7 +27,7 @@ class Engine():
         self.max_epoch = cfg.SOLVER.MAX_EPOCHS
         self.use_gpu = next(self.core.parameters()).is_cuda 
         self.train = True  
-        self.total_loss = 0.0
+        self.total_loss = 1e5
         self.each_loss = None
         self.train_accu = 0.0
         self.best_accu = 0.0
