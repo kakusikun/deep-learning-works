@@ -138,7 +138,7 @@ class WarmupReduceLROnPlateau(object):
             else:
                 self.num_bad_iters += 1
                 if self.num_bad_iters % 100 == 0:            
-                    logger.info('Iteration {:5d}: has been {} stagnants.'.format(iters, self.num_bad_iters))
+                    logger.info('Iteration {:5d}: has been {} stagnants. Best:{:.4f}'.format(iters, self.num_bad_iters, self.best))
 
             if self.in_cooldown:
                 self.cooldown_counter -= 1
