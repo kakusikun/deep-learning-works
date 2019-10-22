@@ -8,7 +8,7 @@ import os
 import sys
 
 import logging as logger
-from tensorboardX import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter
 
 def Visualizer(cfg):
     path = os.path.join(cfg.OUTPUT_DIR, "log")
