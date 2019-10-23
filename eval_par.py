@@ -39,9 +39,9 @@ logger.info("Running with config:\n{}".format(cfg))
 action = input("Config Confirmed ? (Y/N)").lower().strip()
 if action == 'y':
 
-    model_manager = PARManager(cfg)
+    manager = PARManager(cfg)
 
-    model_manager.use_multigpu()
+    manager.use_multigpu()
     
     if os.path.exists("{}_pt.npy".format(args.cache)):
         logger.info("Loading from cache")
@@ -50,7 +50,7 @@ if action == 'y':
     else:
         use_gpu = True 
 
-        core = model_manager.model     
+        core = manager.model     
 
         core = core.cuda()
         core.eval()
@@ -84,7 +84,7 @@ if action == 'y':
     for thresh in [25, 50, 75]:
         logger.info("Threshold: {:5}".format(thresh*0.01))
         logger.info("{:10}  |  Precision: {:.2f}  |  Recall: {:.2f}".format("Total", t_precs[thresh], t_recalls[thresh]))
-        for i, attr in enumerate(model_manager.category_names):
+        for i, attr in enumerate(manager.category_names):
             if (i+1) not in cfg.PAR.IGNORE_CAT:
                 logger.info("{:10}  |  Precision: {:.2f}  |  Recall: {:.2f}".format(attr, precs[thresh][i], recalls[thresh][i]))
         logger.info("##################")

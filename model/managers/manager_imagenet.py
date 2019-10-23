@@ -8,7 +8,7 @@ from model.OSNet_iabn import osnet_x1_0
 from model.RMNet import RMNet
 from model.ResNet import ResNet, BasicBlock
 from model.utility import ConvFC, CrossEntropyLossLS
-from model.model_manager import TrainingManager
+from model.manager import TrainingManager
 import logging
 logger = logging.getLogger("logger")
 

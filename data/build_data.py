@@ -56,11 +56,42 @@ class build_reid_dataset(data.Dataset):
 
         if self.transform is not None:
             img = self.transform(img)
+
+        return img, pid, camid
+
+    def __len__(self):
+        return len(self.dataset)
+
+class build_update_reid_dataset(data.Dataset):
+    def __init__(self, new_labels, dataset, transform=None):
+        self.dataset = dataset
+        self.new_labels = new_labels
+        self.transform = transform
+        self.update_dataset()
+           
+    def __getitem__(self, index):
+        img_path, pid, camid = self.dataset[index]
+
+        img = Image.open(img_path)
+
+        if self.transform is not None:
+            img = self.transform(img)
         
         return img, pid, camid
     
     def __len__(self):
         return len(self.dataset)
+
+    def update_dataset(self):
+        new_dataset = []
+        for i, (img_path, _, _) in enumerate(self.dataset):
+            label = []
+            for s in range(len(self.new_labels)):
+                label.append(self.new_labels[s][i])
+            if -1 in label:
+                continue
+            new_dataset.append((img_path, label, 0))
+        self.dataset = new_dataset
 
 class build_reid_atmap_dataset(data.Dataset):
     def __init__(self, dataset, cfg):

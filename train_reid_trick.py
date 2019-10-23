@@ -16,20 +16,20 @@ def train(cfg):
 
     train_loader, query_loader, gallery_loader = build_reid_loader(cfg)
 
-    model_manager = TrickManager(cfg)
+    manager = TrickManager(cfg)
 
-    model_manager.use_multigpu()
+    manager.use_multigpu()
 
     cfg.SOLVER.ITERATIONS_PER_EPOCH = len(train_loader)
 
     opts = []    
-    for _loss in model_manager.loss_has_param:
+    for _loss in manager.loss_has_param:
         opts.append(Solver(cfg, _loss.named_parameters(), _lr=cfg.SOLVER.CENTER_LOSS_LR, _name="SGD", _lr_policy="none"))
-    opts.append(Solver(cfg, model_manager.model.named_parameters()))
+    opts.append(Solver(cfg, manager.model.named_parameters()))
 
     visualizer = Visualizer(cfg)
     
-    engine = ReIDEngine(cfg, opts, train_loader, query_loader, gallery_loader, visualizer, model_manager)  
+    engine = ReIDEngine(cfg, opts, train_loader, query_loader, gallery_loader, visualizer, manager)  
     engine.Train()
 
 def main():

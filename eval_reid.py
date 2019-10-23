@@ -57,11 +57,11 @@ if action == 'y':
         core.load_state_dict(model_state)
     else:
         if args.manager == 'trick':
-            model_manager = TrickManager(cfg)
-            core = model_manager.model
+            manager = TrickManager(cfg)
+            core = manager.model
         elif args.manager == 'attention':
-            model_manager = AttentionManager(cfg)
-            core = model_manager.model
+            manager = AttentionManager(cfg)
+            core = manager.model
 
     core = core.cuda()
     core.eval()

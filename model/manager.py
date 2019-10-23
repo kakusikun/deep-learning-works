@@ -5,10 +5,14 @@ import torch.nn as nn
 from collections import OrderedDict
 import logging
 logger = logging.getLogger("logger")
+from torch.backends import cudnn
+cudnn.benchmark = True
 
 class TrainingManager():
     def __init__(self, cfg):
-        self.savePath = os.path.join(cfg.OUTPUT_DIR, "weights")
+        self.save_path = os.path.join(cfg.OUTPUT_DIR, "weights")
+        if not os.path.exists(self.save_path):
+            os.mkdir(self.save_path)
 
         self.cfg = cfg
         self.model = None
@@ -24,15 +28,11 @@ class TrainingManager():
         elif self.cfg.RESUME:
             logger.info("Resuming model from {}".format(self.cfg.RESUME))
             self.loadPath = self.cfg.RESUME
-            self.load_model()        
+            self.load_model()     
         else:
            self._initialize_weights()        
         
     def save_model(self, epoch, opts, acc):
-        
-        if not os.path.exists(self.savePath):
-            os.mkdir(self.savePath)
-
         state = {}
         for i, opt in enumerate(opts):
             opt_name = "opt_{}".format(i)
@@ -51,7 +51,7 @@ class TrainingManager():
                 loss_state = loss.state_dict()
                 state[loss_name] = loss_state
 
-        torch.save(state, os.path.join(self.savePath,'model_{:03}_{:.4f}.pth'.format(epoch, acc)))
+        torch.save(state, os.path.join(self.save_path,'model_{:03}_{:.4f}.pth'.format(epoch, acc)))
 
     def load_model(self): 
         state = torch.load(self.loadPath)
@@ -135,3 +135,8 @@ class TrainingManager():
                 logger.info("GPU is no found")
             else:
                 logger.info("GPU is not used")
+
+    def set_save_path(self, path):
+        self.save_path = os.path.join(self.cfg.OUTPUT_DIR, path)
+        if not os.path.exists(self.save_path):
+            os.mkdir(self.save_path)

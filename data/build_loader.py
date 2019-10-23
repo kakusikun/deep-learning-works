@@ -1,6 +1,6 @@
 from torch.utils import data
 from data.data_manager import init_img_dataset, init_vid_dataset
-from data.build_data import build_image_dataset, build_reid_dataset, build_reid_atmap_dataset, build_par_dataset
+from data.build_data import build_image_dataset, build_reid_dataset, build_reid_atmap_dataset, build_par_dataset, build_update_reid_dataset
 from data.build_transform import build_transform
 from data.sampler import IdBasedSampler
 from torchvision.datasets.cifar import CIFAR10
@@ -98,7 +98,6 @@ def build_reid_loader(cfg):
         train_dataset = build_reid_dataset(msmt_dataset.train, train_trans)
         query_dataset = build_reid_dataset(market_dataset.query, val_trans)
         gallery_dataset = build_reid_dataset(market_dataset.gallery, val_trans)
-        
     else:
         dataset = init_img_dataset(cfg)
         train_trans = build_transform(cfg)
@@ -166,3 +165,61 @@ def build_par_loader(cfg):
     )
 
     return t_loader, v_loader
+
+def build_update_reid_loader(cfg, new_labels):
+    dataset = init_img_dataset(cfg)
+
+    train_trans = build_transform(cfg)
+    val_trans = build_transform(cfg, isTrain=False)
+
+    train_dataset = build_update_reid_dataset(dataset.train, new_labels, train_trans)
+    query_dataset = build_reid_dataset(dataset.query, val_trans)
+    gallery_dataset = build_reid_dataset(dataset.gallery, val_trans)    
+
+    num_workers = cfg.DATALOADER.NUM_WORKERS
+
+    t_loader = data.DataLoader(
+        train_dataset, 
+        batch_size=cfg.INPUT.SIZE_TRAIN, 
+        shuffle=True, 
+        num_workers=num_workers, 
+        pin_memory=True,
+        drop_last=True
+    )
+    q_loader = data.DataLoader(
+        query_dataset, batch_size=cfg.INPUT.SIZE_TEST, shuffle=False, num_workers=num_workers, pin_memory=True, drop_last=False
+    )
+    g_loader = data.DataLoader(
+        gallery_dataset, batch_size=cfg.INPUT.SIZE_TEST, shuffle=False, num_workers=num_workers, pin_memory=True, drop_last=False
+    )
+
+    return t_loader, q_loader, g_loader
+
+
+def build_plain_reid_loader(cfg):
+        
+    dataset = init_img_dataset(cfg)
+    train_trans = build_transform(cfg)
+    val_trans = build_transform(cfg, isTrain=False)
+
+    train_dataset = build_reid_dataset(dataset.train, train_trans)
+
+    query_dataset = build_reid_dataset(dataset.query, val_trans)
+    gallery_dataset = build_reid_dataset(dataset.gallery, val_trans)    
+
+    num_workers = cfg.DATALOADER.NUM_WORKERS
+
+    t_loader = data.DataLoader(
+        train_dataset, 
+        batch_size=cfg.INPUT.SIZE_TRAIN, 
+        shuffle=False, 
+        num_workers=num_workers, 
+        pin_memory=True
+    )
+    q_loader = data.DataLoader(
+        query_dataset, batch_size=cfg.INPUT.SIZE_TEST, shuffle=False, num_workers=num_workers, pin_memory=True, drop_last=False
+    )
+    g_loader = data.DataLoader(
+        gallery_dataset, batch_size=cfg.INPUT.SIZE_TEST, shuffle=False, num_workers=num_workers, pin_memory=True, drop_last=False
+    )
+    return t_loader, q_loader, g_loader
