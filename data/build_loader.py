@@ -2,7 +2,7 @@ from torch.utils import data
 from data.data_manager import init_img_dataset, init_vid_dataset
 from data.build_data import build_image_dataset, build_reid_dataset, build_reid_atmap_dataset, build_par_dataset
 from data.build_transform import build_transform
-from data.sampler import IdBasedSampler
+from data.sampler import IdBasedSampler, BlancedPARSampler
 from torchvision.datasets.cifar import CIFAR10
 import logging
 
@@ -157,8 +157,9 @@ def build_par_loader(cfg):
 
     num_workers = cfg.DATALOADER.NUM_WORKERS
 
+    par_sampler = BlancedPARSampler(dataset)
     t_loader = data.DataLoader(
-        train_dataset, batch_size=cfg.INPUT.SIZE_TRAIN, shuffle=True, num_workers=num_workers, pin_memory=True
+        train_dataset, batch_size=cfg.INPUT.SIZE_TRAIN, shuffle=False, num_workers=num_workers, pin_memory=True, sampler=par_sampler
     )
 
     v_loader = data.DataLoader(

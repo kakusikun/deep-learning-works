@@ -58,22 +58,55 @@ class IdBasedSampler(sampler.Sampler):
     def __len__(self):
         return self.length
 
-# class BlancedPARSampler(sampler.Sampler):
-#     def __init__(self, data_source, batch_size, num_instances):
-#         self.data_source = data_source
-#         self.batch_size = batch_size
-#         self.num_instances = num_instances
-#         self.num_pids_per_batch = self.batch_size // self.num_instances
-#         self.index_dic = defaultdict(list)
-#         for index, (_, pid, _) in enumerate(self.data_source):
-#             self.index_dic[pid].append(index)
-#         self.pids = list(self.index_dic.keys())
+class BlancedPARSampler(sampler.Sampler):
+    def __init__(self, data_source):
+        self.data_source = data_source
+        self.pool = None
+        self.make_pool()
+        self.length = 0
 
-#         # estimate number of examples in an epoch
-#         self.length = 0
-#         for pid in self.pids:
-#             idxs = self.index_dic[pid]
-#             num = len(idxs)
-#             if num < self.num_instances:
-#                 num = self.num_instances
-#             self.length += num - num % self.num_instances
+    def __iter__(self):
+        count = 0
+        for i, name in enumerate(self.data_source.category_names):
+            count += self.pool[name]['p'].shape[0]
+        size = int(count / len(self.data_source.category_names))
+
+        indice = []
+        for i, name in enumerate(self.data_source.category_names):
+            for cat in self.pool[name].keys():
+                if cat == 'p':
+                    if size > len(self.pool[name]['p']):
+                        indice.extend(np.random.choice(self.pool[name][cat], size=size, replace=True).tolist())
+                    else:
+                        indice.extend(np.random.choice(self.pool[name][cat], size=size, replace=False).tolist())
+                else:
+                    if size > len(self.pool[name]['n']):
+                        indice.extend(np.random.choice(self.pool[name][cat], size=size, replace=True).tolist())
+                    else:
+                        indice.extend(np.random.choice(self.pool[name][cat], size=size, replace=False).tolist())
+        self.length = len(indice)
+        random.shuffle(indice)
+        return iter(indice)
+
+    def __len__(self):
+        return self.length
+
+    def make_pool(self):
+        class_indice = []
+        attrs = []
+        for i, (_, label) in enumerate(self.data_source.train):
+            attrs.append(label)   
+            class_indice.append(i) 
+
+        attrs = np.array(attrs)
+        class_indice = np.array(class_indice)
+
+        pool = {}
+        for i, name in enumerate(self.data_source.category_names):
+            pool[name] = {}
+            pool[name]['p'] = class_indice[attrs[:,i]==1]
+            pool[name]['n'] = class_indice[attrs[:,i]==0]
+        self.pool = pool
+
+        
+        

@@ -25,12 +25,13 @@ class PAR():
         self.train_dir = osp.join(self.dataset_dir, "train")
         self.val_dir = osp.join(self.dataset_dir, "test")
         self.category_names = ['gender', 'hair', 'shirt', 'plaid', 'stripe', 'sleeve',
-                               'logo', 'shorts', 'skirt', 'hat', 'glasses', 'backpack', 'bag']
+                               'logo', 'shorts', 'skirt', 'hat', 'glasses', 'backpack']
 
         self._check_before_run()
 
         self.cat = cfg.PAR.SELECT_CAT
         self.ignore = cfg.PAR.IGNORE_CAT
+
 
         train, train_num_images = self._process_dir(self.train_dir)
         val, val_num_images = self._process_dir(self.val_dir)
@@ -72,7 +73,11 @@ class PAR():
                 attrs = [int(_attrs[self.cat])]
             else:
                 attrs = [int(i) for i in _attrs]
-            dataset.append((img, attrs))
+            for i, attr in enumerate(attrs):
+                temp = [-1]*len(attrs)
+                if attr != -1:
+                    temp[i] = attr
+                    dataset.append((img, temp))
         return dataset, len(dataset)
 
 class ImageNet():
