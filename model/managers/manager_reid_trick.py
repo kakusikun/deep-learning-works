@@ -4,9 +4,7 @@ import torch
 import math
 import torch.nn as nn
 from collections import OrderedDict
-from model.OSNetv2 import osnet_x1_0
-from model.RMNet import RMNet
-from model.ResNet import ResNet, BasicBlock
+from model.OSNet_iabn import osnet_x1_0
 from model.utility import ConvFC, CenterLoss, AMSoftmax, CrossEntropyLossLS, TripletLoss
 from model.manager import TrainingManager
 import logging
@@ -29,13 +27,8 @@ class TrickManager(TrainingManager):
         self.model = Model(self.cfg)
 
     def _make_loss(self):
-        if self.cfg.MODEL.NAME == 'resnet18' or self.cfg.MODEL.NAME == 'osnet' or self.cfg.MODEL.NAME == 'osnetibn':
-            feat_dim = 512
-        elif self.cfg.MODEL.NAME == 'rmnet':
-            feat_dim = 256        
-
         ce_ls = CrossEntropyLossLS(self.cfg.MODEL.NUM_CLASSES)
-        center_loss = CenterLoss(feat_dim, self.cfg.MODEL.NUM_CLASSES, self.cfg.MODEL.NUM_GPUS > 0 and torch.cuda.is_available())        
+        center_loss = CenterLoss(512, self.cfg.MODEL.NUM_CLASSES, self.use_gpu)        
         triplet_loss = TripletLoss()
         self.loss_has_param = [center_loss]
         self.loss_name = ["cels", "triplet", "center"]

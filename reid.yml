@@ -1,39 +1,38 @@
-EXPERIMENT: "OSNet_duke_cels_triplet_center_attention_notrick_Adam_lr_0.00035_warmup_10_0.01_plateau_10_flip_crop_imagenet"
+EXPERIMENT: "OSNet_duke_ssg_triplet_notrick_Adam_lr_0.00035_warmup_10_0.01_plateau_10_flip_crop_imagenet"
 # [modelname]_[task]_[loss]_[opt]_[lr]_[trick]_[pretrain]
 
 TASK: "reid"
 
 MODEL:
-  NUM_GPUS: 1
-  NUM_CLASSES: 702
+  NUM_GPUS: 2
+  NUM_CLASSES: 702 #D:702, M:751
   NAME: "osnet"
   PRETRAIN: "outside"
-  TASK: "attention"
+  TASK: "reid"
 
 INPUT:
   IMAGE_PAD: 10
   IMAGE_SIZE: (384, 128) #(320, 160)
   IMAGE_CROP_SIZE: (384, 128)
-  SIZE_TRAIN: 64
+  SIZE_TRAIN: 128
   SIZE_TEST: 256
   PIXEL_MEAN: [0.485, 0.456, 0.406]
   PIXEL_STD: [0.229, 0.224, 0.225]
 
 REID:
+  CYCLE: 30
   SIZE_PERSON: 4
   
 DATALOADER:
-  NUM_WORKERS: 1
+  NUM_WORKERS: 30
 
 DATASET:
   NAME: "dukemtmcreid"
   TRAIN_PATH: "/home/allen.jc.lin/reid"
-  # ATTENTION_MAPS: "/media/allen/mass/reid/dukemtmc-reid/DukeMTMC-reID/at_map_gt"
-  # ATTENTION_MAPS_LIST: "/media/allen/mass/reid/dukemtmc-reid/DukeMTMC-reID/at_maps.txt"
 
 TRANSFORM:
   HFLIP: True
-  # RANDOMCROP: True
+  RANDOMCROP: True
   NORMALIZE: True
   RESIZE: True 
   # RANDOMERASING: True
@@ -51,17 +50,16 @@ SOLVER:
   EVALUATE_FREQ: 5
 
   LR_POLICY: "plateau"
+  MIN_LR: 1e-5
   WARMUP: True
   GAMMA: 0.1
   WARMUP_FACTOR: 0.01
   WARMUP_SIZE: 10.0
   PLATEAU_SIZE: 10.0
 
-  MODEL_FREEZE_PEROID: 3
-
 # osnet_ibn_x1_0_imagenet.pth 
 
-RESUME: "/home/allen.jc.lin/osnet_x1_0_imagenet.pth"
+RESUME: "/home/allen.jc.lin/OSNet_market_cels_triplet_center_Adam_lr_0.00035_warmup_10_0.01_plateau_10_flip_crop_erase_imagenet_0.9495.pth"
 # EVALUATE: "/home/allen/OSNet_market_cels_triplet_center_Adam_lr_0.00035_warmup_10_0.01_plateau_10_flip_crop_erase_imagenet_0.9495.pth"
 # EVALUATE: "/home/allen/Downloads/osnet_x1_0_market_256x128_amsgrad_ep150_stp60_lr0.0015_b64_fb10_softmax_labelsmooth_flip.pth"
 # EVALUATE: ["main", "/home/allen.jc.lin/deep-learning-works/result_ResNet18_SGD_REID_Phase2_TupletLoss_CELSR_Trick_scratch_2019-07-08_22-35-03/weights/model_main_220_0.7732.pth"]

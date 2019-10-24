@@ -25,8 +25,16 @@ class IdBasedSampler(sampler.Sampler):
             self.index_dic[pid].append(index)
         self.pids = list(self.index_dic.keys())
 
+        _ = self._build()
 
     def __iter__(self):
+        final_idxs = self._build()
+        return iter(final_idxs)
+
+    def __len__(self):
+        return self.length
+
+    def _build(self):
         batch_idxs_dict = defaultdict(list)
 
         for pid in self.pids:
@@ -53,10 +61,7 @@ class IdBasedSampler(sampler.Sampler):
                     avai_pids.remove(pid)
 
         self.length = len(final_idxs)
-        return iter(final_idxs)
-
-    def __len__(self):
-        return self.length
+        return final_idxs
 
 # class BlancedPARSampler(sampler.Sampler):
 #     def __init__(self, data_source, batch_size, num_instances):

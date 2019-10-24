@@ -131,9 +131,9 @@ class WarmupReduceLROnPlateau(object):
 
             self._warmup_lr([base_lr * warmup_factor for base_lr in self.base_lrs])
         else:
-
             if self.is_better(current, self.best):
                 self.best = current
+                logger.info('Iteration {:5d}: Find Best:{:.4f} after {} iters'.format(iters, self.best, self.num_bad_iters))
                 self.num_bad_iters = 0
             else:
                 self.num_bad_iters += 1

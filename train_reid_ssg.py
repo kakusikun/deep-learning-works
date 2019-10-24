@@ -1,14 +1,13 @@
-
 import argparse
+import shutil
 import os
 import sys
-from os import mkdir
-import datetime
-import shutil
+from glob import glob
 
 from config.config_manager import _C as cfg
+from config.config_manager import build_output
 from data.build_loader import build_plain_reid_loader, build_update_reid_loader
-from engine.engines.engine_reid_trick import ReIDEngine
+from engine.engines.engine_reid_ssg import SSGEngine
 from solver.optimizer import Solver
 from visualizer.visualizer import Visualizer
 from model.managers.manager_reid_ssg import SSGManager
@@ -23,23 +22,26 @@ def train(cfg):
 
     trt_train_loader, _, _ = build_plain_reid_loader(cfg)
 
-    manager = SSGManager(cfg)
-    manager.use_multigpu()   
-
     for cycle in range(0, cfg.REID.CYCLE):
+        manager = SSGManager(cfg)
+        manager.use_multigpu()   
         manager.set_save_path("cycle_{}".format(cycle))
-        opts = [Solver(cfg, manager.model.named_parameters())]
-        visualizer = Visualizer(cfg, "cycle_{}/log".format(cycle))
         trt_feats = manager.extract_features(trt_train_loader, cycle)
         dists = manager.get_feature_dist(trt_feats)    
         labels = manager.get_self_label(dists, cycle)
+        #  import numpy as np
+        #  labels  =  np.random.randint(0,702,len(trt_train_loader.dataset)).tolist()
 
         trt_update_train_loader, trt_query_loader, trt_gallery_loader = build_update_reid_loader(cfg, labels)
 
         cfg.SOLVER.ITERATIONS_PER_EPOCH = len(trt_update_train_loader)
 
-        engine = ReIDEngine(cfg, opts, trt_update_train_loader, trt_query_loader, trt_gallery_loader, visualizer, manager)  
+        opts = [Solver(cfg, manager.model.named_parameters())]
+        visualizer = Visualizer(cfg, "cycle_{}/log".format(cycle))
+
+        engine = SSGEngine(cfg, opts, trt_update_train_loader, trt_query_loader, trt_gallery_loader, visualizer, manager)  
         engine.Train()
+        cfg.RESUME = os.path.join(os.getcwd(), sorted(glob(manager.save_path + "/model*"))[-1])
 
 def main():
     parser = argparse.ArgumentParser(description="PyTorch Template MNIST Training")
@@ -55,12 +57,7 @@ def main():
         cfg.merge_from_file(args.config)
     cfg.merge_from_list(args.opts)
     
-    time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    cfg.OUTPUT_DIR = "{}_{}_{}".format(cfg.OUTPUT_DIR, time, cfg.EXPERIMENT)
-    if cfg.OUTPUT_DIR and not os.path.exists(cfg.OUTPUT_DIR):
-        mkdir(cfg.OUTPUT_DIR)
-        if args.config != "":
-            shutil.copy(args.config, os.path.join(cfg.OUTPUT_DIR, args.config.split("/")[-1]))
+    build_output(cfg, args.config)
 
     logger = setup_logger(cfg.OUTPUT_DIR)
 

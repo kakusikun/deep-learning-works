@@ -1,6 +1,7 @@
 result*
 __pycache__
 notebook/
+evaluation/
 caffe_models/
 *.ipynb
 *.json

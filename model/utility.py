@@ -519,7 +519,7 @@ class ClusterAssignment(nn.Module):
             nn.init.xavier_uniform_(initial_cluster_centers)
         else:
             initial_cluster_centers = cluster_centers
-        self.cluster_centers = Parameter(initial_cluster_centers)
+        self.cluster_centers = nn.Parameter(initial_cluster_centers)
 
     def forward(self, batch: torch.Tensor) -> torch.Tensor:
         """

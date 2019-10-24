@@ -9,6 +9,9 @@ from model.OSNetv2 import osnet_x1_0
 from model.ResNet import ResNet, BasicBlock
 from model.utility import TripletLoss, ClusterAssignment
 from model.manager import TrainingManager
+import numpy as np
+from sklearn.cluster import DBSCAN
+from tqdm import tqdm
 import logging
 logger = logging.getLogger("logger")
 
@@ -34,21 +37,20 @@ class SSGManager(TrainingManager):
             feat_dim = 512   
 
         triplet_loss = TripletLoss()
-        KD_loss = nn.KLDivLoss(size_average=False)
+        #  KD_loss = nn.KLDivLoss(reduction=False)
         self.loss_has_param = []
-        self.loss_name = ["triplet_global", "triplet_whole", "triplet_upper", "triplet_lower", "KD"]
+        self.loss_name = ["triplet_global", "triplet_whole", "triplet_upper", "triplet_lower"]#, "KD"]
 
-        def loss_func(feats, target):
-            each_loss = [triplet_loss(feats[1], target[0])[0]]
+        def loss_func(local, glob, target):
+            each_loss = [triplet_loss(glob, target)[0]]
 
-            for i, feat in enumerate(feats[0]):
-                each_loss.append(triplet_loss(feat, target[i])[0])
+            each_loss.append(triplet_loss(local, target)[0])
 
-            kd_loss = 0.0
-            for feat in feats[2]:
-                feat_p = target_distribution(feat)
-                kd_loss += KD_loss(feat.log(), feat_p) / feat.shape[0]
-            each_loss.append(kd_loss)
+            #  kd_loss = 0.0
+            #  for feat in feats[2]:
+                #  feat_p = target_distribution(feat)
+                #  kd_loss += KD_loss(feat.log(), feat_p) / feat.shape[0]
+            #  each_loss.append(kd_loss)
 
             loss = 0.0
             for _loss in each_loss:
@@ -59,15 +61,16 @@ class SSGManager(TrainingManager):
         self.loss_func = loss_func
     
     def extract_features(self, data, cycle):
+        logger.info('Extract features')
         self.model.eval()
         _feats = defaultdict(list)
         with torch.no_grad():   
             for batch in tqdm(data, desc="Extract {}".format(cycle)):                
                 imgs, _, _, = batch
-                if use_gpu: imgs = imgs.cuda()
+                if self.use_gpu: imgs = imgs.cuda()
                 
-                feat = self.model(imgs)[0]
-                hflip_feat = self.model(fliplr(imgs))[0]
+                feat = self.model(imgs).unsqueeze(0)
+                hflip_feat = self.model(fliplr(imgs)).unsqueeze(0)
                 for i in range(len(feat)):
                     feat[i] += hflip_feat[i]
                     feat[i] = F.normalize(feat[i])
@@ -78,8 +81,9 @@ class SSGManager(TrainingManager):
         return feats
     
     def get_self_label(self, dists, cycle):
+        logger.info('Generate self label')
         labels_list = []
-        for i in range(len(dists)):
+        for i in tqdm(range(len(dists)), desc='Self Label {}'.format(cycle)):
             # if cycle==0:                
             ####DBSCAN cluster
             tri_mat = np.triu(dists[i],1)       # tri_mat.dim=2
@@ -100,8 +104,9 @@ class SSGManager(TrainingManager):
         return labels_list
 
     def get_feature_dist(self, feats):
+        logger.info('Compute feature distance')
         dists = []
-        for feat in feats:
+        for feat in tqdm(feats, desc='Feat Dist'):
             m = feat.size(0)
             distmat = torch.pow(feat, 2).sum(dim=1, keepdim=True).expand(m, m) + \
                         torch.pow(feat, 2).sum(dim=1, keepdim=True).expand(m, m).t()
@@ -113,6 +118,8 @@ class SSGManager(TrainingManager):
 def fliplr(img):
     '''flip horizontal'''
     inv_idx = torch.arange(img.size(3)-1,-1,-1).long()  # N x C x H x W
+    if img.is_cuda:
+        inv_idx = inv_idx.cuda()
     img_flip = img.index_select(3,inv_idx)
     return img_flip
 
@@ -170,22 +177,24 @@ class Model(nn.Module):
         self.fc.apply(weights_init_classifier)
         self.fc_bn.apply(weights_init_kaiming)
 
-        self.assignment = ClusterAssignment(cluster_number=cfg.INPUT.SIZE_TRAIN // cfg.REID_SIZE_PERSON, embedding_dimension=512)
+        #  self.assignment = ClusterAssignment(cluster_number=cfg.INPUT.SIZE_TRAIN // cfg.REID.SIZE_PERSON, embedding_dimension=1536)
     
     def forward(self, x):
         feat = self.backbone(x) 
 
         h = feat.size(2) 
         x1 = [feat]                   
-        x1.extend[feat[:, :, h // 2 * s: h // 2 * (s+1), :] for s in range(2)]
+        x1.extend([feat[:, :, h // 2 * s: h // 2 * (s+1), :] for s in range(2)])
         for i, x1x in enumerate(x1):
-            x1x = self.GAP(x1xx)
-            x1[i] = (x1x.view(x1x.size(0), -1)) 
-        x2 = self.fc_relu(self.fc_bn(self.fc(x1[0])))
+            x1x = self.GAP(x1x)
+            x1[i] = x1x.view(x1x.size(0), -1) 
+        local = torch.cat(x1, dim=1)
 
         if not self.training:
-            x1 = torch.cat(x1, dim=1)
-            return x1, x2  
+            return local
 
-        x3 = self.assignment(torch.cat(x1, dim=1)) 
-        return x1, x2, x3   
+        glob = self.fc_relu(self.fc_bn(self.fc(x1[0].squeeze())))
+
+        #  x3 = self.assignment(torch.cat(x1, dim=1)) 
+        #  return x1, x2, x3   
+        return local, glob   

@@ -6,6 +6,7 @@ from collections import OrderedDict
 import logging
 logger = logging.getLogger("logger")
 from torch.backends import cudnn
+from tools import bcolors
 cudnn.benchmark = True
 
 class TrainingManager():
@@ -16,6 +17,7 @@ class TrainingManager():
 
         self.cfg = cfg
         self.model = None
+        self.use_gpu = False
 
         self.loss_func = None
         self.loss_has_param = []
@@ -70,20 +72,20 @@ class TrainingManager():
                         if k in model_state and torch.isnan(v).sum() == 0:
                             checkpointRefine[k] = v
                             loaded_weights[k] = True
-                            logger.info("{:60} ...... loaded".format(k))
+                            logger.info("{}model {:60} ...... {}loaded{}".format(bcolors.RESET, k, bcolors.OKGREEN, bcolors.RESET))
                         else:
-                            logger.info("{:60} ......... skipped".format(k))
+                            logger.info("{}state {:60} ...... {}skipped{}".format(bcolors.RESET, k, bcolors.WARNING, bcolors.RESET))
                     
                     for k in loaded_weights.keys():
                         if not loaded_weights[k]:
-                            logger.info("{:60} ...... not loaded".format(k))
+                            logger.info("{}model {:60} ...... {}not loaded{}".format(bcolors.RESET, k, bcolors.WARNING, bcolors.RESET))     
                         
                     model_state.update(checkpointRefine)
                     self.model.load_state_dict(model_state)
                     
-                elif 'loss' in key:
-                    idx = int(key.split("_")[-1])
-                    self.loss_has_param[idx].load_state_dict(state[key])
+                #  elif 'loss' in key:
+                    #  idx = int(key.split("_")[-1])
+                    #  self.loss_has_param[idx].load_state_dict(state[key])
                 else:
                     logger.info("{} is skipped".format(key))
         else:
@@ -98,16 +100,17 @@ class TrainingManager():
                 if k in model_state and torch.isnan(v).sum() == 0:
                     checkpointRefine[k] = v
                     loaded_weights[k] = True
-                    logger.info("{:60} ...... loaded".format(k))
+                    logger.info("{}{:60} ...... {}loaded{}".format(bcolors.RESET, k, bcolors.OKGREEN, bcolors.RESET))
                 else:
-                    logger.info("{:60} ...... skipped".format(k))
+                    logger.info("{}{:60} ...... {}skipped{}".format(bcolors.RESET, k, bcolors.WARNING, bcolors.RESET))
 
             for k in loaded_weights.keys():
                 if not loaded_weights[k]:
-                    logger.info("{:60} ...... not loaded".format(k))     
+                    logger.info("{}{:60} ...... {}not loaded{}".format(bcolors.RESET, k, bcolors.WARNING, bcolors.RESET))     
 
             model_state.update(checkpointRefine)
             self.model.backbone.load_state_dict(model_state)
+        logger.info(bcolors.RESET)
 
     def _initialize_weights(self):
         raise NotImplementedError
@@ -115,6 +118,7 @@ class TrainingManager():
     def use_gpu(self):
         if self.model is not None and self.cfg.MODEL.NUM_GPUS > 0 and torch.cuda.is_available():        
             logger.info("Use GPU")
+            self.use_gpu = True
             self.model = self.model.cuda()
         else:
             if self.model is None:
@@ -125,9 +129,14 @@ class TrainingManager():
                 logger.info("GPU is not used")
     
     def use_multigpu(self):
-        if self.model is not None and self.cfg.MODEL.NUM_GPUS > 1 and torch.cuda.is_available():
-            logger.info("Use Multi-GPUs")
-            self.model = torch.nn.DataParallel(self.model).cuda()
+        if self.model is not None and torch.cuda.is_available() and self.cfg.MODEL.NUM_GPUS > 0:
+            self.use_gpu = True
+            if self.cfg.MODEL.NUM_GPUS > 1: 
+                logger.info("Use Multi-GPUs")
+                self.model = torch.nn.DataParallel(self.model).cuda()
+            else:
+                logger.info("Use Single-GPU")
+                self.model = self.model.cuda()
         else:
             if self.model is None:
                 logger.info("Initial model first")

@@ -30,6 +30,9 @@ def train(cfg):
     visualizer = Visualizer(cfg)
     
     engine = ReIDEngine(cfg, opts, train_loader, query_loader, gallery_loader, visualizer, manager)  
+    if cfg.EVALUATE:
+        engine.Evaluate()
+        sys.exit(1)
     engine.Train()
 
 def main():

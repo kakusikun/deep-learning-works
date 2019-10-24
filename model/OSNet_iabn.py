@@ -7,7 +7,7 @@ import sys
 import torch
 from torch import nn
 from torch.nn import functional as F
-from model.utility import ConvFC, AttentionIncorporation
+from model.utility import ConvFC 
 import torchvision
 
 from inplace_abn import InPlaceABN as IABN
@@ -189,13 +189,12 @@ class OSNet(nn.Module):
           https://arxiv.org/abs/1905.00953
     """
 
-    def __init__(self, num_classes, blocks, layers, channels, feature_dim=512, pooling='AVG', task='classifier', attention=False, **kwargs):
+    def __init__(self, num_classes, blocks, layers, channels, feature_dim=512, pooling='AVG', task='classifier', **kwargs):
         super(OSNet, self).__init__()
         num_blocks = len(blocks)
         assert num_blocks == len(layers)
         assert num_blocks == len(channels) - 1 
         self.task = task
-        self.attention = attention
         
         # convolutional backbone
         self.conv1 = ConvLayer(3, channels[0], 7, stride=2, padding=3)
@@ -213,12 +212,10 @@ class OSNet(nn.Module):
             print("{} is not supported".format(pooling))
             sys.exit(1)
 
-        if self.attention:
-            self.att_incorp = AttentionIncorporation(channels[2])
-
-        if self.task == 'classifier' or self.task == 'attention':
+        if self.task == 'classifier':
             # fully connected layer
             self.fc = self._construct_fc_layer(feature_dim, channels[3], dropout_p=None)
+            self.classifier = nn.Linear(feature_dim, num_classes)
         
         self._init_params()
 
@@ -244,17 +241,11 @@ class OSNet(nn.Module):
             self.feature_dim = input_dim
             return None
         
-        if isinstance(fc_dims, int):
-            fc_dims = [fc_dims]
-
-        layers = []
-        for dim in fc_dims:
-            layers.append(nn.Linear(input_dim, dim))
-            if dropout_p is not None:
-                layers.append(nn.Dropout(p=dropout_p))
-            input_dim = dim
-        
-        self.feature_dim = fc_dims[-1]
+        layers = [
+                  nn.Linear(input_dim, fc_dims),
+                  nn.BatchNorm1d(fc_dims),
+                  nn.LeakyReLU()
+                 ]
         
         return nn.Sequential(*layers)
 
@@ -285,20 +276,12 @@ class OSNet(nn.Module):
         x3 = self.conv3(x)        
         x = self.conv4(x3)
         x = self.conv5(x)
-        if self.attention:
-            at_map = self.att_incorp(x3)
-            return x, at_map
         return x
 
     def forward(self, x):
-        if self.attention:
-            x, at_map = self.featuremaps(x)
-        else:
-            x = self.featuremaps(x)
+        x = self.featuremaps(x)
         
         if self.task == 'trick':
-            if self.attention:
-                return x, at_map
             return x
 
         x = self.global_pool(x)        
@@ -306,13 +289,8 @@ class OSNet(nn.Module):
         if self.fc is not None:
             x = self.fc(x)
 
-        if self.task == 'attention':            
-            x = x.unsqueeze(2).unsqueeze(3) 
-            if self.attention:
-                return x, at_map
-            return x
-            
         if self.task == 'classifier':
+            x = self.classifier(x)
             return x
 
 
@@ -320,36 +298,7 @@ class OSNet(nn.Module):
 ##########
 # Instantiation
 ##########
-def osnet_x1_0(num_classes=1000, pooling='AVG', task='classifier', attention=False, **kwargs):
+def osnet_x1_0(num_classes=1000, pooling='AVG', task='classifier', **kwargs):
     # standard size (width x1.0)
     return OSNet(num_classes, blocks=[OSBlock, OSBlock, OSBlock], layers=[2, 2, 2],
                  channels=[64, 256, 384, 512], pooling=pooling, task=task, **kwargs)
-
-def osnet_att_x1_0(num_classes=1000, pooling='AVG', task='classifier', **kwargs):
-    # standard size (width x1.0)
-    return OSNet(num_classes, blocks=[OSBlock, OSBlock, OSBlock], layers=[2, 2, 2],
-                 channels=[64, 256, 384, 512], pooling=pooling, task=task, attention=True, **kwargs)
-
-# def osnet_x0_75(num_classes=1000, loss='softmax', **kwargs):
-#     # medium size (width x0.75)
-#     return OSNet(num_classes, blocks=[OSBlock, OSBlock, OSBlock], layers=[2, 2, 2],
-#                  channels=[48, 192, 288, 384], loss=loss, **kwargs)
-
-
-# def osnet_x0_5(num_classes=1000, loss='softmax', **kwargs):
-#     # tiny size (width x0.5)
-#     return OSNet(num_classes, blocks=[OSBlock, OSBlock, OSBlock], layers=[2, 2, 2],
-#                  channels=[32, 128, 192, 256], loss=loss, **kwargs)
-
-
-# def osnet_x0_25(num_classes=1000, loss='softmax', **kwargs):
-#     # very tiny size (width x0.25)
-#     return OSNet(num_classes, blocks=[OSBlock, OSBlock, OSBlock], layers=[2, 2, 2],
-#                  channels=[16, 64, 96, 128], loss=loss, **kwargs)
-
-
-# def osnet_ibn_x1_0(num_classes=1000, loss='softmax', **kwargs):
-#     # standard size (width x1.0) + IBN layer
-#     # Ref: Pan et al. Two at Once: Enhancing Learning and Generalization Capacities via IBN-Net. ECCV, 2018.
-#     return OSNet(num_classes, blocks=[OSBlock, OSBlock, OSBlock], layers=[2, 2, 2],
-#                  channels=[64, 256, 384, 512], loss=loss, IN=True, **kwargs)

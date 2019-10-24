@@ -31,6 +31,9 @@ def train(cfg):
     
     # engine = ImageNetEngine(cfg, nn.CrossEntropyLoss(), opt, train_loader, val_loader, visualizer, manager)
     engine = ImageNetEngine(cfg, opts, train_loader, val_loader, visualizer, manager)  
+    if cfg.EVALUATE: 
+        engine.Evaluate()
+        sys.exit(1)
     engine.Train()
 
 def main():
