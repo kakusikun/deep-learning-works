@@ -216,6 +216,11 @@ class OSNet(nn.Module):
             # fully connected layer
             self.fc = self._construct_fc_layer(feature_dim, channels[3], dropout_p=None)
             self.classifier = nn.Linear(feature_dim, num_classes)
+
+        if self.task == 'fc':
+            # fully connected layer
+            self.fc = self._construct_fc_layer(feature_dim, channels[3], dropout_p=None)
+        
         
         self._init_params()
 
@@ -288,6 +293,9 @@ class OSNet(nn.Module):
         x = x.view(x.size(0), -1)
         if self.fc is not None:
             x = self.fc(x)
+        
+        if self.task == 'fc':
+            return x
 
         if self.task == 'classifier':
             x = self.classifier(x)

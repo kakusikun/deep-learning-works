@@ -36,7 +36,7 @@ class AttentionManager(TrainingManager):
             sys.exit(1)
 
         ce_ls = CrossEntropyLossLS(self.cfg.MODEL.NUM_CLASSES)
-        center_loss = CenterLoss(feat_dim, self.cfg.MODEL.NUM_CLASSES, self.cfg.MODEL.NUM_GPUS > 0 and torch.cuda.is_available())        
+        center_loss = CenterLoss(feat_dim, self.cfg.MODEL.NUM_CLASSES, len(self.cfg.MODEL.GPU) > 0 and torch.cuda.is_available())        
         triplet_loss = TripletLoss()
         self.loss_has_param = [center_loss]
         self.loss_name = ["cels", "triplet", "center"]

@@ -5,7 +5,7 @@ import math
 import torch.nn as nn
 import torch.nn.functional as F
 from collections import OrderedDict
-from model.OSNetv2 import osnet_x1_0
+from model.OSNet_iabn import osnet_x1_0
 from model.RMNet import RMNet
 from model.ResNet import ResNet, BasicBlock
 from model.utility import ConvFC, CenterLoss, AMSoftmax, CrossEntropyLossLS, TripletLoss
@@ -21,6 +21,12 @@ class PARManager(TrainingManager):
                                'bag']
         self.alpha = -4.45
         self.beta = 5.45
+
+        temp = []
+        for i, a in enumerate(self.category_names, 1):
+            if i not in self.cfg.PAR.IGNORE_CAT:
+                temp.append(a)
+        self.category_names = temp
 
         if cfg.TASK == "par":
             self._make_model()
@@ -43,7 +49,7 @@ class PARManager(TrainingManager):
 
         bce = nn.BCEWithLogitsLoss(reduction='none')
 
-        self.loss_name = ["BCE_{}".format(c) for c in range(self.cfg.MODEL.NUM_CLASSES)]
+        self.loss_name = ["BCE_{}".format(c) for c in self.category_names]
 
         def loss_func(feat, target):
             temp_target = torch.zeros_like(target)            

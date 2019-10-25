@@ -35,7 +35,7 @@ class PAREngine(Engine):
 
     def _train_once(self):
         prefetcher = data_prefetcher(self.tdata)
-        for _ in tqdm(range(len(self.tdata)+5), desc="Epoch[{}/{}]".format(self.epoch, self.max_epoch)):
+        for _ in tqdm(range(len(self.tdata)), desc="Epoch[{}/{}]".format(self.epoch, self.max_epoch)):
             self._train_iter_start()
 
             batch = prefetcher.next()

@@ -124,6 +124,7 @@ class WarmupReduceLROnPlateau(object):
         if iters is None:
             iters = self.last_iter + 1
         self.last_iter = iters
+
         
         if self.last_iter <= self.warmup_iters:
             alpha = self.last_iter / self.warmup_iters
