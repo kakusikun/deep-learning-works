@@ -72,8 +72,8 @@ _C.FACEID.GALLERY_TYPE = ""
 # REID
 # -----------------------------------------------------------------------------
 _C.REID = CN()
-_C.REID.SIZE_PERSON = 3
-
+_C.REID.SIZE_PERSON = 4
+_C.REID.CYCLE = 30
 # -----------------------------------------------------------------------------
 # Pedestrian Attribute Recognition
 # -----------------------------------------------------------------------------
@@ -123,6 +123,7 @@ _C.SOLVER.START_EPOCH = 0
 _C.SOLVER.MAX_EPOCHS = 50
 
 _C.SOLVER.BASE_LR = 0.001
+_C.SOLVER.MIN_LR = 0.0
 _C.SOLVER.BIAS_LR_FACTOR = 1.0
 _C.SOLVER.CENTER_LOSS_LR = 0.5
 _C.SOLVER.CENTER_LOSS_WEIGHT = 0.0005
@@ -162,7 +163,10 @@ _C.EVALUATE = ""
 
 def build_output(cfg, config_file=""):
     time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    cfg.OUTPUT_DIR = os.path.join("result", cfg.TASK, cfg.EXPERIMENT, time)
+    if cfg.EVALUATE:
+        cfg.OUTPUT_DIR = os.path.join("evaluation", cfg.TASK, cfg.EXPERIMENT, time)
+    else:
+        cfg.OUTPUT_DIR = os.path.join("result", cfg.TASK, cfg.EXPERIMENT, time)
     if cfg.OUTPUT_DIR and not os.path.exists(cfg.OUTPUT_DIR):
         os.makedirs(cfg.OUTPUT_DIR)
         if config_file != "":

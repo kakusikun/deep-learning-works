@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from sklearn.cluster import DBSCAN
 # from solver.solvers import *
 
 def normalize(x, axis=-1):
@@ -488,6 +489,82 @@ class AttentionConvBlock(nn.Module):
         x = self.conv2(x)
         return x
 
+class ClusterAssignment(nn.Module):
+    def __init__(
+            self,
+            cluster_number,
+            embedding_dimension,
+            alpha=1.0,
+            cluster_centers=None):
+        """
+        Module to handle the soft assignment, for a description see in 3.1.1. in Xie/Girshick/Farhadi,
+        where the Student's t-distribution is used measure similarity between feature vector and each
+        cluster centroid.
+
+        :param cluster_number: number of clusters
+        :param embedding_dimension: embedding dimension of feature vectors
+        :param alpha: parameter representing the degrees of freedom in the t-distribution, default 1.0
+        :param cluster_centers: clusters centers to initialise, if None then use Xavier uniform
+        """
+        super(ClusterAssignment, self).__init__()
+        self.embedding_dimension = embedding_dimension
+        self.cluster_number = cluster_number
+        self.alpha = 1.0
+        if cluster_centers is None:
+            initial_cluster_centers = torch.zeros(
+                self.cluster_number,
+                self.embedding_dimension,
+                dtype=torch.float
+            )
+            nn.init.xavier_uniform_(initial_cluster_centers)
+        else:
+            initial_cluster_centers = cluster_centers
+        self.cluster_centers = nn.Parameter(initial_cluster_centers)
+
+    def forward(self, batch: torch.Tensor) -> torch.Tensor:
+        """
+        Compute the soft assignment for a batch of feature vectors, returning a batch of assignments
+        for each cluster.
+
+        :param batch: FloatTensor of [batch size, embedding dimension]
+        :return: FloatTensor [batch size, number of clusters]
+        """
+        norm_squared = torch.sum((batch.unsqueeze(1) - self.cluster_centers)**2, 2)
+        numerator = 1.0 / (1.0 + (norm_squared / self.alpha))
+        power = -float(self.alpha + 1) / 2
+        numerator = numerator**power
+        return (numerator.t() / torch.sum(numerator, 1)).t()
+
+def get_self_label(dists, cycle):
+    labels_list = []
+    for i in range(len(dists)):
+        if cycle==0:                
+            ####DBSCAN cluster
+            tri_mat = np.triu(dists[i],1)       # tri_mat.dim=2
+            tri_mat = tri_mat[np.nonzero(tri_mat)] # tri_mat.dim=1
+            tri_mat = np.sort(tri_mat,axis=None)
+            top_num = np.round(1.6e-3*tri_mat.size).astype(int)
+            eps = tri_mat[:top_num].mean()
+            logger.info('eps in cluster: {:.3f}'.format(eps))
+            cluster = DBSCAN(eps=eps,min_samples=4, metric='precomputed', n_jobs=8)
+            cluster_list.append(cluster)
+        else:
+            cluster = cluster_list[s]
+        #### select & cluster images as training set of this epochs
+        print('Clustering and labeling...')
+        if args.no_rerank:
+            #euclidean_dist = -1.0 * euclidean_dist #for similarity matrix
+            labels = cluster.fit_predict(e_dist[s])
+        else:
+            #rerank_dist = -1.0 * rerank_dist  #for similarity matrix
+            labels = cluster.fit_predict(r_dist[s])
+        num_ids = len(set(labels)) - 1  ##for DBSCAN cluster
+        #num_ids = len(set(labels)) ##for affinity_propagation cluster
+        print('Iteration {} have {} training ids'.format(n_iter+1, num_ids))
+        labels_list.append(labels)
+        del labels
+        del cluster
+    return labels_list, cluster_list
 
 if __name__ == '__main__':
     center_loss = CenterLoss(2048, 751)

@@ -12,9 +12,9 @@ import logging
 logger = logging.getLogger("logger")
 # recover = T.Compose([T.Normalize(mean = [-0.485/0.229, -0.456/0.224, -0.406/0.225], std = [1/0.229,1/0.224,1/0.225])])
 
-class ReIDEngine(Engine):
+class SSGEngine(Engine):
     def __init__(self, cfg, opts, tdata, qdata, gdata, show, manager):
-        super(ReIDEngine, self).__init__(cfg, opts, tdata, None, qdata, gdata, show, manager)
+        super(SSGEngine, self).__init__(cfg, opts, tdata, None, qdata, gdata, show, manager)
 
     def _train_iter_start(self):
         self.iter += 1
@@ -29,13 +29,12 @@ class ReIDEngine(Engine):
         self.show.add_scalar('train/total_loss', self.total_loss, self.iter)              
         for i in range(len(self.each_loss)):
             self.show.add_scalar('train/loss/{}'.format(self.manager.loss_name[i]), self.each_loss[i], self.iter)
-        self.show.add_scalar('train/accuracy', self.train_accu, self.iter)   
         for i in range(len(self.opts)):
             self.show.add_scalar('train/opt/{}/lr'.format(i), self.opts[i].monitor_lr, self.iter)
 
     def _train_once(self):
         prefetcher = data_prefetcher(self.tdata)
-        for _ in tqdm(range(len(self.tdata)+5), desc="Epoch[{}/{}]".format(self.epoch, self.max_epoch)):
+        for _ in tqdm(range(len(self.tdata)), desc="Epoch[{}/{}]".format(self.epoch, self.max_epoch)):
             self._train_iter_start()
 
             batch = prefetcher.next()
@@ -43,21 +42,14 @@ class ReIDEngine(Engine):
                 break
             images, target, _ = batch            
 
-
             local, glob = self.core(images) 
             self.total_loss, self.each_loss = self.manager.loss_func(local, glob, target)
             self.total_loss.backward()
-
-            for _loss in self.manager.loss_has_param:
-                for param in _loss.parameters():
-                    param.grad.data *= (1. / self.cfg.SOLVER.CENTER_LOSS_WEIGHT)
 
             self._train_iter_end()
 
             self.total_loss = self.tensor_to_scalar(self.total_loss)
             self.each_loss = self.tensor_to_scalar(self.each_loss)
-
-            self.train_accu = (glob.max(1)[1] == target).float().mean()          
 
     def _evaluate(self, eval=False):
         logger.info("Epoch {} evaluation start".format(self.epoch))

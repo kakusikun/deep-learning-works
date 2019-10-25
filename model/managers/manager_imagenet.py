@@ -8,7 +8,7 @@ from model.OSNet_iabn import osnet_x1_0
 from model.RMNet import RMNet
 from model.ResNet import ResNet, BasicBlock
 from model.utility import ConvFC, CrossEntropyLossLS
-from model.model_manager import TrainingManager
+from model.manager import TrainingManager
 import logging
 logger = logging.getLogger("logger")
 
@@ -79,16 +79,13 @@ class Model(nn.Module):
             self.backbone = RMNet(b=[4,8,10,11], cifar10=False, reid=True, trick=True)
         elif model_name == 'osnet':
             self.in_planes = 512
-            self.backbone = osnet_x1_0(num_classes, loss='trick')
+            self.backbone = osnet_x1_0(num_classes, task='classifier')
         else:
             logger.info("{} is not supported".format(model_name))
 
         self.num_classes = num_classes
-        self.fc = nn.Linear(self.in_planes, self.num_classes, bias=False)
-        self.fc.apply(weights_init_classifier)
+        self.backbone.classifier.apply(weights_init_classifier)
     
     def forward(self, x):
         x = self.backbone(x)
-        x = x.view(x.size(0), -1)      
-        global_feat = self.fc(x)
-        return global_feat
+        return x

@@ -16,18 +16,18 @@ def train(cfg):
 
     train_loader, val_loader = build_par_loader(cfg)
 
-    model_manager = PARManager(cfg) if cfg.PAR.SELECT_CAT == -1 else SinglePARManager(cfg)
+    manager = PARManager(cfg) if cfg.PAR.SELECT_CAT == -1 else SinglePARManager(cfg)
 
-    model_manager.use_multigpu()
+    manager.use_multigpu()
 
     cfg.SOLVER.ITERATIONS_PER_EPOCH = len(train_loader)
 
     opts = []    
-    opts.append(Solver(cfg, model_manager.model.named_parameters()))
+    opts.append(Solver(cfg, manager.model.named_parameters()))
 
     visualizer = Visualizer(cfg)
     
-    engine = PAREngine(cfg, opts, train_loader, val_loader, visualizer, model_manager)  
+    engine = PAREngine(cfg, opts, train_loader, val_loader, visualizer, manager)  
     engine.Train()
 
 def main():

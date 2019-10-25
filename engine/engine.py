@@ -25,7 +25,7 @@ class Engine():
         self.iter = 0
         self.epoch = 0
         self.max_epoch = cfg.SOLVER.MAX_EPOCHS
-        self.use_gpu = next(self.core.parameters()).is_cuda 
+        self.use_gpu = manager.use_gpu 
         self.train = True  
         self.total_loss = 1e5
         self.each_loss = None
@@ -92,6 +92,9 @@ class Engine():
             self._train_once()
             if self.epoch % self.cfg.SOLVER.EVALUATE_FREQ == 0:
                 self._evaluate()
+            if self.cfg.SOLVER.LR_POLICY == 'plateau' and self.cfg.SOLVER.MIN_LR >= self.opts[0].monitor_lr:
+                logger.info("LR {} is less than the min LR {}".format(self.opts[0].monitor_lr, self.cfg.SOLVER.MIN_LR))
+                break
 
     def Inference(self):
         raise NotImplementedError

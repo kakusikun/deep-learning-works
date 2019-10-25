@@ -55,6 +55,8 @@ class Solver():
                                             anneal_mult=self.cycle_mult,
                                             anneal_period=self.cycle_len,
                                             )
+        elif self.lr_policy == "none":
+            logger.info("LR policy is not used")
         else:
             logger.info("LR policy is not specified")
             sys.exit(1)

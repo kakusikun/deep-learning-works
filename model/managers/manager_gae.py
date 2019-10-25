@@ -10,7 +10,7 @@ import torch.nn as nn
 
 from model.MobileNetv1 import MobileNetv1
 from model.t2c import *
-from model.model_manager import TrainingManager
+from model.manager import TrainingManager
 import logging
 logger = logging.getLogger("logger")
 

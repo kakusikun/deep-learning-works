@@ -53,7 +53,7 @@ class ImageNetEngine(Engine):
             self.train_accu = (outputs.max(1)[1] == target).float().mean() 
            
 
-    def _evaluate(self):
+    def _evaluate(self, eval=False):
         logger.info("Epoch {} evaluation start".format(self.epoch))
         accus = []        
         with torch.no_grad():
@@ -68,5 +68,10 @@ class ImageNetEngine(Engine):
           
         self.accu = torch.stack(accus).mean()
 
-        self._eval_epoch_end()        
+        if not eval:
+            self._eval_epoch_end()        
 
+    def Evaluate(self):
+        self._evaluate(eval=True)
+        logger.info(self.accu)
+        

@@ -8,7 +8,7 @@ from data.build_loader import build_cifar10_loader
 from engine.engine_imagenet import ImageNetEngine
 from solver.optimizer import Solver
 from visualizer.visualizer import Visualizer
-from model.model_manager import TrainingManager
+from model.manager import TrainingManager
 from model.utility import CrossEntropyLossLS
 import logging
 logger = logging.getLogger("logger")
@@ -20,22 +20,22 @@ def train(cfg):
 
     train_loader, val_loader = build_cifar10_loader(cfg)
 
-    model_manager = TrainingManager(cfg)
+    manager = TrainingManager(cfg)
 
-    model_manager.use_multigpu()
+    manager.use_multigpu()
 
     if cfg.EVALUATE:
-        engine = ImageNetEngine(cfg, None, None, None, val_loader, None, model_manager)
+        engine = ImageNetEngine(cfg, None, None, None, val_loader, None, manager)
         engine.Inference()
         sys.exit(1)
 
     cfg.SOLVER.ITERATIONS_PER_EPOCH = len(train_loader)
 
-    opt = Solver(cfg, model_manager.params)
+    opt = Solver(cfg, manager.params)
 
     visualizer = Visualizer(cfg)
     
-    engine = ImageNetEngine(cfg, CrossEntropyLossLS(cfg.MODEL.NUM_CLASSES), opt, train_loader, val_loader, visualizer, model_manager)
+    engine = ImageNetEngine(cfg, CrossEntropyLossLS(cfg.MODEL.NUM_CLASSES), opt, train_loader, val_loader, visualizer, manager)
     engine.Train()
 
 
