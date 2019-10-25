@@ -25,13 +25,18 @@ class PAR():
         self.train_dir = osp.join(self.dataset_dir, "train")
         self.val_dir = osp.join(self.dataset_dir, "test")
         self.category_names = ['gender', 'hair', 'shirt', 'plaid', 'stripe', 'sleeve',
-                               'logo', 'shorts', 'skirt', 'hat', 'glasses', 'backpack']
+                               'logo', 'shorts', 'skirt', 'hat', 'glasses', 'backpack', 'bag']
 
         self._check_before_run()
 
         self.cat = cfg.PAR.SELECT_CAT
         self.ignore = cfg.PAR.IGNORE_CAT
-
+        
+        temp = []
+        for i, a in enumerate(self.category_names, 1):
+            if i not in self.ignore:
+                temp.append(a)
+        self.category_names = temp
 
         train, train_num_images = self._process_dir(self.train_dir)
         val, val_num_images = self._process_dir(self.val_dir)
@@ -65,8 +70,11 @@ class PAR():
         for img in imgs:
             _attrs = img.split("__")[-1].split(".")[0].split('_')
             if len(self.ignore) > 0:
-                for ig in self.ignore:
-                    _attrs.pop(ig-1)
+                temp = []
+                for i, a in enumerate(_attrs, 1):
+                    if i not in self.ignore:
+                        temp.append(a)
+                _attrs = temp
             if self.cat != -1:
                 if int(_attrs[self.cat]) == -1:
                     continue
