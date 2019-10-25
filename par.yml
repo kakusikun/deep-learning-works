@@ -1,21 +1,21 @@
-EXPERIMENT: "OSNet_par_multi_bce_SGD_lr_0.001_warmup_10_0.01_plateau_10_flip_crop_imagenet"
+EXPERIMENT: "OSNet_par_multi_bce_SGD_lr_0.01_warmup_10_0.33_plateau_10_flip_crop_imagenet"
 # [modelname]_[task]_[loss]_[opt]_[lr]_[trick]_[pretrain]
 
 TASK: "par"
 
 MODEL:
-  NUM_GPUS: 3
+  GPU: [0,1,2,3]
   NUM_CLASSES: 12
   NAME: "osnet"
   PRETRAIN: "outside"
-  TASK: "classifier"
+  TASK: "fc"
   SAVE_CRITERION: "loss"
 
 INPUT:
   IMAGE_PAD: 10
   IMAGE_SIZE: (384, 128) #(320, 160)
   IMAGE_CROP_SIZE: (384, 128)
-  SIZE_TRAIN: 128
+  SIZE_TRAIN: 256
   SIZE_TEST: 256
   PIXEL_MEAN: [0.485, 0.456, 0.406]
   PIXEL_STD: [0.229, 0.224, 0.225]
@@ -41,7 +41,8 @@ SOLVER:
   OPTIMIZER_NAME: "SGD"
   START_EPOCH: 0
   MAX_EPOCHS: 160
-  BASE_LR: 0.001
+  BASE_LR: 0.01
+  MIN_LR: 1e-5
   BIAS_LR_FACTOR: 1.0
   # CENTER_LOSS_LR: 0.5
   # CENTER_LOSS_WEIGHT: 0.0005
@@ -49,14 +50,14 @@ SOLVER:
   WEIGHT_DECAY_BIAS_FACTOR: 1.0
   EVALUATE_FREQ: 5
 
-  LR_POLICY: "cosine"
+  LR_POLICY: "plateau"
   WARMUP: True
-  # GAMMA: 0.1
+  GAMMA: 0.1
   # WARMUP_FACTOR: 0.01
   WARMUP_SIZE: 10.0
-  # PLATEAU_SIZE: 10.0
-  WARMRESTART_MULTIPLIER: 2
-  WARMRESTART_PERIOD: 10
+  PLATEAU_SIZE: 10.0
+  # WARMRESTART_MULTIPLIER: 2
+  # WARMRESTART_PERIOD: 10
 
 RESUME: "/home/allen.jc.lin/osnet_x1_0_imagenet.pth"
 # EVALUATE: "/home/allen/OSNet_market_cels_triplet_center_Adam_lr_0.00035_warmup_10_0.01_plateau_10_flip_crop_erase_imagenet_0.9495.pth"
