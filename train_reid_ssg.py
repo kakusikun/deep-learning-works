@@ -40,6 +40,9 @@ def train(cfg):
         visualizer = Visualizer(cfg, "cycle_{}/log".format(cycle))
 
         engine = SSGEngine(cfg, opts, trt_update_train_loader, trt_query_loader, trt_gallery_loader, visualizer, manager)  
+        if cfg.EVALUATE:
+            engine.Evaluate()
+            sys.exit(1)
         engine.Train()
         cfg.RESUME = os.path.join(os.getcwd(), sorted(glob(manager.save_path + "/model*"))[-1])
 
