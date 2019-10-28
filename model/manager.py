@@ -72,13 +72,13 @@ class TrainingManager():
                         if k in model_state and torch.isnan(v).sum() == 0:
                             checkpointRefine[k] = v
                             loaded_weights[k] = True
-                            logger.info("{}model {:60} ...... {}loaded{}".format(bcolors.RESET, k, bcolors.OKGREEN, bcolors.RESET))
+                            logger.info("{}model {:55} ...... {}loaded{}".format(bcolors.RESET, k, bcolors.OKGREEN, bcolors.RESET))
                         else:
-                            logger.info("{}state {:60} ...... {}skipped{}".format(bcolors.RESET, k, bcolors.WARNING, bcolors.RESET))
+                            logger.info("{}state {:55} ...... {}skipped{}".format(bcolors.RESET, k, bcolors.WARNING, bcolors.RESET))
                     
                     for k in loaded_weights.keys():
                         if not loaded_weights[k]:
-                            logger.info("{}model {:60} ...... {}not loaded{}".format(bcolors.RESET, k, bcolors.WARNING, bcolors.RESET))     
+                            logger.info("{}model {:55} ...... {}not loaded{}".format(bcolors.RESET, k, bcolors.WARNING, bcolors.RESET))     
                         
                     model_state.update(checkpointRefine)
                     self.model.load_state_dict(model_state)
@@ -100,13 +100,13 @@ class TrainingManager():
                 if k in model_state and torch.isnan(v).sum() == 0:
                     checkpointRefine[k] = v
                     loaded_weights[k] = True
-                    logger.info("{}{:60} ...... {}loaded{}".format(bcolors.RESET, k, bcolors.OKGREEN, bcolors.RESET))
+                    logger.info("{}{:55} ...... {}loaded{}".format(bcolors.RESET, k, bcolors.OKGREEN, bcolors.RESET))
                 else:
-                    logger.info("{}{:60} ...... {}skipped{}".format(bcolors.RESET, k, bcolors.WARNING, bcolors.RESET))
+                    logger.info("{}{:55} ...... {}skipped{}".format(bcolors.RESET, k, bcolors.WARNING, bcolors.RESET))
 
             for k in loaded_weights.keys():
                 if not loaded_weights[k]:
-                    logger.info("{}{:60} ...... {}not loaded{}".format(bcolors.RESET, k, bcolors.WARNING, bcolors.RESET))     
+                    logger.info("{}{:55} ...... {}not loaded{}".format(bcolors.RESET, k, bcolors.WARNING, bcolors.RESET))     
 
             model_state.update(checkpointRefine)
             self.model.backbone.load_state_dict(model_state)
