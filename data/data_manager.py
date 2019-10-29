@@ -717,6 +717,11 @@ class MSMT17(object):
 
         train, num_train_pids, num_train_imgs = self._process_dir(self.train_dir, relabel=True)
         query, num_query_pids, num_query_imgs = self._process_dir(self.query_dir, relabel=False)
+        if cfg.REID.MERGE:
+            train, num_train_pids, num_train_imgs = self._process_dir([self.train_dir, self.query_dir], relabel=True)
+            train, num_train_pids, num_train_imgs = self.clean_dataset(train)
+            query, num_query_pids, num_query_imgs = self._process_dir(self.query_dir, relabel=False)
+
         gallery, num_gallery_pids, num_gallery_imgs = self._process_dir(self.gallery_dir, relabel=False)
         num_total_pids = num_train_pids + num_query_pids
         num_total_imgs = num_train_imgs + num_query_imgs + num_gallery_imgs
@@ -753,7 +758,12 @@ class MSMT17(object):
             raise RuntimeError("'{}' is not available".format(self.gallery_dir))
 
     def _process_dir(self, dir_path, relabel=False):
-        img_paths = glob.glob(osp.join(dir_path, '*.jpg'))
+        if isinstance(dir_path, list):
+            img_paths = [] 
+            for _dir_path in dir_path:
+                img_paths.extend(glob.glob(osp.join(_dir_path, '*.jpg'))) 
+        else:
+            img_paths = glob.glob(osp.join(dir_path, '*.jpg'))
         pattern = re.compile(r'([-\d]+)_c(\d)')
 
         pid_container = set()
@@ -774,6 +784,22 @@ class MSMT17(object):
         num_pids = len(pid_container)
         num_imgs = len(dataset)
         return dataset, num_pids, num_imgs
+    
+    def clean_dataset(self, dataset):
+        count = defaultdict(int)
+        for _, pid, _ in dataset:
+            count[pid] += 1 
+        delete_pids = []
+        for pid in count.keys():
+            if count[pid] < 4:
+                delete_pids.append(pid)
+        new_dataset = []
+        for data in dataset:
+            if data[1] not in delete_pids:
+                new_dataset.append(data)
+        return new_dataset, len(count) - len(delete_pids), len(new_dataset)
+                
+
 
 class MSMT17_TOTAL(object):
     """

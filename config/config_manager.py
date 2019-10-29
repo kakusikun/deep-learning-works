@@ -74,6 +74,7 @@ _C.FACEID.GALLERY_TYPE = ""
 _C.REID = CN()
 _C.REID.SIZE_PERSON = 4
 _C.REID.CYCLE = 30
+_C.REID.MERGE = False
 # -----------------------------------------------------------------------------
 # Pedestrian Attribute Recognition
 # -----------------------------------------------------------------------------
