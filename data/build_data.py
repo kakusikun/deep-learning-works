@@ -57,6 +57,8 @@ class build_reid_dataset(data.Dataset):
 
         if self.transform is not None:
             img = self.transform(img)
+            if isinstance(img, tuple):
+                img = img[0]
 
         return img, pid, camid
 
