@@ -719,8 +719,8 @@ class MSMT17(object):
         query, num_query_pids, num_query_imgs = self._process_dir(self.query_dir, relabel=False)
         if cfg.REID.MERGE:
             train, num_train_pids, num_train_imgs = self._process_dir([self.train_dir, self.query_dir], relabel=True)
-            train, num_train_pids, num_train_imgs = self.clean_dataset(train)
-            query, num_query_pids, num_query_imgs = self._process_dir(self.query_dir, relabel=False)
+            train, num_train_pids, num_train_imgs = self.clean_dataset(train, relabel=True)
+            query, num_query_pids, num_query_imgs = self.clean_dataset(query, method='gt')
 
         gallery, num_gallery_pids, num_gallery_imgs = self._process_dir(self.gallery_dir, relabel=False)
         num_total_pids = num_train_pids + num_query_pids
@@ -785,18 +785,26 @@ class MSMT17(object):
         num_imgs = len(dataset)
         return dataset, num_pids, num_imgs
     
-    def clean_dataset(self, dataset):
+    def clean_dataset(self, dataset, method='lt', relabel=False):
         count = defaultdict(int)
         for _, pid, _ in dataset:
             count[pid] += 1 
+            
         delete_pids = []
+        pid_container = set()
         for pid in count.keys():
-            if count[pid] < 4:
+            if method == 'lt' and count[pid] < 4:
                 delete_pids.append(pid)
+            elif method == 'gt' and count[pid] >= 4: 
+                delete_pids.append(pid)
+            else:
+                pid_container.add(pid)
+        pid2label = {pid:label for label, pid in enumerate(pid_container)}
         new_dataset = []
-        for data in dataset:
-            if data[1] not in delete_pids:
-                new_dataset.append(data)
+        for img_path, pid, camid in dataset:
+            if pid not in delete_pids:
+                if relabel: pid = pid2label[pid]
+                new_dataset.append((img_path, pid, camid))
         return new_dataset, len(count) - len(delete_pids), len(new_dataset)
                 
 
