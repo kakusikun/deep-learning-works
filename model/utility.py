@@ -184,12 +184,9 @@ class CenterLoss(nn.Module):
         in_features: size of features
         num_classes: number of identity in dataset
     """
-    def __init__(self, in_features, num_classes, use_gpu=True):
+    def __init__(self, in_features, num_classes):
         super(CenterLoss, self).__init__()
-        if use_gpu:
-            self.center = nn.Parameter(torch.randn(num_classes, in_features).cuda())
-        else:
-            self.center = nn.Parameter(torch.randn(num_classes, in_features))
+        self.center = nn.Parameter(torch.randn(num_classes, in_features).cuda())
 
     def forward(self, inputs, labels):
         device = inputs.get_device()

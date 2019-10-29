@@ -54,7 +54,7 @@ class PAREngine(Engine):
 
             self.train_accu = accu         
 
-    def _evaluate(self):
+    def _evaluate(self, eval=False):
         logger.info("Epoch {} evaluation start".format(self.epoch))
         self._eval_epoch_start()
         outputs = []
@@ -96,7 +96,12 @@ class PAREngine(Engine):
 
         logger.info("------------------")
 
-        self.accu = t_precs[50]
+        if not eval:
+            self.accu = t_precs[50]
+            self._eval_epoch_end() 
+        else:
+            np.save("{}/par_prec.npy".format(self.cfg.OUTPUT_DIR), precs)
+            np.save("{}/par_recall.npy".format(self.cfg.OUTPUT_DIR), recalls)
 
-        self._eval_epoch_end() 
-
+    def Evaluate(self):
+        self._evaluate(eval=True)

@@ -5,9 +5,7 @@ import torch.nn as nn
 from collections import OrderedDict
 import logging
 logger = logging.getLogger("logger")
-from torch.backends import cudnn
 from tools import bcolors
-cudnn.benchmark = True
 
 class TrainingManager():
     def __init__(self, cfg):
@@ -31,8 +29,6 @@ class TrainingManager():
             logger.info("Resuming model from {}".format(self.cfg.RESUME))
             self.loadPath = self.cfg.RESUME
             self.load_model()     
-        else:
-           self._initialize_weights()        
         
     def save_model(self, epoch, opts, acc):
         state = {}
@@ -56,7 +52,7 @@ class TrainingManager():
         torch.save(state, os.path.join(self.save_path,'model_{:03}_{:.4f}.pth'.format(epoch, acc)))
 
     def load_model(self): 
-        state = torch.load(self.loadPath)
+        state = torch.load(self.loadPath, map_location = torch.device('cpu'))
         loaded_weights = {}
         if len(state.keys()) < 10:
             for key in state.keys():            
@@ -116,11 +112,9 @@ class TrainingManager():
         raise NotImplementedError
     
     def use_multigpu(self):
-        gpu = ""
-        num_gpus = len(self.cfg.MODEL.GPU)
-        for _gpu in self.cfg.MODEL.GPU:
-            gpu += "{},".format(_gpu)
-        os.environ['CUDA_VISIBLE_DEVICES'] = gpu
+        gpu = os.environ['CUDA_VISIBLE_DEVICES']
+        num_gpus = len(gpu.split(","))
+        logger.info("Using GPU: {}{}{}{}".format(bcolors.RESET, bcolors.OKGREEN, gpu, bcolors.RESET))
 
         if self.model is not None and torch.cuda.device_count() >= num_gpus and num_gpus > 0:
             self.use_gpu = True

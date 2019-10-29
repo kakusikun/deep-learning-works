@@ -1,4 +1,4 @@
-EXPERIMENT: "OSNet_par_multi_bce_SGD_lr_0.01_warmup_10_0.33_plateau_10_flip_crop_imagenet"
+EXPERIMENT: "OSNet_par_multi_bce_SGD_lr_0.01_plateau_10_flip_crop_imagenet"
 # [modelname]_[task]_[loss]_[opt]_[lr]_[trick]_[pretrain]
 
 TASK: "par"
@@ -51,7 +51,7 @@ SOLVER:
   EVALUATE_FREQ: 5
 
   LR_POLICY: "plateau"
-  WARMUP: True
+  WARMUP: False
   GAMMA: 0.1
   # WARMUP_FACTOR: 0.01
   WARMUP_SIZE: 10.0

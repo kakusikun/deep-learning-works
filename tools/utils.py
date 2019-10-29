@@ -12,6 +12,19 @@ import numpy as np
 from numpy import array,argmin
 
 import torch
+from torch.backends import cudnn
+from tools import bcolors
+import logging
+logger = logging.getLogger("logger")
+
+def deploy_gpu(cfg):
+    cudnn.benchmark = True
+    gpu = ""
+    for _gpu in cfg.MODEL.GPU:
+        gpu += "{},".format(_gpu)
+    gpu = gpu[:-1]
+    os.environ['CUDA_VISIBLE_DEVICES'] = gpu
+    logger.info("Using GPU: {}{}{}{}".format(bcolors.RESET, bcolors.OKGREEN, gpu, bcolors.RESET))
 
 def mkdir_if_missing(directory):
     if not osp.exists(directory):

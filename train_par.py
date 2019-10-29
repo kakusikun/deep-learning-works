@@ -28,6 +28,9 @@ def train(cfg):
     visualizer = Visualizer(cfg)
     
     engine = PAREngine(cfg, opts, train_loader, val_loader, visualizer, manager)  
+    if cfg.EVALUATE: 
+        engine.Evaluate()
+        sys.exit(1)
     engine.Train()
 
 def main():

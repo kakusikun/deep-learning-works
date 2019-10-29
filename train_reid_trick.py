@@ -10,6 +10,7 @@ from solver.optimizer import Solver
 from visualizer.visualizer import Visualizer
 from model.managers.manager_reid_trick import TrickManager
 from tools.logger import setup_logger
+from tools.utils import deploy_gpu
 import torch.nn as nn
 
 def train(cfg):
@@ -56,6 +57,7 @@ def main():
     logger.info("Running with config:\n{}".format(cfg))
     action = input("Config Confirmed ? (Y/N)").lower().strip()
     if action == 'y':
+        deploy_gpu(cfg)
         train(cfg)    
     else:
         shutil.rmtree(cfg.OUTPUT_DIR)

@@ -28,7 +28,7 @@ class TrickManager(TrainingManager):
 
     def _make_loss(self):
         ce_ls = CrossEntropyLossLS(self.cfg.MODEL.NUM_CLASSES)
-        center_loss = CenterLoss(512, self.cfg.MODEL.NUM_CLASSES, self.use_gpu)        
+        center_loss = CenterLoss(512, self.cfg.MODEL.NUM_CLASSES)        
         triplet_loss = TripletLoss()
         self.loss_has_param = [center_loss]
         self.loss_name = ["cels", "triplet", "center"]
@@ -80,7 +80,7 @@ class Model(nn.Module):
             logger.info("{} is not supported".format(cfg.MODEL.NAME))
 
         self.gap = nn.AdaptiveAvgPool2d(1)        
-        self.BNNeck = nn.BatchNorm2d(self.in_planes)
+        self.BNNeck = nn.BatchNorm1d(self.in_planes)
         self.BNNeck.bias.requires_grad_(False)  # no shift
         self.BNNeck.apply(weights_init_kaiming)
 
@@ -93,8 +93,8 @@ class Model(nn.Module):
         feat = self.backbone(x)
         x = self.gap(feat)
         local_feat = x.view(x.size(0), -1)
-        x = self.BNNeck(x)
-        x = x.view(x.size(0), -1)        
+        x = self.BNNeck(local_feat)
+        #  x = x.view(x.size(0), -1)        
         if not self.training:
             return x      
         global_feat = self.id_fc(x)  

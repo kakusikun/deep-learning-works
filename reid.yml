@@ -1,14 +1,14 @@
-EXPERIMENT: "OSNet_duke_ssg_triplet_notrick_Adam_lr_0.00035_warmup_10_0.01_plateau_10_flip_crop_imagenet"
+EXPERIMENT: "OSNet_msmt_cels_triplet_center_Adam_lr_0.00035_warmup_10_0.01_plateau_10_flip_crop_erase_imagenet"
 # [modelname]_[task]_[loss]_[opt]_[lr]_[trick]_[pretrain]
 
 TASK: "reid"
 
 MODEL:
-  NUM_GPUS: 2
-  NUM_CLASSES: 702 #D:702, M:751
+  GPU: [2,3]
+  NUM_CLASSES: 2012 #D:702, M:751 MSMT:2012(merge)
   NAME: "osnet"
   PRETRAIN: "outside"
-  TASK: "reid"
+  TASK: "trick"
 
 INPUT:
   IMAGE_PAD: 10
@@ -20,14 +20,15 @@ INPUT:
   PIXEL_STD: [0.229, 0.224, 0.225]
 
 REID:
-  CYCLE: 30
+  # CYCLE: 30
   SIZE_PERSON: 4
+  MERGE: True
   
 DATALOADER:
   NUM_WORKERS: 30
 
 DATASET:
-  NAME: "dukemtmcreid"
+  NAME: "msmt17"
   TRAIN_PATH: "/home/allen.jc.lin/reid"
 
 TRANSFORM:
@@ -35,7 +36,7 @@ TRANSFORM:
   RANDOMCROP: True
   NORMALIZE: True
   RESIZE: True 
-  # RANDOMERASING: True
+  RANDOMERASING: True
 
 SOLVER:
   OPTIMIZER_NAME: "Adam"
@@ -50,19 +51,12 @@ SOLVER:
   EVALUATE_FREQ: 5
 
   LR_POLICY: "plateau"
-  MIN_LR: 1e-5
+  MIN_LR: 1e-6
   WARMUP: True
   GAMMA: 0.1
   WARMUP_FACTOR: 0.01
   WARMUP_SIZE: 10.0
   PLATEAU_SIZE: 10.0
 
-# osnet_ibn_x1_0_imagenet.pth 
 
-RESUME: "/home/allen.jc.lin/OSNet_market_cels_triplet_center_Adam_lr_0.00035_warmup_10_0.01_plateau_10_flip_crop_erase_imagenet_0.9495.pth"
-# EVALUATE: "/home/allen/OSNet_market_cels_triplet_center_Adam_lr_0.00035_warmup_10_0.01_plateau_10_flip_crop_erase_imagenet_0.9495.pth"
-# EVALUATE: "/home/allen/Downloads/osnet_x1_0_market_256x128_amsgrad_ep150_stp60_lr0.0015_b64_fb10_softmax_labelsmooth_flip.pth"
-# EVALUATE: ["main", "/home/allen.jc.lin/deep-learning-works/result_ResNet18_SGD_REID_Phase2_TupletLoss_CELSR_Trick_scratch_2019-07-08_22-35-03/weights/model_main_220_0.7732.pth"]
-# RESUME: ["main", "/home/allen.jc.lin/deep-learning-works/result_RMNet_Novo_Reid_Phase1_2019-07-05_16-16-25/weights/model_main_290_0.6790.pth", "glob_loss", "/home/allen.jc.lin/deep-learning-works/result_RMNet_Novo_Reid_Phase1_2019-07-05_16-16-25/weights/model_glob_loss_290_0.6790.pth"] 
-# RESUME: ["main", "/home/allen.jc.lin/deep-learning-works/result_RMNet_Novo_Reid_Phase2_2019-07-06_11-44-51/weights/model_main_300_0.7758.pth", "glob_loss", "/home/allen.jc.lin/deep-learning-works/result_RMNet_Novo_Reid_Phase2_2019-07-06_11-44-51/weights/model_glob_loss_300_0.7758.pth", "local_loss", "/home/allen.jc.lin/deep-learning-works/result_RMNet_Novo_Reid_Phase2_2019-07-06_11-44-51/weights/model_local_loss_300_0.7758.pth"] 
-
+RESUME: "/home/allen.jc.lin/osnet_x1_0_imagenet.pth"

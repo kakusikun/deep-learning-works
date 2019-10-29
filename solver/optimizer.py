@@ -56,6 +56,7 @@ class Solver():
                                             anneal_period=self.cycle_len,
                                             )
         elif self.lr_policy == "none":
+            self.scheduler = None
             logger.info("LR policy is not used")
         else:
             logger.info("LR policy is not specified")
