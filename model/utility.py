@@ -7,6 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from sklearn.cluster import DBSCAN
+from tools.utils import dist_idx_to_pair_idx
 # from solver.solvers import *
 
 def normalize(x, axis=-1):
@@ -562,6 +563,213 @@ def get_self_label(dists, cycle):
         del labels
         del cluster
     return labels_list, cluster_list
+
+# Unsupervised, soft multilabel, MAR, eq(8)
+class JointLoss(torch.nn.Module):
+    def __init__(self, margin=1):
+        super(JointLoss, self).__init__()
+        self.margin = margin
+        self.sim_margin = 1 - margin / 2
+
+    def forward(self, features, agents, labels, similarity, features_target, similarity_target):
+        """
+        :param features: shape=(BS/2, dim)
+        :param agents: shape=(n_class, dim)
+        :param labels: shape=(BS/2,)
+        :param features_target: shape=(BS/2, n_class)
+        :return:
+        """
+        loss_terms = []
+        arange = torch.arange(len(agents)).cuda()
+        zero = torch.Tensor([0]).cuda()
+        # ep(8), 2nd term
+        for (f, l, s) in zip(features, labels, similarity):
+            # src pos
+            loss_pos = (f - agents[l]).pow(2).sum()
+            loss_terms.append(loss_pos)
+            # find hard src neg, not in paper
+            neg_idx = arange != l
+            hard_agent_idx = neg_idx & (s > self.sim_margin) 
+            if torch.any(hard_agent_idx):
+                hard_neg_sdist = (f - agents[hard_agent_idx]).pow(2).sum(dim=1)
+                # push hard src neg away
+                loss_neg = torch.max(zero, self.margin - hard_neg_sdist).mean()
+                loss_terms.append(loss_neg)
+        # eq(8), 1st term
+        for (f, s) in zip(features_target, similarity_target):
+            # find agent that similar to trt which should not be allowed
+            hard_agent_idx = s > self.sim_margin
+            if torch.any(hard_agent_idx):
+                hard_neg_sdist = (f - agents[hard_agent_idx]).pow(2).sum(dim=1)
+                loss_neg = torch.max(zero, self.margin - hard_neg_sdist).mean()
+                loss_terms.append(loss_neg)
+        loss_total = torch.mean(torch.stack(loss_terms))
+        return loss_total
+
+# Unsupervised, soft multilabel, MAR, eq(5)
+class MultilabelLoss(torch.nn.Module):
+    def __init__(self, batch_size, use_std=True):
+        super(MultilabelLoss, self).__init__()
+        self.use_std = use_std
+        self.moment = batch_size / 10000
+
+    def init_centers(self, log_multilabels, views):
+        """
+        :param log_multilabels: shape=(N, n_class)
+        :param views: (N,)
+        :return:
+        """
+        univiews = torch.unique(views)
+        mean_ml = []
+        std_ml = []
+        for v in univiews:
+            ml_in_v = log_multilabels[views == v]
+            mean = ml_in_v.mean(dim=0)
+            std = ml_in_v.std(dim=0)
+            mean_ml.append(mean)
+            std_ml.append(std)
+        center_mean = torch.mean(torch.stack(mean_ml), dim=0)
+        center_std = torch.mean(torch.stack(std_ml), dim=0)
+        self.register_buffer('center_mean', center_mean)
+        self.register_buffer('center_std', center_std)
+
+    def _update_centers(self, log_multilabels, views):
+        """
+        :param log_multilabels: shape=(BS, n_class)
+        :param views: shape=(BS,)
+        :return:
+        """
+        univiews = torch.unique(views)
+        means = []
+        stds = []
+        for v in univiews:
+            ml_in_v = log_multilabels[views == v]
+            if len(ml_in_v) == 1:
+                continue
+            mean = ml_in_v.mean(dim=0)
+            means.append(mean)
+            if self.use_std:
+                std = ml_in_v.std(dim=0)
+                stds.append(std)
+        new_mean = torch.mean(torch.stack(means), dim=0)
+        self.center_mean = self.center_mean * (1 - self.moment) + new_mean * self.moment
+        if self.use_std:
+            new_std = torch.mean(torch.stack(stds), dim=0)
+            self.center_std = self.center_std * (1 - self.moment) + new_std * self.moment
+
+    def forward(self, log_multilabels, views):
+        """
+        :param log_multilabels: shape=(BS, n_class)
+        :param views: shape=(BS,)
+        :return:
+        """
+        self._update_centers(log_multilabels.detach(), views)
+
+        univiews = torch.unique(views)
+        loss_terms = []
+        for v in univiews:
+            ml_in_v = log_multilabels[views == v]
+            if len(ml_in_v) == 1:
+                continue
+            mean = ml_in_v.mean(dim=0)
+            loss_mean = (mean - self.center_mean).pow(2).sum()
+            loss_terms.append(loss_mean)
+            std = ml_in_v.std(dim=0)
+            loss_std = (std - self.center_std).pow(2).sum()
+            loss_terms.append(loss_std)
+        loss_total = torch.mean(torch.stack(loss_terms))
+        return loss_total
+
+# Unsupervised, soft multilabel, MAR, eq(4)
+class DiscriminativeLoss(torch.nn.Module):
+    def __init__(self, mining_ratio=0.001):
+        super(DiscriminativeLoss, self).__init__()
+        self.mining_ratio = mining_ratio
+        # self.register_buffer('n_pos_pairs', torch.Tensor([0]))
+        # self.register_buffer('rate_TP', torch.Tensor([0]))
+        self.moment = 0.1
+
+    def init_threshold(self, pairwise_agreements):
+        pos = int(len(pairwise_agreements) * self.mining_ratio)
+        sorted_agreements = np.sort(pairwise_agreements)
+        t = sorted_agreements[-pos]
+        self.register_buffer('threshold', torch.Tensor([t]).cuda())
+
+    def forward(self, features, multilabels):
+        """
+        :param features: shape=(BS, dim)
+        :param multilabels: (BS, n_class)
+        :param labels: (BS,)
+        :return:
+        """
+        P, N = self._partition_sets(features.detach(), multilabels)
+        if P is None:
+            pos_exponant = torch.Tensor([1]).cuda()
+            num = 0
+        else:
+            sdist_pos_pairs = []
+            for (i, j) in zip(P[0], P[1]):
+                sdist_pos_pair = (features[i] - features[j]).pow(2).sum()
+                sdist_pos_pairs.append(sdist_pos_pair)
+            pos_exponant = torch.exp(- torch.stack(sdist_pos_pairs)).mean()
+            num = -torch.log(pos_exponant)
+        if N is None:
+            neg_exponant = torch.Tensor([0.5]).cuda()
+        else:
+            sdist_neg_pairs = []
+            for (i, j) in zip(N[0], N[1]):
+                sdist_neg_pair = (features[i] - features[j]).pow(2).sum()
+                sdist_neg_pairs.append(sdist_neg_pair)
+            neg_exponant = torch.exp(- torch.stack(sdist_neg_pairs)).mean()
+        den = torch.log(pos_exponant + neg_exponant)
+        loss = num + den
+        return loss
+
+    def _partition_sets(self, features, multilabels):
+        """
+        partition the batch into confident positive, hard negative and others
+        :param features: shape=(BS, dim)
+        :param multilabels: shape=(BS, n_class)
+        :param labels: shape=(BS,)
+        :return:
+        P: positive pair set. tuple of 2 np.array i and j.
+            i contains smaller indices and j larger indices in the batch.
+            if P is None, no positive pair found in this batch.
+        N: negative pair set. similar to P, but will never be None.
+        """
+        f_np = features.cpu().numpy()
+        ml_np = multilabels.cpu().numpy()
+        p_dist = pdist(f_np)
+        p_agree = 1 - pdist(ml_np, 'minkowski', p=1) / 2
+        sorting_idx = np.argsort(p_dist)
+        n_similar = int(len(p_dist) * self.mining_ratio)
+        similar_idx = sorting_idx[:n_similar]
+        is_positive = p_agree[similar_idx] > self.threshold.item()
+        pos_idx = similar_idx[is_positive]
+        neg_idx = similar_idx[~is_positive]
+        P = dist_idx_to_pair_idx(len(f_np), pos_idx)
+        N = dist_idx_to_pair_idx(len(f_np), neg_idx)
+        self._update_threshold(p_agree)
+        # self._update_buffers(P, labels)
+        return P, N
+
+    def _update_threshold(self, pairwise_agreements):
+        pos = int(len(pairwise_agreements) * self.mining_ratio)
+        sorted_agreements = np.sort(pairwise_agreements)
+        t = torch.Tensor([sorted_agreements[-pos]]).cuda()
+        self.threshold = self.threshold * (1 - self.moment) + t * self.moment
+
+    # def _update_buffers(self, P, labels):
+    #     if P is None:
+    #         self.n_pos_pairs = 0.9 * self.n_pos_pairs
+    #         return 0
+    #     n_pos_pairs = len(P[0])
+    #     count = 0
+    #     for (i, j) in zip(P[0], P[1]):
+    #         count += labels[i] == labels[j]
+    #     rate_TP = float(count) / n_pos_pairs
+    #     self.n_pos_pairs = 0.9 * self.n_pos_pairs + 0.1 * n_pos_pairs
+    #     self.rate_TP = 0.9 * self.rate_TP + 0.1 * rate_TP
 
 if __name__ == '__main__':
     center_loss = CenterLoss(2048, 751)
