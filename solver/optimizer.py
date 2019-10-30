@@ -10,6 +10,7 @@ logger = logging.getLogger("logger")
 class Solver(): 
     def __init__(self, cfg, params, _lr=None, _wd=None, _name=None, _lr_policy=None):   
         self.lr = cfg.SOLVER.BASE_LR if _lr is None else _lr
+        self.momentum = cfg.SOLVER.MOMENTUM
         self.monitor_lr = 0.0
         self.wd = cfg.SOLVER.WEIGHT_DECAY if _wd is None else _wd
         self.cycle_mult = cfg.SOLVER.WARMRESTART_MULTIPLIER
@@ -29,11 +30,11 @@ class Solver():
         self.warmup_factor = cfg.SOLVER.WARMUP_FACTOR
         self.warmup_iters = cfg.SOLVER.WARMUP_SIZE * self.num_iter_per_epoch
         self.patience = cfg.SOLVER.PLATEAU_SIZE * self.num_iter_per_epoch 
-
-        self._model_analysis(params)
+            
+        self._model_analysis(params, custom=cfg.SOLVER.CUSTOM)
 
         if self.opt_name == 'SGD':
-            self.opt = torch.optim.SGD(self.params, momentum=cfg.SOLVER.MOMENTUM)
+            self.opt = torch.optim.SGD(self.params, momentum=self.momentum)
         elif self.opt_name == 'Adam':
             self.opt = torch.optim.Adam(self.params)
         
@@ -60,12 +61,9 @@ class Solver():
             logger.info("LR policy is not used")
         else:
             logger.info("LR policy is not specified")
-            sys.exit(1)
-        
-        
+            sys.exit(1)    
 
-
-    def _model_analysis(self, params):
+    def _model_analysis(self, params, custom=[]):
         self.params = []
         # self.params = [{"params": params, "lr": self.lr, "weight_decay": self.wd}]
         num_params = 0.0
@@ -78,7 +76,16 @@ class Solver():
                 wd = self.wd
                 if "bias" in layer:
                     lr = self.lr * self.bias_lr_factor
-                    wd = self.wd * self.wd_factor                
+                    wd = self.wd * self.wd_factor    
+                for name, target, value in custom:
+                    if name in layer:
+                        if target == 'lr':
+                            lr = value
+                        elif target == 'wd':
+                            wd = value
+                        else:
+                            logger.info("Unsupported optimizer parameter: {}".format(target))
+
                 self.params += [{"params": p, "lr": lr, "weight_decay": wd}]
                 num_params += p.numel()
             except:

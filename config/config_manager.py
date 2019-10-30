@@ -75,6 +75,7 @@ _C.REID = CN()
 _C.REID.SIZE_PERSON = 4
 _C.REID.CYCLE = 30
 _C.REID.MERGE = False
+_C.REID.TRT = ""
 # -----------------------------------------------------------------------------
 # Pedestrian Attribute Recognition
 # -----------------------------------------------------------------------------
@@ -126,6 +127,7 @@ _C.SOLVER.MAX_EPOCHS = 50
 _C.SOLVER.BASE_LR = 0.001
 _C.SOLVER.MIN_LR = 0.0
 _C.SOLVER.BIAS_LR_FACTOR = 1.0
+_C.SOLVER.CUSTOM = []
 _C.SOLVER.CENTER_LOSS_LR = 0.5
 _C.SOLVER.CENTER_LOSS_WEIGHT = 0.0005
 
