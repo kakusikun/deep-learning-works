@@ -17,6 +17,31 @@ from tools import bcolors
 import logging
 logger = logging.getLogger("logger")
 
+def pair_idx_to_dist_idx(d, i, j):
+    """
+    :param d: numer of elements
+    :param i: np.array. i < j in every element
+    :param j: np.array
+    :return:
+    """
+    assert np.sum(i < j) == len(i)
+    index = d * i - i * (i + 1) / 2 + j - 1 - i
+    return index.astype(int)
+
+
+def dist_idx_to_pair_idx(d, i):
+    """
+    :param d: number of samples
+    :param i: np.array
+    :return:
+    """
+    if i.size == 0:
+        return None
+    b = 1 - 2 * d
+    x = np.floor((-b - np.sqrt(b ** 2 - 8 * i)) / 2).astype(int)
+    y = (i + x * (b + x + 2) / 2 + 1).astype(int)
+    return x, y
+    
 def deploy_gpu(cfg):
     cudnn.benchmark = True
     gpu = ""
