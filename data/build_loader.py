@@ -49,7 +49,7 @@ def build_cifar10_loader(cfg):
 
     return t_loader, v_loader
 
-def build_reid_loader(cfg):
+def build_reid_loader(cfg, return_indice=False, use_sampler=True):
     
     if cfg.DATASET.NAME == "total":
         cfg.DATASET.NAME = 'cuhk03'
@@ -106,7 +106,7 @@ def build_reid_loader(cfg):
         if cfg.DATASET.ATTENTION_MAPS != "":
             train_dataset = build_reid_atmap_dataset(dataset.train, cfg)
         else:
-            train_dataset = build_reid_dataset(dataset.train, train_trans)
+            train_dataset = build_reid_dataset(dataset.train, train_trans, return_indice=return_indice)
 
         if cfg.DATASET.TEST != "":
             cfg.DATASET.NAME = cfg.DATASET.TEST
@@ -126,15 +126,26 @@ def build_reid_loader(cfg):
             pin_memory=True
         )
     else:
-        sampler = IdBasedSampler(dataset.train, batch_size=cfg.INPUT.SIZE_TRAIN, num_instances=cfg.REID.SIZE_PERSON)
+        if use_sampler:
+            sampler = IdBasedSampler(dataset.train, batch_size=cfg.INPUT.SIZE_TRAIN, num_instances=cfg.REID.SIZE_PERSON)
 
-        t_loader = data.DataLoader(
-            train_dataset, 
-            batch_size=cfg.INPUT.SIZE_TRAIN, 
-            sampler=sampler, 
-            num_workers=num_workers, 
-            pin_memory=True
-        )
+            t_loader = data.DataLoader(
+                train_dataset, 
+                batch_size=cfg.INPUT.SIZE_TRAIN, 
+                sampler=sampler, 
+                num_workers=num_workers, 
+                pin_memory=True, 
+                drop_last=True
+            )
+        else:
+            t_loader = data.DataLoader(
+                train_dataset, 
+                batch_size=cfg.INPUT.SIZE_TRAIN, 
+                shuffle=True, 
+                num_workers=num_workers, 
+                pin_memory=True, 
+                drop_last=True
+            )
 
     q_loader = data.DataLoader(
         query_dataset, batch_size=cfg.INPUT.SIZE_TEST, shuffle=False, num_workers=num_workers, pin_memory=True, drop_last=False
@@ -216,7 +227,8 @@ def build_plain_reid_loader(cfg):
         batch_size=cfg.INPUT.SIZE_TRAIN, 
         shuffle=False, 
         num_workers=num_workers, 
-        pin_memory=True
+        pin_memory=True,
+        drop_last=False
     )
     q_loader = data.DataLoader(
         query_dataset, batch_size=cfg.INPUT.SIZE_TEST, shuffle=False, num_workers=num_workers, pin_memory=True, drop_last=False
