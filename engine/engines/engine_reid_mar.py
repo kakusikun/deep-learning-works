@@ -28,9 +28,11 @@ class MAREngine(Engine):
         for opt in self.opts:
             opt.step()
 
-        self.show.add_scalar('train/total_loss', self.total_loss, self.iter)              
+        total_loss = self.tensor_to_scalar(self.total_loss)
+        each_loss = self.tensor_to_scalar(self.each_loss)
+        self.show.add_scalar('train/total_loss', total_loss, self.iter)              
         for i in range(len(self.each_loss)):
-            self.show.add_scalar('train/loss/{}'.format(self.manager.loss_name[i]), self.each_loss[i], self.iter)
+            self.show.add_scalar('train/loss/{}'.format(self.manager.loss_name[i]), each_loss[i], self.iter)
         self.show.add_scalar('train/accuracy', self.train_accu, self.iter)   
         for i in range(len(self.opts)):
             self.show.add_scalar('train/opt/{}/lr'.format(i), self.opts[i].monitor_lr, self.iter)
@@ -47,25 +49,19 @@ class MAREngine(Engine):
 
             trt_batch = self.trt_prefetcher.next()
             if trt_batch is None:
-                self.trt_prefetcher = self.data_prefetcher(self.trtdata)
+                self.trt_prefetcher = data_prefetcher(self.trtdata)
                 trt_batch = self.trt_prefetcher.next()                
             trt_images, _, trt_cams, trt_idx = trt_batch
 
             src_feat, src_sim = self.core(src_images) 
             trt_feat, trt_sim = self.core(trt_images)
-            self.total_loss, self.each_loss = self.manager.loss_func(src_feat, trt_feat, src_sim, trt_sim, src_target, trt_cams, trt_idx)
-            self.total_loss.backward()
+            self.total_loss, self.each_loss = self.manager.loss_func(src_feat, trt_feat, src_sim, trt_sim, src_target, trt_cams, trt_idx, self.epoch)
 
-            for _loss in self.manager.loss_has_param:
-                for param in _loss.parameters():
-                    param.grad.data *= (1. / self.cfg.SOLVER.CENTER_LOSS_WEIGHT)
+            self.total_loss.backward()
 
             self._train_iter_end()
 
-            self.total_loss = self.tensor_to_scalar(self.total_loss)
-            self.each_loss = self.tensor_to_scalar(self.each_loss)
-
-            self.train_accu = (glob.max(1)[1] == target).float().mean()          
+            self.train_accu = (src_sim.max(1)[1] == src_target).float().mean()          
 
     def _evaluate(self, eval=False):
         logger.info("Epoch {} evaluation start".format(self.epoch))
@@ -75,11 +71,9 @@ class MAREngine(Engine):
             for batch in tqdm(self.qdata, desc="Validation"):
                 
                 imgs, pids, camids = batch
-                if self.use_gpu: imgs = imgs.cuda()
+                imgs = imgs.cuda()
                 
                 features = self.core(imgs)
-
-                features = F.normalize(features)
                 
                 qf.append(features.cpu())
                 q_pids.extend(pids)
@@ -97,8 +91,6 @@ class MAREngine(Engine):
                 if self.use_gpu: imgs = imgs.cuda()
                 
                 features = self.core(imgs)
-
-                features = F.normalize(features)
                 
                 gf.append(features.cpu())
                 g_pids.extend(pids)

@@ -69,27 +69,27 @@ class Solver():
         num_params = 0.0
         
         for layer, p in params:
-            try:
-                if not p.requires_grad:
-                    continue
-                lr = self.lr
-                wd = self.wd
-                if "bias" in layer:
-                    lr = self.lr * self.bias_lr_factor
-                    wd = self.wd * self.wd_factor    
-                for name, target, value in custom:
-                    if name in layer:
-                        if target == 'lr':
-                            lr = value
-                        elif target == 'wd':
-                            wd = value
-                        else:
-                            logger.info("Unsupported optimizer parameter: {}".format(target))
+            #  try:
+            if not p.requires_grad:
+                continue
+            lr = self.lr
+            wd = self.wd
+            if "bias" in layer:
+                lr = self.lr * self.bias_lr_factor
+                wd = self.wd * self.wd_factor    
+            for name, target, value in custom:
+                if name in layer:
+                    if target == 'lr':
+                        lr = value
+                    elif target == 'wd':
+                        wd = value
+                    else:
+                        logger.info("Unsupported optimizer parameter: {}".format(target))
 
-                self.params += [{"params": p, "lr": lr, "weight_decay": wd}]
-                num_params += p.numel()
-            except:
-                logger.info("{:50} ...... skipped".format(layer))
+            self.params += [{"params": p, "lr": lr, "weight_decay": wd}]
+            num_params += p.numel()
+            #  except:
+                #  logger.info("{:50} ...... skipped".format(layer))
         
         logger.info("Trainable parameters: {:.2f}M".format(num_params / 1000000.0))
 

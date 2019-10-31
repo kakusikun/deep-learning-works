@@ -17,16 +17,17 @@ def train(cfg):
 
     src_loader, _, _ = build_reid_loader(cfg, use_sampler=False)
     cfg.DATASET.NAME = cfg.REID.TRT
-    trt_loader, query_loader, gallery_loader = build_reid_loader(cfg, use_sampler=False)
-    trt_init_loader, _, _ = build_plain_reid_loader(cfg, use_sampler=False)
+    trt_loader, query_loader, gallery_loader = build_reid_loader(cfg, use_sampler=False, return_indice=True)
+    trt_init_loader, _, _ = build_plain_reid_loader(cfg)
 
     manager = MARManager(cfg)
     manager.use_multigpu()
-    manager.stats_initialization(trt_init_loader)
 
     cfg.SOLVER.ITERATIONS_PER_EPOCH = len(src_loader)
 
     opts = [Solver(cfg, manager.model.named_parameters())]        
+
+    manager.stats_initialization(trt_init_loader)
 
     visualizer = Visualizer(cfg)
     

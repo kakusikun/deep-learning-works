@@ -15,7 +15,25 @@ import torch
 from torch.backends import cudnn
 from tools import bcolors
 import logging
+from tqdm import tqdm
 logger = logging.getLogger("logger")
+
+def pdist(A, p, verbose=False):
+    if p == 1:
+        b = []
+        if verbose:
+            for i in tqdm(range(1, A.shape[0]), desc="Compute pdist"):
+                b.append((A[i-1] - A[i:]).abs().sum(dim=1))
+        else:
+            for i in range(1, A.shape[0]):
+                b.append((A[i-1] - A[i:]).abs().sum(dim=1))
+        b = torch.cat(b)
+    if p == 2:
+        _pdist = lambda A, B: torch.sqrt(A.pow(2).sum(1, keepdim=True) - 2 * torch.mm(A, B.t()) + B.pow(2).sum(1, keepdim=True).t())
+        dist = _pdist(A,A)
+        mask = torch.triu(torch.ones_like(dist)) == 0
+        b = dist[mask.t()]
+    return b
 
 def pair_idx_to_dist_idx(d, i, j):
     """
@@ -35,11 +53,11 @@ def dist_idx_to_pair_idx(d, i):
     :param i: np.array
     :return:
     """
-    if i.size == 0:
+    if i.size() == 0:
         return None
     b = 1 - 2 * d
-    x = np.floor((-b - np.sqrt(b ** 2 - 8 * i)) / 2).astype(int)
-    y = (i + x * (b + x + 2) / 2 + 1).astype(int)
+    x = torch.floor((-b - torch.sqrt(b ** 2 - 8 * i)) / 2).long()
+    y = (i + (x * (b + x + 2) / 2).float() + 1).long()
     return x, y
     
 def deploy_gpu(cfg):

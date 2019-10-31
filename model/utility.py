@@ -6,8 +6,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+import numpy as np
 from sklearn.cluster import DBSCAN
-from tools.utils import dist_idx_to_pair_idx
+from tools.utils import dist_idx_to_pair_idx, pdist
 # from solver.solvers import *
 
 def normalize(x, axis=-1):
@@ -711,8 +712,13 @@ class DiscriminativeLoss(torch.nn.Module):
             for (i, j) in zip(P[0], P[1]):
                 sdist_pos_pair = (features[i] - features[j]).pow(2).sum()
                 sdist_pos_pairs.append(sdist_pos_pair)
-            pos_exponant = torch.exp(- torch.stack(sdist_pos_pairs)).mean()
-            num = -torch.log(pos_exponant)
+            if len(sdist_pos_pairs) == 0:
+                print(P)
+                pos_exponant = torch.Tensor([1]).cuda()
+                num = 0
+            else:
+                pos_exponant = torch.exp(- torch.stack(sdist_pos_pairs)).mean()
+                num = -torch.log(pos_exponant)
         if N is None:
             neg_exponant = torch.Tensor([0.5]).cuda()
         else:
@@ -720,7 +726,11 @@ class DiscriminativeLoss(torch.nn.Module):
             for (i, j) in zip(N[0], N[1]):
                 sdist_neg_pair = (features[i] - features[j]).pow(2).sum()
                 sdist_neg_pairs.append(sdist_neg_pair)
-            neg_exponant = torch.exp(- torch.stack(sdist_neg_pairs)).mean()
+            if len(sdist_neg_pairs) == 0:
+                print(N)
+                neg_exponant = torch.Tensor([0.5]).cuda()
+            else:
+                neg_exponant = torch.exp(- torch.stack(sdist_neg_pairs)).mean()
         den = torch.log(pos_exponant + neg_exponant)
         loss = num + den
         return loss
@@ -737,26 +747,24 @@ class DiscriminativeLoss(torch.nn.Module):
             if P is None, no positive pair found in this batch.
         N: negative pair set. similar to P, but will never be None.
         """
-        f_np = features.cpu().numpy()
-        ml_np = multilabels.cpu().numpy()
-        p_dist = pdist(f_np)
-        p_agree = 1 - pdist(ml_np, 'minkowski', p=1) / 2
-        sorting_idx = np.argsort(p_dist)
+        p_dist = pdist(features, p=2)
+        p_agree = 1 - pdist(multilabels, p=1) / 2
+        sorting_idx = torch.argsort(p_dist)
         n_similar = int(len(p_dist) * self.mining_ratio)
         similar_idx = sorting_idx[:n_similar]
         is_positive = p_agree[similar_idx] > self.threshold.item()
         pos_idx = similar_idx[is_positive]
         neg_idx = similar_idx[~is_positive]
-        P = dist_idx_to_pair_idx(len(f_np), pos_idx)
-        N = dist_idx_to_pair_idx(len(f_np), neg_idx)
+        P = dist_idx_to_pair_idx(len(features), pos_idx.float())
+        N = dist_idx_to_pair_idx(len(features), neg_idx.float())
         self._update_threshold(p_agree)
         # self._update_buffers(P, labels)
         return P, N
 
     def _update_threshold(self, pairwise_agreements):
         pos = int(len(pairwise_agreements) * self.mining_ratio)
-        sorted_agreements = np.sort(pairwise_agreements)
-        t = torch.Tensor([sorted_agreements[-pos]]).cuda()
+        sorted_agreements = torch.sort(pairwise_agreements)[0]
+        t = sorted_agreements[-pos]
         self.threshold = self.threshold * (1 - self.moment) + t * self.moment
 
     # def _update_buffers(self, P, labels):

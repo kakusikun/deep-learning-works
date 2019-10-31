@@ -109,7 +109,10 @@ class Engine():
             for _tensor in tensor:
                 scalar.append(_tensor.item())
         elif isinstance(tensor, torch.Tensor) and tensor.dim() != 0:
-            scalar = tensor.numpy().tolist()
+            if tensor.is_cuda:
+                scalar = tensor.cpu().detach().numpy().tolist()
+            else:
+                scalar = tensor.detach().numpy().tolist()
         else:
             scalar = tensor.item()
         return scalar
@@ -134,18 +137,24 @@ class data_prefetcher():
             return
         # if record_stream() doesn't work, another option is to make sure device inputs are created
         # on the main stream.
+        self.next_batch_gpu = []
+        for i in range(len(self.next_batch)):
+            self.next_batch_gpu.append(torch.empty_like(self.next_batch[i], device='cuda'))
         # self.next_input_gpu = torch.empty_like(self.next_input, device='cuda')
         # self.next_target_gpu = torch.empty_like(self.next_target, device='cuda')
         # Need to make sure the memory allocated for next_* is not still in use by the main stream
         # at the time we start copying to next_*:
-        # self.stream.wait_stream(torch.cuda.current_stream())
+        self.stream.wait_stream(torch.cuda.current_stream())
         with torch.cuda.stream(self.stream):
-            for i in range(len(self.next_batch)):
-                self.next_batch[i] = self.next_batch[i].cuda(non_blocking=True)
+            #  for i in range(len(self.next_batch)):
+                #  self.next_batch[i] = self.next_batch[i].cuda(non_blocking=True)
             # more code for the alternative if record_stream() doesn't work:
             # copy_ will record the use of the pinned source tensor in this side stream.
+            for i in range(len(self.next_batch)):
+                self.next_batch_gpu[i].copy_(self.next_batch[i], non_blocking=True)
             # self.next_input_gpu.copy_(self.next_input, non_blocking=True)
             # self.next_target_gpu.copy_(self.next_target, non_blocking=True)
+            self.next_batch = self.next_batch_gpu
             # self.next_input = self.next_input_gpu
             # self.next_target = self.next_target_gpu
 
