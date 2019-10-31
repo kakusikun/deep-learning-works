@@ -167,9 +167,9 @@ class Model(nn.Module):
             logger.info("{} is not supported".format(cfg.MODEL.NAME))
 
         self.GAP = nn.AdaptiveAvgPool2d(1)        
-        # self.BNNeck = nn.BatchNorm1d(self.in_planes)
-        # self.BNNeck.bias.requires_grad_(False)  # no shift
-        # self.BNNeck.apply(weights_init_kaiming)
+        self.BNNeck = nn.BatchNorm1d(self.in_planes)
+        self.BNNeck.bias.requires_grad_(False)  # no shift
+        self.BNNeck.apply(weights_init_kaiming)
 
         self.fc = nn.Linear(self.in_planes, self.in_planes, bias=False)     
         self.fc_bn = nn.BatchNorm1d(self.in_planes)
@@ -187,7 +187,8 @@ class Model(nn.Module):
         x1.extend([feat[:, :, h // 2 * s: h // 2 * (s+1), :] for s in range(2)])
         for i, x1x in enumerate(x1):
             x1x = self.GAP(x1x)
-            x1[i] = x1x.view(x1x.size(0), -1) 
+            x1x = x1x.view(x1x.size(0), -1) 
+            x1[i] = self.BNNeck(x1x)
         local = torch.cat(x1, dim=1)
 
         if not self.training:
