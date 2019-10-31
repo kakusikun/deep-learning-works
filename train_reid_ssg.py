@@ -13,6 +13,7 @@ from visualizer.visualizer import Visualizer
 from model.managers.manager_reid_ssg import SSGManager
 from model.utility import get_self_label
 
+from tools.utils import deploy_gpu
 from tools.logger import setup_logger
 import torch.nn as nn
 import torch
@@ -21,6 +22,7 @@ import torch
 def train(cfg):
 
     trt_train_loader, _, _ = build_plain_reid_loader(cfg)
+    model_rank = []
 
     for cycle in range(0, cfg.REID.CYCLE):
         manager = SSGManager(cfg)
@@ -44,8 +46,9 @@ def train(cfg):
             engine.Evaluate()
             sys.exit(1)
         engine.Train()
-        cfg.RESUME = os.path.join(os.getcwd(), sorted(glob(manager.save_path + "/model*"))[-1])
-
+        model_rank.append((os.path.join(os.getcwd(), sorted(glob(manager.save_path + "/model*"))[-1], engine.best_accu)))
+        model_rank = sorted(model_rank, key=lambda x: x[1])
+        cfg.RESUME = model_rank[-1][0] 
 def main():
     parser = argparse.ArgumentParser(description="PyTorch Template MNIST Training")
     parser.add_argument(
@@ -67,6 +70,7 @@ def main():
     logger.info("Running with config:\n{}".format(cfg))
     action = input("Config Confirmed ? (Y/N)").lower().strip()
     if action == 'y':
+        deploy_gpu(cfg)
         train(cfg)    
     else:
         shutil.rmtree(cfg.OUTPUT_DIR)
