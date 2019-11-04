@@ -106,7 +106,7 @@ class MARManager(TrainingManager):
             logger.info('Cache is found at {}'.format(tmp_path))
             pairwise_agreements = torch.load(os.path.join(tmp_path, "pa.pt")) 
         else:
-            pairwise_agreements = 1 - pdist(multilabels, verbose=True)/2
+            pairwise_agreements = 1 - pdist(multilabels, p=1, verbose=True)/2
             torch.save(pairwise_agreements, os.path.join(tmp_path, "pa.pt"))
         log_multilabels = torch.log(multilabels)
         self.CML_loss.init_centers(log_multilabels, cams)
