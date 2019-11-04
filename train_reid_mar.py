@@ -27,7 +27,8 @@ def train(cfg):
 
     opts = [Solver(cfg, manager.model.named_parameters())]        
 
-    manager.stats_initialization(trt_init_loader)
+    if not cfg.EVALUATE:
+        manager.stats_initialization(trt_init_loader)
 
     visualizer = Visualizer(cfg)
     
