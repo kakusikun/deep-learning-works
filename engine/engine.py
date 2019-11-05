@@ -67,20 +67,21 @@ class Engine():
         raise NotImplementedError
 
     def _eval_epoch_end(self):
-        if self.save_criterion == 'loss':
-            logger.info("Epoch {} evaluation ends, loss {:.4f}".format(self.epoch, self.test_loss))
-            if self.min_loss > self.test_loss:
-                logger.info("Save checkpoint, with {:.4f} improvement".format(self.min_loss - self.test_loss))
-                self.manager.save_model(self.epoch, self.opts, self.test_loss)
-                self.min_loss = self.test_loss
-            self.show.add_scalar('val/loss', self.min_loss, self.epoch)
-        else:
-            logger.info("Epoch {} evaluation ends, accuracy {:.4f}".format(self.epoch, self.accu))
-            if self.accu > self.best_accu:
-                logger.info("Save checkpoint, with {:.4f} improvement".format(self.accu - self.best_accu))
-                self.manager.save_model(self.epoch, self.opts, self.accu)
-                self.best_accu = self.accu
-            self.show.add_scalar('val/accuracy', self.best_accu, self.epoch)
+        if self.cfg.SOLVER.EVALUATE_FREQ > 0:
+            if self.save_criterion == 'loss':
+                logger.info("Epoch {} evaluation ends, loss {:.4f}".format(self.epoch, self.test_loss))
+                if self.min_loss > self.test_loss:
+                    logger.info("Save checkpoint, with {:.4f} improvement".format(self.min_loss - self.test_loss))
+                    self.manager.save_model(self.epoch, self.opts, self.test_loss)
+                    self.min_loss = self.test_loss
+                self.show.add_scalar('val/loss', self.min_loss, self.epoch)
+            else:
+                logger.info("Epoch {} evaluation ends, accuracy {:.4f}".format(self.epoch, self.accu))
+                if self.accu > self.best_accu:
+                    logger.info("Save checkpoint, with {:.4f} improvement".format(self.accu - self.best_accu))
+                    self.manager.save_model(self.epoch, self.opts, self.accu)
+                    self.best_accu = self.accu
+                self.show.add_scalar('val/accuracy', self.best_accu, self.epoch)
 
     def _train_once(self):
         raise NotImplementedError
@@ -90,8 +91,11 @@ class Engine():
         for i in range(self.max_epoch):
             self._train_epoch_start()
             self._train_once()
-            if self.epoch % self.cfg.SOLVER.EVALUATE_FREQ == 0:
-                self._evaluate()
+            if self.cfg.SOLVER.EVALUATE_FREQ > 0:
+                if self.epoch % self.cfg.SOLVER.EVALUATE_FREQ == 0:
+                    self._evaluate()
+            else:
+                self.manager.save_model(self.epoch, self.opts, 0.0)
             if self.cfg.SOLVER.LR_POLICY == 'plateau' and self.cfg.SOLVER.MIN_LR >= self.opts[0].monitor_lr:
                 logger.info("LR {} is less than the min LR {}".format(self.opts[0].monitor_lr, self.cfg.SOLVER.MIN_LR))
                 break
