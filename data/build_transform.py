@@ -3,6 +3,7 @@ import math
 import numbers
 import torchvision.transforms as T
 import torchvision.transforms.functional as F
+from data.transforms import *
 
 def build_transform(cfg, isTrain=True):
     bagTransforms = []
@@ -17,6 +18,11 @@ def build_transform(cfg, isTrain=True):
         if cfg.TRANSFORM.RANDOMCROP:
             bagTransforms.append(T.RandomCrop(size=cfg.INPUT.IMAGE_CROP_SIZE, padding=cfg.INPUT.IMAGE_PAD))   
         
+        if cfg.TRANSFORM.RANDOMAPPLY:
+            num_trans = np.random.randint(0, len(DEFALUT_CANDIDATES)+1, 1)
+            trans = np.random.choice(DEFALUT_CANDIDATES, num_trans, replace=False)
+            bagTransforms.append(trans)
+
         bagTransforms.append(T.ToTensor())
 
         if cfg.TRANSFORM.NORMALIZE:
