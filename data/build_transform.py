@@ -6,11 +6,11 @@ import torchvision.transforms as T
 import torchvision.transforms.functional as F
 from data.transforms import *
 
-def build_transform(cfg, =True):
+def build_transform(cfg, is_train=True):
     bagTransforms = []
     
 
-    if isTrain:
+    if is_train:
         if cfg.TRANSFORM.AUGMENT:
             bagTransforms.append(ReID_Augment())
 

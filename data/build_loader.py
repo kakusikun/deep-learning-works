@@ -11,7 +11,7 @@ def build_imagenet_loader(cfg):
     dataset = init_img_dataset(cfg)
 
     train_trans = build_transform(cfg)
-    val_trans = build_transform(cfg, =False)
+    val_trans = build_transform(cfg, is_train=False)
 
     train_dataset = build_image_dataset(dataset.train, train_trans, dataset.train_lmdb)
     val_dataset = build_image_dataset(dataset.val, val_trans, dataset.val_lmdb)
@@ -32,7 +32,7 @@ def build_cifar10_loader(cfg):
 
 
     train_trans = build_transform(cfg)
-    val_trans = build_transform(cfg, =False)
+    val_trans = build_transform(cfg, is_train=False)
 
     train_dataset = CIFAR10(root=cfg.DATASET.TRAIN_PATH, train=True, transform=train_trans, download=True)
     val_dataset = CIFAR10(root=cfg.DATASET.TRAIN_PATH, train=False, transform=val_trans, download=True)
@@ -70,7 +70,7 @@ def build_reid_loader(cfg, return_indice=False, use_sampler=True):
             offset += temp_datasets[i].num_train_pids
         
         train_trans = build_transform(cfg)
-        val_trans = build_transform(cfg, =False)
+        val_trans = build_transform(cfg, is_train=False)
 
         train_dataset = build_reid_dataset(dataset, train_trans)
         query_dataset = build_reid_dataset(temp_datasets[0].query, val_trans)
@@ -79,7 +79,7 @@ def build_reid_loader(cfg, return_indice=False, use_sampler=True):
     else:
         dataset = init_img_dataset(cfg)
         train_trans = build_transform(cfg)
-        val_trans = build_transform(cfg, =False)
+        val_trans = build_transform(cfg, is_train=False)
 
         if cfg.DATASET.ATTENTION_MAPS != "":
             train_dataset = build_reid_atmap_dataset(dataset.train, cfg)
@@ -141,7 +141,7 @@ def build_par_loader(cfg):
     dataset = init_img_dataset(cfg)
 
     train_trans = build_transform(cfg)
-    val_trans = build_transform(cfg, =False)
+    val_trans = build_transform(cfg, is_train=False)
 
     train_dataset = build_par_dataset(dataset.train, train_trans)
     val_dataset = build_par_dataset(dataset.val, val_trans)
@@ -163,7 +163,7 @@ def build_update_reid_loader(cfg, new_labels):
     dataset = init_img_dataset(cfg)
 
     train_trans = build_transform(cfg)
-    val_trans = build_transform(cfg, =False)
+    val_trans = build_transform(cfg, is_train=False)
 
     train_dataset = build_update_reid_dataset(new_labels, dataset.train, train_trans)
     query_dataset = build_reid_dataset(dataset.query, val_trans)
@@ -194,7 +194,7 @@ def build_plain_reid_loader(cfg):
         
     dataset = init_img_dataset(cfg)
     train_trans = build_transform(cfg)
-    val_trans = build_transform(cfg, =False)
+    val_trans = build_transform(cfg, is_train=False)
 
     train_dataset = build_reid_dataset(dataset.train, train_trans)
 
