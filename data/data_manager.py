@@ -19,241 +19,6 @@ logger = logging.getLogger("logger")
 
 from tools.utils import mkdir_if_missing, write_json, read_json
 
-class CUHK01(object):
-    """
-    using market1501 data arrangement
-    
-    Dataset statistics:
-    # identities: 971
-    # images: 3884 (train) + 0 (query) + 0 (gallery)
-    """
-    dataset_dir = 'cuhk01'
-
-    def __init__(self, cfg, **kwargs):
-        root = cfg.DATASET.TRAIN_PATH
-        self.dataset_dir = osp.join(root, self.dataset_dir)
-        self.train_dir = osp.join(self.dataset_dir, 'bounding_box_train')
-        self.query_dir = osp.join(self.dataset_dir, 'query')
-        self.gallery_dir = osp.join(self.dataset_dir, 'bounding_box_test')
-
-        self._check_before_run()
-
-        train, num_train_pids, num_train_imgs = self._process_dir(self.train_dir, relabel=True)
-        query, num_query_pids, num_query_imgs = self._process_dir(self.query_dir, relabel=False)
-        gallery, num_gallery_pids, num_gallery_imgs = self._process_dir(self.gallery_dir, relabel=False)
-        num_total_pids = num_train_pids + num_query_pids
-        num_total_imgs = num_train_imgs + num_query_imgs + num_gallery_imgs
-
-        logger.info("=> CUHK01 loaded")
-        logger.info("Dataset statistics:")
-        logger.info("  ------------------------------")
-        logger.info("  subset   | # ids | # images")
-        logger.info("  ------------------------------")
-        logger.info("  train    | {:5d} | {:8d}".format(num_train_pids, num_train_imgs))
-        logger.info("  query    | {:5d} | {:8d}".format(num_query_pids, num_query_imgs))
-        logger.info("  gallery  | {:5d} | {:8d}".format(num_gallery_pids, num_gallery_imgs))
-        logger.info("  ------------------------------")
-        logger.info("  total    | {:5d} | {:8d}".format(num_total_pids, num_total_imgs))
-        logger.info("  ------------------------------")
-
-        self.train = train
-        self.query = query
-        self.gallery = gallery
-
-        self.num_train_pids = num_train_pids
-        self.num_query_pids = num_query_pids
-        self.num_gallery_pids = num_gallery_pids
-
-    def _check_before_run(self):
-        """Check if all files are available before going deeper"""
-        if not osp.exists(self.dataset_dir):
-            raise RuntimeError("'{}' is not available".format(self.dataset_dir))
-        if not osp.exists(self.train_dir):
-            raise RuntimeError("'{}' is not available".format(self.train_dir))
-        if not osp.exists(self.query_dir):
-            raise RuntimeError("'{}' is not available".format(self.query_dir))
-        if not osp.exists(self.gallery_dir):
-            raise RuntimeError("'{}' is not available".format(self.gallery_dir))
-
-    def _process_dir(self, dir_path, relabel=False):
-        img_paths = glob.glob(osp.join(dir_path, '*.png'))
-        pattern = re.compile(r'([-\d]+)_c(\d)')
-
-        pid_container = set()
-        for img_path in img_paths:
-            pid, _ = map(int, pattern.search(img_path).groups())
-            if pid == -1: continue  # junk images are just ignored
-            pid_container.add(pid)
-        pid2label = {pid:label for label, pid in enumerate(pid_container)}
-
-        dataset = []
-        for img_path in img_paths:
-            pid, camid = map(int, pattern.search(img_path).groups())
-            camid -= 1 # index starts from 0
-            if relabel: pid = pid2label[pid]
-            dataset.append((img_path, pid, camid))
-
-        num_pids = len(pid_container)
-        num_imgs = len(dataset)
-        return dataset, num_pids, num_imgs
-
-class CUHK02(object):
-    """
-    using market1501 data arrangement
-    
-    Dataset statistics:
-    # identities: 1816
-    # images: 7264 (train) + 0 (query) + 0 (gallery)
-    """
-    dataset_dir = 'cuhk02'
-
-    def __init__(self, cfg, **kwargs):
-        root = cfg.DATASET.TRAIN_PATH
-        self.dataset_dir = osp.join(root, self.dataset_dir)
-        self.train_dir = osp.join(self.dataset_dir, 'bounding_box_train')
-        self.query_dir = osp.join(self.dataset_dir, 'query')
-        self.gallery_dir = osp.join(self.dataset_dir, 'bounding_box_test')
-
-        self._check_before_run()
-
-        train, num_train_pids, num_train_imgs = self._process_dir(self.train_dir, relabel=True)
-        query, num_query_pids, num_query_imgs = self._process_dir(self.query_dir, relabel=False)
-        gallery, num_gallery_pids, num_gallery_imgs = self._process_dir(self.gallery_dir, relabel=False)
-        num_total_pids = num_train_pids + num_query_pids
-        num_total_imgs = num_train_imgs + num_query_imgs + num_gallery_imgs
-
-        logger.info("=> CUHK02 loaded")
-        logger.info("Dataset statistics:")
-        logger.info("  ------------------------------")
-        logger.info("  subset   | # ids | # images")
-        logger.info("  ------------------------------")
-        logger.info("  train    | {:5d} | {:8d}".format(num_train_pids, num_train_imgs))
-        logger.info("  query    | {:5d} | {:8d}".format(num_query_pids, num_query_imgs))
-        logger.info("  gallery  | {:5d} | {:8d}".format(num_gallery_pids, num_gallery_imgs))
-        logger.info("  ------------------------------")
-        logger.info("  total    | {:5d} | {:8d}".format(num_total_pids, num_total_imgs))
-        logger.info("  ------------------------------")
-
-        self.train = train
-        self.query = query
-        self.gallery = gallery
-
-        self.num_train_pids = num_train_pids
-        self.num_query_pids = num_query_pids
-        self.num_gallery_pids = num_gallery_pids
-
-    def _check_before_run(self):
-        """Check if all files are available before going deeper"""
-        if not osp.exists(self.dataset_dir):
-            raise RuntimeError("'{}' is not available".format(self.dataset_dir))
-        if not osp.exists(self.train_dir):
-            raise RuntimeError("'{}' is not available".format(self.train_dir))
-        if not osp.exists(self.query_dir):
-            raise RuntimeError("'{}' is not available".format(self.query_dir))
-        if not osp.exists(self.gallery_dir):
-            raise RuntimeError("'{}' is not available".format(self.gallery_dir))
-
-    def _process_dir(self, dir_path, relabel=False):
-        img_paths = glob.glob(osp.join(dir_path, '*.png'))
-        pattern = re.compile(r'([-\d]+)_c(\d)')
-
-        pid_container = set()
-        for img_path in img_paths:
-            pid, _ = map(int, pattern.search(img_path).groups())
-            if pid == -1: continue  # junk images are just ignored
-            pid_container.add(pid)
-        pid2label = {pid:label for label, pid in enumerate(pid_container)}
-
-        dataset = []
-        for img_path in img_paths:
-            pid, camid = map(int, pattern.search(img_path).groups())
-            camid -= 1 # index starts from 0
-            if relabel: pid = pid2label[pid]
-            dataset.append((img_path, pid, camid))
-
-        num_pids = len(pid_container)
-        num_imgs = len(dataset)
-        return dataset, num_pids, num_imgs
-
-
-class SOGO(object):
-    """
-    SOGO
-    
-    Dataset statistics:
-    # identities: ???
-    # images: 5788 (train) + 0 (query) + 0 (gallery)
-    """
-    dataset_dir = 'sogo'
-
-    def __init__(self, cfg, **kwargs):
-        root = cfg.DATASET.TRAIN_PATH
-        self.dataset_dir = osp.join(root, self.dataset_dir)
-        self.train_dir = osp.join(self.dataset_dir, 'bounding_box_train')
-        self.query_dir = osp.join(self.dataset_dir, 'query')
-        self.gallery_dir = osp.join(self.dataset_dir, 'bounding_box_test')
-
-        self._check_before_run()
-
-        train, num_train_pids, num_train_imgs = self._process_dir(self.train_dir, relabel=True)
-        query, num_query_pids, num_query_imgs = self._process_dir(self.query_dir, relabel=False)
-        gallery, num_gallery_pids, num_gallery_imgs = self._process_dir(self.gallery_dir, relabel=False)
-        num_total_pids = num_train_pids + num_query_pids
-        num_total_imgs = num_train_imgs + num_query_imgs + num_gallery_imgs
-
-        logger.info("=> Market1501 loaded")
-        logger.info("Dataset statistics:")
-        logger.info("  ------------------------------")
-        logger.info("  subset   | # ids | # images")
-        logger.info("  ------------------------------")
-        logger.info("  train    | {:5d} | {:8d}".format(num_train_pids, num_train_imgs))
-        logger.info("  query    | {:5d} | {:8d}".format(num_query_pids, num_query_imgs))
-        logger.info("  gallery  | {:5d} | {:8d}".format(num_gallery_pids, num_gallery_imgs))
-        logger.info("  ------------------------------")
-        logger.info("  total    | {:5d} | {:8d}".format(num_total_pids, num_total_imgs))
-        logger.info("  ------------------------------")
-
-        self.train = train
-        self.query = query
-        self.gallery = gallery
-
-        self.num_train_pids = num_train_pids
-        self.num_query_pids = num_query_pids
-        self.num_gallery_pids = num_gallery_pids
-
-    def _check_before_run(self):
-        """Check if all files are available before going deeper"""
-        if not osp.exists(self.dataset_dir):
-            raise RuntimeError("'{}' is not available".format(self.dataset_dir))
-        if not osp.exists(self.train_dir):
-            raise RuntimeError("'{}' is not available".format(self.train_dir))
-        if not osp.exists(self.query_dir):
-            raise RuntimeError("'{}' is not available".format(self.query_dir))
-        if not osp.exists(self.gallery_dir):
-            raise RuntimeError("'{}' is not available".format(self.gallery_dir))
-
-    def _process_dir(self, dir_path, relabel=False):
-        img_paths = glob.glob(osp.join(dir_path, '*.jpg'))
-        pattern = re.compile(r'([-\d]+)_c(\d)')
-
-        pid_container = set()
-        for img_path in img_paths:
-            pid, _ = map(int, pattern.search(img_path).groups())
-            if pid == -1: continue  # junk images are just ignored
-            pid_container.add(pid)
-        pid2label = {pid:label for label, pid in enumerate(pid_container)}
-
-        dataset = []
-        for img_path in img_paths:
-            pid, camid = map(int, pattern.search(img_path).groups())
-            camid -= 1 # index starts from 0
-            if relabel: pid = pid2label[pid]
-            dataset.append((img_path, pid, camid))
-
-        num_pids = len(pid_container)
-        num_imgs = len(dataset)
-        return dataset, num_pids, num_imgs
-
 class PAR():
     def __init__(self, cfg):
         self.dataset_dir = cfg.DATASET.TRAIN_PATH        
@@ -402,9 +167,7 @@ class ImageNet():
                 gt.append(int(label))
         
         return dataset, len(dataset), len(set(gt))
-
-        
-
+  
 """Image ReID"""
 
 class Market1501(object):
@@ -419,10 +182,10 @@ class Market1501(object):
     Dataset statistics:
     # identities: 1501 (+1 for background)
     # images: 12936 (train) + 3368 (query) + 15913 (gallery)
-    """
-    dataset_dir = 'market1501'
+    """   
 
     def __init__(self, cfg, **kwargs):
+        self.dataset_dir = cfg.DATASET.NAME
         root = cfg.DATASET.TRAIN_PATH
         self.dataset_dir = osp.join(root, self.dataset_dir)
         self.train_dir = osp.join(self.dataset_dir, 'bounding_box_train')
@@ -469,7 +232,8 @@ class Market1501(object):
             raise RuntimeError("'{}' is not available".format(self.gallery_dir))
 
     def _process_dir(self, dir_path, relabel=False):
-        img_paths = glob.glob(osp.join(dir_path, '*.jpg'))
+        img_paths = [osp.join(root, f) for root, _, files in os.walk(dir_path) 
+                               for f in files if 'jpg' in f or 'png' in f]
         pattern = re.compile(r'([-\d]+)_c(\d)')
 
         pid_container = set()
@@ -483,8 +247,8 @@ class Market1501(object):
         for img_path in img_paths:
             pid, camid = map(int, pattern.search(img_path).groups())
             if pid == -1: continue  # junk images are just ignored
-            assert 0 <= pid <= 1501  # pid == 0 means background
-            assert 1 <= camid <= 6
+            # assert 0 <= pid <= 1501  # pid == 0 means background
+            # assert 1 <= camid <= 6
             camid -= 1 # index starts from 0
             if relabel: pid = pid2label[pid]
             dataset.append((img_path, pid, camid))
@@ -492,6 +256,42 @@ class Market1501(object):
         num_pids = len(pid_container)
         num_imgs = len(dataset)
         return dataset, num_pids, num_imgs
+
+class SOGO(Market1501):
+    """
+    SOGO
+    
+    Dataset statistics:
+    # identities: ???
+    # images: 5788 (train) + 0 (query) + 0 (gallery)
+    """
+
+    def __init__(self, cfg, **kwargs):
+        super(SOGO, self).__init__(cfg)
+
+class CUHK02(Market1501):
+    """
+    using market1501 data arrangement
+    
+    Dataset statistics:
+    # identities: 1816
+    # images: 7264 (train) + 0 (query) + 0 (gallery)
+    """
+
+    def __init__(self, cfg, **kwargs):
+        super(CUHK02, self).__init__(cfg)
+
+class CUHK01(Market1501):
+    """
+    using market1501 data arrangement
+    
+    Dataset statistics:
+    # identities: 971
+    # images: 3884 (train) + 0 (query) + 0 (gallery)
+    """
+    
+    def __init__(self, cfg, **kwargs):
+        super(CUHK01, self).__init__(cfg)
 
 class Market1501_Partial(object):
     """
