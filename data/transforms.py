@@ -5,20 +5,6 @@ import torchvision.transforms as transforms
 from abc import ABC, abstractmethod
 from PIL import Image, ImageOps, ImageEnhance
 
-DEFALUT_CANDIDATES = [
-    ShearXY,
-    TranslateXY,
-    Rotate,
-    AutoContrast,
-    Invert,
-    Equalize,
-    Solarize,
-    Posterize,
-    Contrast,
-    Color,
-    Brightness,
-    Sharpness
-]
 
 class BaseTransform(ABC):
 
@@ -123,3 +109,17 @@ class Sharpness(BaseTransform):
         return ImageEnhance.Sharpness(img).enhance(factor)
 
 
+DEFALUT_CANDIDATES = [
+    ShearXY,
+    TranslateXY,
+    Rotate,
+    AutoContrast,
+    Invert,
+    Equalize,
+    Solarize,
+    Posterize,
+    Contrast,
+    Color,
+    Brightness,
+    Sharpness
+]

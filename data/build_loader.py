@@ -51,53 +51,31 @@ def build_cifar10_loader(cfg):
 
 def build_reid_loader(cfg, return_indice=False, use_sampler=True):
     
-    if cfg.DATASET.NAME == "total":
-        cfg.DATASET.NAME = 'cuhk03'
-        cuhk_dataset = init_img_dataset(cfg)
+    if "merge" in cfg.DATASET.NAME:
+        dataset_names = cfg.DATASET.NAME.split(" ")[1:]
 
-        cfg.DATASET.NAME = 'market1501'
-        market_dataset = init_img_dataset(cfg)
-
-        cfg.DATASET.NAME = 'dukemtmcreid'
-        duke_dataset = init_img_dataset(cfg)
-
-        _dataset = []
-        _dataset.extend(cuhk_dataset.train)
-        _dataset.extend(market_dataset.train)
-        _dataset.extend(duke_dataset.train)
+        temp_datasets = []
+        for name in dataset_names:
+            cfg.DATASET.NAME = name
+            dataset = init_img_dataset(cfg)
+            temp_datasets.append(dataset)
+            cfg.MODEL.NUM_CLASSES += dataset.num_train_pids
 
         dataset = []
 
-        for i, (a, b, c) in enumerate(_dataset):   
-            
-            if 'market' in a:
-                offset = cuhk_dataset.num_train_pids
-                b += offset
-            if 'duke' in a:
-                offset = cuhk_dataset.num_train_pids + market_dataset.num_train_pids
-                b += offset
-            dataset.append([a, b, c])
+        offset = 0
+        for i in range(len(temp_datasets)):   
+            for path, pid, cam in temp_datasets[i].train: 
+                dataset.append([path, pid+offset, cam])
+            offset += temp_datasets[i].num_train_pids
         
         train_trans = build_transform(cfg)
         val_trans = build_transform(cfg, isTrain=False)
 
         train_dataset = build_reid_dataset(dataset, train_trans)
-        query_dataset = build_reid_dataset(market_dataset.query, val_trans)
-        gallery_dataset = build_reid_dataset(market_dataset.gallery, val_trans)
+        query_dataset = build_reid_dataset(temp_datasets[0].query, val_trans)
+        gallery_dataset = build_reid_dataset(temp_datasets[0].gallery, val_trans)
     
-    elif cfg.DATASET.NAME == "general":     
-        cfg.DATASET.NAME = 'market1501'
-        market_dataset = init_img_dataset(cfg)
-
-        cfg.DATASET.NAME = 'msmt17'
-        msmt_dataset = init_img_dataset(cfg)
-        
-        train_trans = build_transform(cfg)
-        val_trans = build_transform(cfg, isTrain=False)
-
-        train_dataset = build_reid_dataset(msmt_dataset.train, train_trans)
-        query_dataset = build_reid_dataset(market_dataset.query, val_trans)
-        gallery_dataset = build_reid_dataset(market_dataset.gallery, val_trans)
     else:
         dataset = init_img_dataset(cfg)
         train_trans = build_transform(cfg)
@@ -127,7 +105,10 @@ def build_reid_loader(cfg, return_indice=False, use_sampler=True):
         )
     else:
         if use_sampler:
-            sampler = IdBasedSampler(dataset.train, batch_size=cfg.INPUT.SIZE_TRAIN, num_instances=cfg.REID.SIZE_PERSON)
+            if isinstance(dataset, list):
+                sampler = IdBasedSampler(dataset, batch_size=cfg.INPUT.SIZE_TRAIN, num_instances=cfg.REID.SIZE_PERSON)
+            else:
+                sampler = IdBasedSampler(dataset.train, batch_size=cfg.INPUT.SIZE_TRAIN, num_instances=cfg.REID.SIZE_PERSON)
 
             t_loader = data.DataLoader(
                 train_dataset, 

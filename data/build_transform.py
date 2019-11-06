@@ -1,6 +1,7 @@
 import random
 import math
 import numbers
+import numpy as np
 import torchvision.transforms as T
 import torchvision.transforms.functional as F
 from data.transforms import *
@@ -21,7 +22,7 @@ def build_transform(cfg, isTrain=True):
         if cfg.TRANSFORM.RANDOMAPPLY:
             num_trans = np.random.randint(0, len(DEFALUT_CANDIDATES)+1, 1)
             trans = np.random.choice(DEFALUT_CANDIDATES, num_trans, replace=False)
-            bagTransforms.append(trans)
+            bagTransforms.extend(trans)
 
         bagTransforms.append(T.ToTensor())
 
