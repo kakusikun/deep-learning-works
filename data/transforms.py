@@ -8,7 +8,7 @@ from PIL import Image, ImageOps, ImageEnhance
 
 class BaseTransform(ABC):
 
-    def __init__(self, prob, mag):
+    def __init__(self, mag=0.0, prob=0.5):
         self.prob = prob
         self.mag = mag
 
@@ -31,95 +31,44 @@ class ShearXY(BaseTransform):
         t = transforms.RandomAffine(0, shear=degrees, resample=Image.BILINEAR)
         return t(img)
 
-
-class TranslateXY(BaseTransform):
-
-    def transform(self, img):
-        translate = (self.mag, self.mag)
-        t = transforms.RandomAffine(0, translate=translate, resample=Image.BILINEAR)
-        return t(img)
-
-
-class Rotate(BaseTransform):
-
-    def transform(self, img):
-        degrees = self.mag * 360
-        t = transforms.RandomRotation(degrees, Image.BILINEAR)
-        return t(img)
-
-
 class AutoContrast(BaseTransform):
 
     def transform(self, img):
-        cutoff = int(self.mag * 49)
+        cutoff = np.random.randint(0, 50, 1)[0]
         return ImageOps.autocontrast(img, cutoff=cutoff)
-
-
-class Invert(BaseTransform):
-
-    def transform(self, img):
-        return ImageOps.invert(img)
-
 
 class Equalize(BaseTransform):
 
     def transform(self, img):
         return ImageOps.equalize(img)
 
-
-class Solarize(BaseTransform):
-
-    def transform(self, img):
-        threshold = (1-self.mag) * 255
-        return ImageOps.solarize(img, threshold)
-
-
-class Posterize(BaseTransform):
+class RandomBrightness(BaseTransform):
 
     def transform(self, img):
-        bits = int((1-self.mag) * 8)
-        return ImageOps.posterize(img, bits=bits)
-
-
-class Contrast(BaseTransform):
-
-    def transform(self, img):
-        factor = self.mag * 10
-        return ImageEnhance.Contrast(img).enhance(factor)
-
-
-class Color(BaseTransform):
-
-    def transform(self, img):
-        factor = self.mag * 10
-        return ImageEnhance.Color(img).enhance(factor)
-
-
-class Brightness(BaseTransform):
-
-    def transform(self, img):
-        factor = self.mag * 10
+        factor = (np.random.rand(1)[0]/2) + 0.5
+        img = ImageOps.equalize(img)
         return ImageEnhance.Brightness(img).enhance(factor)
 
-
-class Sharpness(BaseTransform):
+class RandomVerticalClip(BaseTransform):
 
     def transform(self, img):
-        factor = self.mag * 10
-        return ImageEnhance.Sharpness(img).enhance(factor)
+        img = np.array(img)
+        h = img.shape[0]
+        clip_pt = np.random.randint(h/self.mag, h, 1)[0]
+        img = Image.fromarray(img[:clip_pt, ...])        
+        return img
+
+class ReID_Augment(BaseTransform):
+    DEFALUT_CANDIDATES = [
+        Equalize(prob=1),
+        RandomBrightness(),
+        AutoContrast(),
+        RandomVerticalClip(mag=3)
+    ]
+    def transform(self, img):
+        for trans in self.DEFALUT_CANDIDATES:
+            img = trans(img)
+        return img
 
 
-DEFALUT_CANDIDATES = [
-    ShearXY,
-    TranslateXY,
-    Rotate,
-    AutoContrast,
-    Invert,
-    Equalize,
-    Solarize,
-    Posterize,
-    Contrast,
-    Color,
-    Brightness,
-    Sharpness
-]
+

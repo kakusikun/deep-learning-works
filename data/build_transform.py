@@ -10,6 +10,9 @@ def build_transform(cfg, isTrain=True):
     bagTransforms = []
     
     if isTrain:
+        if cfg.TRANSFORM.AUGMENT:
+            bagTransforms.append(ReID_Augment())
+
         if cfg.TRANSFORM.RESIZE:
             bagTransforms.append(T.Resize(size=cfg.INPUT.IMAGE_SIZE))
 
@@ -18,11 +21,6 @@ def build_transform(cfg, isTrain=True):
             
         if cfg.TRANSFORM.RANDOMCROP:
             bagTransforms.append(T.RandomCrop(size=cfg.INPUT.IMAGE_CROP_SIZE, padding=cfg.INPUT.IMAGE_PAD))   
-        
-        if cfg.TRANSFORM.RANDOMAPPLY:
-            num_trans = np.random.randint(0, len(DEFALUT_CANDIDATES)+1, 1)
-            trans = np.random.choice(DEFALUT_CANDIDATES, num_trans, replace=False)
-            bagTransforms.extend(trans)
 
         bagTransforms.append(T.ToTensor())
 
