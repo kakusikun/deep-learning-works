@@ -123,3 +123,18 @@ DEFALUT_CANDIDATES = [
     Brightness,
     Sharpness
 ]
+
+REID_CANDIDATES = [
+    ShearXY(0.5, 30/360.0),
+    # TranslateXY,
+    # Rotate,
+    AutoContrast,
+    Invert,
+    Equalize,
+    Solarize,
+    Posterize,
+    Contrast,
+    Color,
+    Brightness,
+    Sharpness
+]
