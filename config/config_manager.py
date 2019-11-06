@@ -108,7 +108,7 @@ _C.TRANSFORM.RESIZE = False
 _C.TRANSFORM.COLORJIT = False
 _C.TRANSFORM.RANDOMERASING = False
 _C.TRANSFORM.SINGLE_CROP = False
-_C.TRANSFORM.RANDOMAPPLY = False
+_C.TRANSFORM.AUGMENT = False
 # -----------------------------------------------------------------------------
 # DataLoader
 # -----------------------------------------------------------------------------

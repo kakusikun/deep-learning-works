@@ -9,11 +9,17 @@ from data.transforms import *
 def build_transform(cfg, =True):
     bagTransforms = []
     
+<<<<<<< HEAD
     if :
         if cfg.TRANSFORM.RANDOMAPPLY:
             num_trans = np.random.randint(0, len(DEFALUT_CANDIDATES)+1, 1)
             trans = np.random.choice(DEFALUT_CANDIDATES, num_trans, replace=False)
             bagTransforms.extend(trans)
+=======
+    if isTrain:
+        if cfg.TRANSFORM.AUGMENT:
+            bagTransforms.append(ReID_Augment())
+>>>>>>> mar_temp
 
         if cfg.TRANSFORM.RESIZE:
             bagTransforms.append(T.Resize(size=cfg.INPUT.IMAGE_SIZE))
@@ -22,8 +28,13 @@ def build_transform(cfg, =True):
             bagTransforms.append(T.RandomHorizontalFlip(p=cfg.INPUT.PROB))
             
         if cfg.TRANSFORM.RANDOMCROP:
+<<<<<<< HEAD
             bagTransforms.append(T.RandomCrop(size=cfg.INPUT.IMAGE_CROP_SIZE, padding=cfg.INPUT.IMAGE_PAD))          
         
+=======
+            bagTransforms.append(T.RandomCrop(size=cfg.INPUT.IMAGE_CROP_SIZE, padding=cfg.INPUT.IMAGE_PAD))   
+
+>>>>>>> mar_temp
         bagTransforms.append(T.ToTensor())
 
         if cfg.TRANSFORM.NORMALIZE:
