@@ -31,10 +31,18 @@ def train(cfg):
     visualizer = Visualizer(cfg)
     
     engine = ReIDEngine(cfg, opts, train_loader, query_loader, gallery_loader, visualizer, manager)  
-    if cfg.EVALUATE:
-        engine.Evaluate()
+
+    logger.info("Running with config:\n{}".format(cfg))
+    action = input("Config Confirmed ? (Y/N)").lower().strip()
+    if action == 'y':
+        if cfg.EVALUATE:
+            engine.Evaluate()
+            sys.exit(1)
+        engine.Train()
+    else:
+        shutil.rmtree(cfg.OUTPUT_DIR)
+        logger.info("Training stopped")
         sys.exit(1)
-    engine.Train()
 
 def main():
     parser = argparse.ArgumentParser(description="PyTorch Template MNIST Training")
@@ -54,15 +62,8 @@ def main():
 
     logger = setup_logger(cfg.OUTPUT_DIR)
 
-    logger.info("Running with config:\n{}".format(cfg))
-    action = input("Config Confirmed ? (Y/N)").lower().strip()
-    if action == 'y':
-        deploy_gpu(cfg)
-        train(cfg)    
-    else:
-        shutil.rmtree(cfg.OUTPUT_DIR)
-        logger.info("Training stopped")
-        sys.exit(1)
+    deploy_gpu(cfg)
+    train(cfg)    
     
 
 if __name__ == '__main__':
