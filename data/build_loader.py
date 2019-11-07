@@ -73,8 +73,11 @@ def build_reid_loader(cfg, return_indice=False, use_sampler=True):
         val_trans = build_transform(cfg, is_train=False)
 
         train_dataset = build_reid_dataset(dataset, train_trans)
-        query_dataset = build_reid_dataset(temp_datasets[0].query, val_trans)
-        gallery_dataset = build_reid_dataset(temp_datasets[0].gallery, val_trans)
+
+        cfg.DATASET.NAME = cfg.REID.TRT
+        trt_dataset = init_img_dataset(cfg)
+        query_dataset = build_reid_dataset(trt_dataset.query, val_trans)
+        gallery_dataset = build_reid_dataset(trt_dataset.gallery, val_trans)
     
     else:
         dataset = init_img_dataset(cfg)
