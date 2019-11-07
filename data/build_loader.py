@@ -84,6 +84,8 @@ def build_reid_loader(cfg, return_indice=False, use_sampler=True):
         train_trans = build_transform(cfg)
         val_trans = build_transform(cfg, is_train=False)
 
+        cfg.MODEL.NUM_CLASSES = dataset.num_train_pids
+
         if cfg.DATASET.ATTENTION_MAPS != "":
             train_dataset = build_reid_atmap_dataset(dataset.train, cfg)
         else:

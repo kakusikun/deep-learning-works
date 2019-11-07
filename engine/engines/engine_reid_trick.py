@@ -117,10 +117,10 @@ class ReIDEngine(Engine):
         logger.info("Computing Recall")
         rs, confs, gts = eval_recall(distmat, q_pids, g_pids, q_camids, g_camids)
 
-        logger.info("Results ------------: {:>4} / {:>4} / {:>4}".format("AVG", "MIN", "MAX"))
-        logger.info("Number of candidates: {:.2f} / {} / {}".format(rs.mean(), rs.min(), rs.max()))
-        logger.info("          Confidence: {:.2f} / {:.2f} / {:.2f}".format(confs.mean(), confs.min(), confs.max()))
-        logger.info("    Number of target: {:.2f} / {} / {}".format(gts.mean(), gts.min(), gts.max()))  
+        logger.info("Results ------------: {:>4} / {:>4} / {:>4} / {:>4}".format("AVG", "MIN", "MAX", "VAR"))
+        logger.info("Number of candidates: {:.2f} / {} / {}".format(rs.mean(), rs.min(), rs.max(), rs.var()))
+        logger.info("          Confidence: {:.2f} / {:.2f} / {:.2f}".format(confs.mean(), confs.min(), confs.max(), confs.var()))
+        logger.info("    Number of target: {:.2f} / {} / {}".format(gts.mean(), gts.min(), gts.max(), gts.var()))  
         logger.info("------------------")
 
         if not eval:
