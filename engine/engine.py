@@ -96,7 +96,7 @@ class Engine():
                     self._evaluate()
             else:
                 self.manager.save_model(self.epoch, self.opts, 0.0)
-            if self.cfg.SOLVER.LR_POLICY == 'plateau' and self.cfg.SOLVER.MIN_LR >= self.opts[0].monitor_lr:
+            if self.cfg.SOLVER.LR_POLICY == 'plateau' and self.cfg.SOLVER.MIN_LR >= self.opts[-1].monitor_lr:
                 logger.info("LR {} is less than the min LR {}".format(self.opts[0].monitor_lr, self.cfg.SOLVER.MIN_LR))
                 break
 

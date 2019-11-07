@@ -1,6 +1,7 @@
 import argparse
 import shutil
 import sys
+import logging
 
 from config.config_manager import _C as cfg
 from config.config_manager import build_output
@@ -32,6 +33,7 @@ def train(cfg):
     
     engine = ReIDEngine(cfg, opts, train_loader, query_loader, gallery_loader, visualizer, manager)  
 
+    logger = logging.getLogger("logger")
     logger.info("Running with config:\n{}".format(cfg))
     action = input("Config Confirmed ? (Y/N)").lower().strip()
     if action == 'y':
