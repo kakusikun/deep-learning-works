@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import torchvision.transforms as T
 import torchvision
 from engine.engine import Engine, data_prefetcher
-from tools.eval_reid_metrics import evaluate
+from tools.eval_reid_metrics import evaluate, eval_recall
 import numpy as np
 import logging
 logger = logging.getLogger("logger")
@@ -112,6 +112,15 @@ class ReIDEngine(Engine):
         logger.info("CMC curve")
         for r in [1, 5, 10, 20]:
             logger.info("Rank-{:<3}: {:.1%}".format(r, cmc[r - 1]))
+        logger.info("------------------")
+
+        logger.info("Computing Recall")
+        rs, confs, gts = eval_recall(distmat, q_pids, g_pids, q_camids, g_camids)
+
+        logger.info("Results ------------: {:>4} / {:>4} / {:>4}".format("AVG", "MIN", "MAX"))
+        logger.info("Number of candidates: {:.2f} / {} / {}".format(rs.mean(), rs.min(), rs.max()))
+        logger.info("          Confidence: {:.2f} / {:.2f} / {:.2f}".format(confs.mean(), confs.min(), confs.max()))
+        logger.info("    Number of target: {:.2f} / {} / {}".format(gts.mean(), gts.min(), gts.max()))  
         logger.info("------------------")
 
         if not eval:
