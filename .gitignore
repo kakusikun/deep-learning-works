@@ -1,9 +1,10 @@
 result*
 __pycache__
-notebook/
 evaluation/
+external/
+notebook/.ipynb_checkpoints/
+.ipynb_checkpoints/
 caffe_models/
-*.ipynb
 *.json
 *.swp
 *.txt
@@ -13,3 +14,8 @@ caffe_models/
 *.jpg
 *.pyc
 *.yml
+*.png
+*.pt
+*.cpp
+*.hpp
+*.pdf
