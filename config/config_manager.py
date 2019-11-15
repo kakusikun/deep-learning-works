@@ -30,7 +30,8 @@ _A.DNET.PATH = ""
 _A.DNET.INPUT_SIZE = ()
 _A.SAVE = False
 _A.SAVE_OUTPUT = ""
-
+_A.PNET = ""
+_A.DATABASE = ""
 
 _C = CN()
 
