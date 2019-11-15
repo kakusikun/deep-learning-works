@@ -19,3 +19,4 @@ caffe_models/
 *.cpp
 *.hpp
 *.pdf
+*.pth
