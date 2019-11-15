@@ -13,7 +13,6 @@ caffe_models/
 *.csv
 *.jpg
 *.pyc
-*.yml
 *.png
 *.pt
 *.cpp
