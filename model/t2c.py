@@ -3,8 +3,10 @@ from __future__ import division
 from __future__ import print_function
 
 import sys
+import math
 import torch
 import torch.nn as nn
+from inplace_abn import InPlaceABN as IABN
 
 try:
     sys.path.insert(0, "/home/allen/Documents/caffe/python")
@@ -76,10 +78,39 @@ class Flatten(nn.Module):
         caffe_net[self.g_name] = layer
         return layer
 
+class Upsample(nn.Module):
+    def __init__(self, scale_factor, in_channels):
+        super(Upsample, self).__init__()
+        self.scale_factor = scale_factor
+        self.in_channels = in_channels
+        self.handle = nn.Upsample(scale_factor=scale_factor, mode='bilinear')
+    
+    def forward(self, x):
+        x = self.handle(x)
+        return x
+    
+    def generate_caffe_prototxt(self, caffe_net, layer):
+        convolution_param=dict(
+            num_output=self.in_channels,
+            group=self.in_channels, 
+            bias_term=False,
+            weight_filler=dict(type='bilinear'),
+        )
+        convolution_param['kernel_size'] = 2 * self.scale_factor - self.scale_factor % 2
+        convolution_param['stride'] = self.scale_factor
+        convolution_param['pad'] = math.ceil((self.scale_factor-1)/2.0)
+        layer = L.Deconvolution(
+            layer, convolution_param=convolution_param,
+        )
+        caffe_net.tops[self.g_name] = layer
+        return layer
+
 
 def flatten(name, axis):
     return g_name(name, Flatten(axis))
 
+def upsample(name, scale_factor, in_channels):
+    return g_name(name, Upsample(scale_factor, in_channels))
 
 
 def generate_caffe_prototxt(m, caffe_net, layer):
@@ -176,8 +207,37 @@ def generate_caffe_prototxt(m, caffe_net, layer):
             caffe_net[m.g_name + '/scale'] = layer
         return layer
 
+    if isinstance(m, IABN):
+        layer = L.BatchNorm(
+            layer, in_place=False,
+            # param=[dict(lr_mult=0, decay_mult=0), dict(lr_mult=0, decay_mult=0), dict(lr_mult=0, decay_mult=0)],
+        )
+        caffe_net[m.g_name] = layer
+        if m.affine:
+            layer = L.Scale(
+                layer, in_place=True, bias_term=True,
+                # filler=dict(type='constant', value=1), bias_filler=dict(type='constant', value=0),
+                # param=[dict(lr_mult=1, decay_mult=0), dict(lr_mult=1, decay_mult=0)],
+            )
+            caffe_net[m.g_name + '/scale'] = layer
+        if m.activation == 'leaky_relu':
+            relu_param=dict(
+                negative_slope=m.activation_param
+            )
+            layer = L.ReLU(layer, in_place=False, relu_param=relu_param)     
+            caffe_net.tops[m.g_name + '/leaky_relu'] = layer   
+        return layer
+
     if isinstance(m, nn.ReLU):
         layer = L.ReLU(layer, in_place=False)
+        caffe_net.tops[m.g_name] = layer
+        return layer
+    
+    if isinstance(m, nn.LeakyReLU):
+        relu_param=dict(
+                negative_slope=m.negative_slope
+            )
+        layer = L.ReLU(layer, in_place=False, relu_param=relu_param)
         caffe_net.tops[m.g_name] = layer
         return layer
 
@@ -211,10 +271,10 @@ def generate_caffe_prototxt(m, caffe_net, layer):
         else:
             pooling_param['stride'] = m.stride
         if isinstance(m.padding, tuple) or isinstance(m.padding, list):
-            pooling_param['pad_h'] = m.padding[0]
-            pooling_param['pad_w'] = m.padding[1]
+            pooling_param['pad_h'] = 0#m.padding[0]
+            pooling_param['pad_w'] = 0#m.padding[1]
         else:
-            pooling_param['pad'] = m.padding
+            pooling_param['pad'] = 0#m.padding
         layer = L.Pooling(layer, pooling_param=pooling_param)
         caffe_net.tops[m.g_name] = layer
         return layer
@@ -267,11 +327,22 @@ def conv_bn_relu(name, in_channels, out_channels, kernel_size, stride=1, padding
         g_name(name + '/relu', nn.ReLU(inplace=True)),
     )
 
-
 def conv_bn(name, in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1, groups=1):
     return nn.Sequential(
         g_name(name, nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding, dilation, groups, False)),
         g_name(name + '/bn', nn.BatchNorm2d(out_channels)),
+    )
+
+def conv_iabn_lrelu(name, in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1, groups=1):
+    return nn.Sequential(
+        g_name(name, nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding, dilation, groups, False)),
+        g_name(name + '/bn', IABN(out_channels)),
+    )
+
+def conv_iabn(name, in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1, groups=1):
+    return nn.Sequential(
+        g_name(name, nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding, dilation, groups, False)),
+        g_name(name + '/bn', IABN(out_channels, activation='identity')),
     )
 
 def conv(name, in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1, groups=1):
