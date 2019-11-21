@@ -15,9 +15,119 @@ import pandas as pd
 from collections import defaultdict
 from tqdm import tqdm
 import logging
+import pycocotools.coco as coco
 logger = logging.getLogger("logger")
 
 from tools.utils import mkdir_if_missing, write_json, read_json
+
+class COCO_Person():
+    def __init__(self, cfg):
+        self.dataset_dir = cfg.DATASET.TRAIN_PATH       
+        # self.train_dir = osp.join(self.dataset_dir, "train2017")
+        # self.train_anno = osp.join(self.dataset_dir, "instances_train2017.json")
+        self.val_dir = osp.join(self.dataset_dir, "val2017")
+        self.val_anno = osp.join(self.dataset_dir, "instances_val2017.json")
+        self._check_before_run()
+        
+        # train_handle, train_images, train_num_samples = self._process_dir(self.train_anno)
+        val_handle, val_images, val_num_samples = self._process_dir(self.val_anno)
+        
+        logger.info("=> DeepFashion2 is loaded")
+        logger.info("Dataset statistics:")
+        logger.info("  -------------------")
+        logger.info("  subset   | # images")
+        logger.info("  -------------------")
+        # logger.info("  train    | {:8d}".format(train_num_samples))
+        logger.info("  val      | {:8d}".format(val_num_samples))
+        logger.info("  -------------------")
+        
+        # self.train_handle = train_handle
+        # self.train_images = train_images
+        self.val_handle = val_handle        
+        self.val_images = val_images
+        
+    def _check_before_run(self):
+        """Check if all files are available before going deeper"""
+        if not osp.exists(self.dataset_dir):
+            raise RuntimeError("'{}' is not available".format(self.dataset_dir))
+        # if not osp.exists(self.train_dir):
+        #     raise RuntimeError("'{}' is not available".format(self.train_dir))
+        # if not osp.exists(self.train_anno):
+        #     raise RuntimeError("'{}' is not available".format(self.train_anno))
+        if not osp.exists(self.val_dir):
+            raise RuntimeError("'{}' is not available".format(self.val_dir))        
+        if not osp.exists(self.val_anno):
+            raise RuntimeError("'{}' is not available".format(self.val_anno))
+
+    
+    def _process_dir(self, path):
+        data_handle = coco.COCO(path)
+        cat_ids = data_handle.getCatIds(catNms=['person'])
+        image_ids = data_handle.getImgIds(catIds=cat_ids) 
+
+        images = []
+        for img_id in image_ids:
+            idxs = data_handle.getAnnIds(imgIds=[img_id])
+            if len(idxs) > 0:
+                images.append(img_id)
+     
+        num_samples = len(images)
+        
+        return data_handle, images, num_samples
+
+class DeepFashion2():
+    def __init__(self, cfg):
+        self.dataset_dir = cfg.DATASET.TRAIN_PATH       
+        # self.train_dir = osp.join(self.dataset_dir, "train/image")
+        # self.train_anno = osp.join(self.dataset_dir, "deepfashion2_train.json")
+        self.val_dir = osp.join(self.dataset_dir, "validation/image")
+        self.val_anno = osp.join(self.dataset_dir, "deepfashion2_validation.json")
+        self._check_before_run()
+        
+        # train_handle, train_images, train_num_samples = self._process_dir(self.train_anno)
+        val_handle, val_images, val_num_samples = self._process_dir(self.val_anno)
+        
+        logger.info("=> DeepFashion2 is loaded")
+        logger.info("Dataset statistics:")
+        logger.info("  -------------------")
+        logger.info("  subset   | # images")
+        logger.info("  -------------------")
+        # logger.info("  train    | {:8d}".format(train_num_samples))
+        logger.info("  val      | {:8d}".format(val_num_samples))
+        logger.info("  -------------------")
+        
+        # self.train_handle = train_handle
+        # self.train_images = train_images
+        self.val_handle = val_handle        
+        self.val_images = val_images
+        
+    def _check_before_run(self):
+        """Check if all files are available before going deeper"""
+        if not osp.exists(self.dataset_dir):
+            raise RuntimeError("'{}' is not available".format(self.dataset_dir))
+        # if not osp.exists(self.train_dir):
+        #     raise RuntimeError("'{}' is not available".format(self.train_dir))
+        # if not osp.exists(self.train_anno):
+        #     raise RuntimeError("'{}' is not available".format(self.train_anno))
+        if not osp.exists(self.val_dir):
+            raise RuntimeError("'{}' is not available".format(self.val_dir))        
+        if not osp.exists(self.val_anno):
+            raise RuntimeError("'{}' is not available".format(self.val_anno))
+
+    
+    def _process_dir(self, path):
+        data_handle = coco.COCO(path)
+        image_ids = data_handle.getImgIds()  
+
+        images = []
+        for img_id in image_ids:
+            idxs = data_handle.getAnnIds(imgIds=[img_id])
+            if len(idxs) > 0:
+                images.append(img_id)
+     
+        num_samples = len(images)
+        
+        return data_handle, images, num_samples
 
 class PAR():
     def __init__(self, cfg):
@@ -1477,7 +1587,9 @@ __img_factory = {
     'msmt17': MSMT17,
     'msmt17_total': MSMT17_TOTAL,
     'par': PAR,
-    'sogo': SOGO
+    'sogo': SOGO,
+    'deepfashion': DeepFashion2,
+    'cocoperson': COCO_Person,
 }
 
 __vid_factory = {

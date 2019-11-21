@@ -1,16 +1,20 @@
 
 import torch
 import os
+import os.path as osp
 import sys
 import cv2
 import numpy as np
 import torch.utils.data as data
 import lmdb
+import math
 from PIL import Image
+import cv2
 from data import caffe_pb2
 from data.build_transform import RandomErasing, _RandomCrop, _RandomHorizontalFlip
 import torchvision.transforms as T
 import torchvision.transforms.functional as F
+from tools.image import get_affine_transform, affine_transform, draw_umich_gaussian, gaussian_radius
 datum = caffe_pb2.Datum()
 
 
@@ -194,6 +198,284 @@ class build_par_dataset(data.Dataset):
     
     def __len__(self):
         return len(self.dataset)
+
+class build_COCO_Person_dataset(data.Dataset):
+    # DeepFastion2 KeyPoints
+    def __init__(self, data_handle, data, src, split):
+        self.coco = data_handle
+        self.num_classes = 1
+        self.max_objs = 32
+        self.default_res = (512, 512)    
+        self.images = data
+        self.src = src
+        self.split = split
+        self.mean = np.array([0.40789654, 0.44719302, 0.47026115],
+                   dtype=np.float32).reshape(1, 1, 3)
+        self.std  = np.array([0.28863828, 0.27408164, 0.27809835],
+                   dtype=np.float32).reshape(1, 1, 3)
+        
+    def _coco_box_to_bbox(self, box):
+        bbox = np.array([box[0], box[1], box[0] + box[2], box[1] + box[3]],
+                        dtype=np.float32)
+        return bbox
+
+    def _prerocessing(self, path):
+        img = cv2.imread(path)
+        height, width = img.shape[:2]         
+        long_side = np.max(img.shape[:2])
+        canvas = np.zeros([long_side, long_side, 3])
+        h_offset, w_offset = int((long_side-height)/2), int((long_side-width)/2)
+        canvas[h_offset:(height+h_offset), w_offset:(width+w_offset), :] = img
+        img = canvas.astype(np.uint8)   
+        scale = self.default_res[0] / long_side        
+        img = cv2.resize(img, self.default_res) 
+        
+        return img, w_offset, h_offset, scale
+    
+    def __len__(self):
+        return len(self.images)
+        
+    def __getitem__(self, index):
+        img_id = self.images[index]
+        fname = self.coco.loadImgs(ids=[img_id])[0]['file_name']
+        img_path = osp.join(self.src, fname)
+        ann_ids = self.coco.getAnnIds(imgIds=[img_id])
+        anns = self.coco.loadAnns(ids=ann_ids)
+        num_objs = min(len(anns), self.max_objs)        
+
+        if self.split == 'train':
+            # keep aspect ratio to resize to default resolution
+            img, w_offset, h_offset, scale = self._prerocessing(img_path)
+            height, width = img.shape[0], img.shape[1]
+            c = np.array([img.shape[1] / 2., img.shape[0] / 2.], dtype=np.float32)
+            s = max(img.shape[0], img.shape[1]) * 1.0
+            sf = 0.4
+            cf = 0.1
+            c[0] = c[0] + s * np.clip(np.random.randn()*cf, -2*cf, 2*cf)
+            c[1] = c[1] + s * np.clip(np.random.randn()*cf, -2*cf, 2*cf)
+            s = s * np.clip(np.random.randn()*sf + 1, 1 - sf, 1 + sf)     
+
+            trans_input = get_affine_transform(c, s, 0, self.default_res)
+            inp = cv2.warpAffine(img, trans_input, self.default_res, flags=cv2.INTER_LINEAR)
+            # [-1,1]
+            inp = (inp.astype(np.float32) / 255.)
+            inp = (inp - self.mean) / self.std
+            # HWC => CHW
+            inp = inp.transpose(2, 0, 1)
+
+            output_res = self.default_res[0] // 4
+            num_classes = self.num_classes
+            trans_output = get_affine_transform(c, s, 0, [output_res, output_res])
+            
+            # center, object heatmap
+            hm             = np.zeros((num_classes, output_res, output_res), dtype=np.float32)
+            # object size
+            wh             = np.zeros((self.max_objs, 2), dtype=np.float32)
+            # object offset
+            reg            = np.zeros((self.max_objs             , 2             ), dtype=np.float32)       
+            ind            = np.zeros((self.max_objs             ), dtype=np.int64)
+            reg_mask       = np.zeros((self.max_objs             ), dtype=np.uint8) 
+                      
+            
+            draw_gaussian = draw_umich_gaussian
+
+            for k in range(num_objs):
+                ann = anns[k]
+                bbox = self._coco_box_to_bbox(ann['bbox'])
+                bbox[[0, 2]] += w_offset
+                bbox[[1, 3]] += h_offset
+                bbox *= scale
+
+                cls_id = 0
+                bbox[:2] = affine_transform(bbox[:2], trans_output)
+                bbox[2:] = affine_transform(bbox[2:], trans_output)
+                bbox = np.clip(bbox, 0, output_res - 1)
+                h, w = bbox[3] - bbox[1], bbox[2] - bbox[0]
+                
+                if h > 0 and w > 0:
+                    radius = gaussian_radius((math.ceil(h), math.ceil(w)))
+                    radius = max(0, int(radius))
+                    ct = np.array([(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2], dtype=np.float32)
+                    ct_int = ct.astype(np.int32)
+                    draw_gaussian(hm[cls_id], ct_int, radius)
+                    wh[k] = 1. * w, 1. * h
+                    ind[k] = ct_int[1] * output_res + ct_int[0]
+                    reg[k] = ct - ct_int
+                    reg_mask[k] = 1  
+            
+            ret = {   'input': inp, 
+                         'hm': hm,           'wh': wh,         'reg': reg,
+                   'reg_mask': reg_mask,    'ind': ind}
+        else:
+            img = cv2.imread(img_path)
+            # [-1,1]
+            inp = (inp.astype(np.float32) / 255.)
+            inp = (inp - self.mean) / self.std
+            # HWC => CHW
+            inp = inp.transpose(2, 0, 1)
+            ret = {'input': inp}
+
+        return ret
+
+class build_DFKP_dataset(data.Dataset):
+    # DeepFastion2 KeyPoints
+    def __init__(self, data_handle, data, src, split):
+        self.coco = data_handle
+        cats = self.coco.loadCats(self.coco.getCatIds())
+        self.num_classes = len(cats)
+        self.num_joints = 294
+        self.max_objs = 32
+        self.default_res = (512, 512)    
+        self.images = data
+        self.src = src
+        self.split = split
+        self.mean = np.array([0.40789654, 0.44719302, 0.47026115],
+                   dtype=np.float32).reshape(1, 1, 3)
+        self.std  = np.array([0.28863828, 0.27408164, 0.27809835],
+                   dtype=np.float32).reshape(1, 1, 3)
+        
+    def _coco_box_to_bbox(self, box):
+        bbox = np.array([box[0], box[1], box[0] + box[2], box[1] + box[3]],
+                        dtype=np.float32)
+        return bbox
+
+    def _prerocessing(self, path):
+        img = cv2.imread(path)
+        height, width = img.shape[:2]         
+        long_side = np.max(img.shape[:2])
+        canvas = np.zeros([long_side, long_side, 3])
+        h_offset, w_offset = int((long_side-height)/2), int((long_side-width)/2)
+        canvas[h_offset:(height+h_offset), w_offset:(width+w_offset), :] = img
+        img = canvas.astype(np.uint8)   
+        scale = self.default_res[0] / long_side        
+        img = cv2.resize(img, self.default_res) 
+        
+        return img, w_offset, h_offset, scale
+    
+    def __len__(self):
+        return len(self.images)
+        
+    def __getitem__(self, index):
+        img_id = self.images[index]
+        fname = self.coco.loadImgs(ids=[img_id])[0]['file_name']
+        img_path = osp.join(self.src, fname)
+        ann_ids = self.coco.getAnnIds(imgIds=[img_id])
+        anns = self.coco.loadAnns(ids=ann_ids)
+        num_objs = min(len(anns), self.max_objs)
+        
+
+        if self.split == 'train':
+            # keep aspect ratio to resize to default resolution
+            img, w_offset, h_offset, scale = self._prerocessing(img_path)
+            height, width = img.shape[0], img.shape[1]
+            c = np.array([img.shape[1] / 2., img.shape[0] / 2.], dtype=np.float32)
+            s = max(img.shape[0], img.shape[1]) * 1.0
+            sf = 0.4
+            cf = 0.1
+            c[0] = c[0] + s * np.clip(np.random.randn()*cf, -2*cf, 2*cf)
+            c[1] = c[1] + s * np.clip(np.random.randn()*cf, -2*cf, 2*cf)
+            s = s * np.clip(np.random.randn()*sf + 1, 1 - sf, 1 + sf)     
+
+            trans_input = get_affine_transform(c, s, 0, self.default_res)
+            inp = cv2.warpAffine(img, trans_input, self.default_res, flags=cv2.INTER_LINEAR)
+            # [-1,1]
+            inp = (inp.astype(np.float32) / 255.)
+            inp = (inp - 0.5) / 0.5
+            # HWC => CHW
+            inp = inp.transpose(2, 0, 1)
+
+            output_res = self.default_res[0] // 4
+            num_joints = self.num_joints
+            num_classes = self.num_classes
+            trans_output = get_affine_transform(c, s, 0, [output_res, output_res])
+            
+            # center, object heatmap
+            hm             = np.zeros((num_classes, output_res, output_res), dtype=np.float32)
+            # human pose heatmap
+            hm_hp          = np.zeros((num_joints , output_res, output_res), dtype=np.float32)
+
+            # object size
+            wh             = np.zeros((self.max_objs, 2), dtype=np.float32)
+            # object offset
+            reg            = np.zeros((self.max_objs             , 2             ), dtype=np.float32)       
+            # humna pose offset
+            hp_offset      = np.zeros((self.max_objs * num_joints, 2             ), dtype=np.float32)
+            # human pose location relative to center
+            kps            = np.zeros((self.max_objs             , num_joints * 2), dtype=np.float32)
+            kps_mask       = np.zeros((self.max_objs             , num_joints * 2), dtype=np.uint8)
+            
+            ind            = np.zeros((self.max_objs             ), dtype=np.int64)
+            reg_mask       = np.zeros((self.max_objs             ), dtype=np.uint8) 
+            hp_ind         = np.zeros((self.max_objs * num_joints), dtype=np.int64)
+            hp_mask        = np.zeros((self.max_objs * num_joints), dtype=np.int64)            
+            
+            
+            draw_gaussian = draw_umich_gaussian
+
+            for k in range(num_objs):
+                ann = anns[k]
+                bbox = self._coco_box_to_bbox(ann['bbox'])
+                bbox[[0, 2]] += w_offset
+                bbox[[1, 3]] += h_offset
+                bbox *= scale
+
+                cls_id = int(ann['category_id']) - 1
+                pts = np.array(ann['keypoints'], np.float32).reshape(num_joints, 3)
+                pts[:,0] += w_offset
+                pts[:,1] += h_offset
+                pts[:,:2] *= scale
+
+                bbox[:2] = affine_transform(bbox[:2], trans_output)
+                bbox[2:] = affine_transform(bbox[2:], trans_output)
+                bbox = np.clip(bbox, 0, output_res - 1)
+                h, w = bbox[3] - bbox[1], bbox[2] - bbox[0]
+                
+                if h > 0 and w > 0:
+                    radius = gaussian_radius((math.ceil(h), math.ceil(w)))
+                    radius = max(0, int(radius))
+                    ct = np.array([(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2], dtype=np.float32)
+                    ct_int = ct.astype(np.int32)
+                    wh[k] = 1. * w, 1. * h
+                    ind[k] = ct_int[1] * output_res + ct_int[0]
+                    reg[k] = ct - ct_int
+                    reg_mask[k] = 1
+                    num_kpts = pts[:, 2].sum()
+                    if num_kpts == 0:
+                        hm[cls_id, ct_int[1], ct_int[0]] = 0.9999
+                        reg_mask[k] = 0
+
+                    hp_radius = gaussian_radius((math.ceil(h), math.ceil(w)))
+                    hp_radius = max(0, int(hp_radius)) 
+                    for j in range(num_joints):
+                        if pts[j, 2] > 0:
+                            pts[j, :2] = affine_transform(pts[j, :2], trans_output)
+                            if pts[j, 0] >= 0 and pts[j, 0] < output_res and pts[j, 1] >= 0 and pts[j, 1] < output_res:
+                                kps[k, j * 2: j * 2 + 2] = pts[j, :2] - ct_int
+                                kps_mask[k, j * 2: j * 2 + 2] = 1
+                                pt_int = pts[j, :2].astype(np.int32)
+                                hp_offset[k * num_joints + j] = pts[j, :2] - pt_int
+                                hp_ind[k * num_joints + j] = pt_int[1] * output_res + pt_int[0]
+                                hp_mask[k * num_joints + j] = 1
+                                draw_gaussian(hm_hp[j], pt_int, hp_radius)
+                    draw_gaussian(hm[cls_id], ct_int, radius)
+                    
+            
+            ret = {   'input': inp, 
+                         'hm': hm,           'wh': wh,         'reg': reg,
+                   'reg_mask': reg_mask,    'ind': ind,
+                      'hm_hp': hm_hp,       'hps': kps,  'hp_offset': hp_offset,
+                   'hps_mask': kps_mask, 'hp_ind': hp_ind, 'hp_mask': hp_mask}
+        else:
+            img = cv2.imread(img_path)
+            # [-1,1]
+            inp = (inp.astype(np.float32) / 255.)
+            inp = (inp - 0.5) / 0.5
+            # HWC => CHW
+            inp = inp.transpose(2, 0, 1)
+            ret = {'input': inp}
+
+        return ret
+
 
 class CALTECH(data.Dataset):
     def __init__(self, imgSrc, annoSrc, r=2, downSize=4, scale='h', offset=True, transform=None):
