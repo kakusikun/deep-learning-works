@@ -4,6 +4,7 @@ import sys
 import cv2
 import xml.etree.ElementTree as ET
 import time
+import re
 
 from app.load_openvino import DNet, in_blob, out_blob
 
@@ -14,6 +15,8 @@ import torch.nn.functional as F
 import numpy as np
 from PIL import Image
 import pandas as pd
+import os.path as osp
+from tqdm import tqdm
 
 from config.config_manager import _C as model_config
 from config.config_manager import _A as app_config
@@ -41,10 +44,36 @@ class App():
             self.set_DetNet()
             self.set_ReIDNet()
             self.set_PoseNet()
+            self.reid_prep = self.pytorch_reid_input_prep()
+            self.det_prep = self.openvino_detection_input_prep()
+
             if not osp.exists(self.a_cfg.SAVE_OUTPUT):
                 os.mkdir(self.a_cfg.SAVE_OUTPUT)
 
-    def setIO(self):
+    def openvino_detection_input_prep(self):
+        def prep(frame):
+            inputs = cv2.resize(frame.copy(), (self.a_cfg.DNET.INPUT_SIZE[0], self.a_cfg.DNET.INPUT_SIZE[1]))
+            inputs = inputs.transpose(2,0,1)[np.newaxis,:]
+            return inputs
+        return prep
+    
+    def pytorch_reid_input_prep(self):
+        trans = build_transform(self.m_cfg, is_train=False)
+        def prep(data):
+            tensors = []
+            for c_im in data:
+                c_im = cv2.cvtColor(c_im, cv2.COLOR_BGR2RGB) 
+                c_im = Image.fromarray(c_im)
+                tensors.append(trans(crop_image).unsqueeze(0)) 
+            tensors = torch.cat(tensors, dim=0)
+            return tensors
+        return prep
+
+    def setIO(self, cfg=None):
+        self.terminate = False
+        if cfg is not None:
+            self.a_cfg = cfg
+
         if self.a_cfg.INPUT.TYPE == 'cam':
             device = int(self.a_cfg.INPUT.split("_")[-1])
             self.cap = cv2.VideoCapture(device)
@@ -57,7 +86,9 @@ class App():
                                                           for f in files if 'jpg' in f or 'png' in f])
                 self.cap = iter(img_paths)
 
-    def set_DetNet(self):
+    def set_DetNet(self, cfg=None):
+        if cfg is not None:
+            self.a_cfg = cfg
         if self.a_cfg.DNET.TYPE == 'net':
             self.in_blob = in_blob
             self.out_blob = out_blob
@@ -65,17 +96,21 @@ class App():
         else:
             self.DNet = None            
     
-    def set_ReIDNet(self):
+    def set_ReIDNet(self, cfg=None):
+        if cfg is not None:
+            self.m_cfg = cfg
         manager = TrickManager(self.m_cfg)
         manager.use_multigpu()
         self.ReIDNet = manager.model
         self.ReIDNet.eval()
-        self.reid_prep = build_transform(self.m_cfg, is_train=False)
+        
 
     def set_PoseNet(self):
         self.PoseNet = load_pose_model(self.a_cfg.PNET)
 
     def get_input(self):
+        frame = None
+        path = None
         if self.a_cfg.INPUT.TYPE == 'cam' or self.a_cfg.INPUT.TYPE == 'video':
             if self.cap.isOpened():
                 ret, frame = self.cap.read()
@@ -85,19 +120,19 @@ class App():
         else:
             if self.a_cfg.INPUT.TYPE == 'image':
                 try:
-                    self.path = next(self.cap)
-                    frame = cv2.imread(self.path)
+                    path = next(self.cap)
+                    frame = cv2.imread(path)
                     self.frame_idx += 1
                 except StopIteration:
                     self.terminate = True
         
-        return frame
+        return path, frame
         
-    def get_det(self, frame):
-        self.orig_frame = frame
-        inputs = cv2.resize(frame.copy(), (self.a_cfg.DNET.INPUT_SIZE[0], self.a_cfg.DNET.INPUT_SIZE[1]))
-        inputs.transpose(2,0,1)[np.newaxis,:]
-        crop_images = []
+    def get_det(self, frame):       
+        inputs = self.det_prep(frame)
+
+        crop_images = []     
+
         if self.a_cfg.DNET.TYPE == 'xml':
             anno = osp.splitext(self.path)[0] + ".xml"
             anno = osp.join(self.a_cfg.DNET.PATH, anno)
@@ -123,9 +158,8 @@ class App():
             self.det_avg_time.update(end-start)
             output = output[self.out_blob]
             initial_h, initial_w = self.orig_frame.shape[:2]
-            temp = []
-            count = 1
-            n = self.group.dbsize
+            count = 0
+            bboxes = []
             for obj in output[0][0]:
                 if obj[2] > 0.5:                    
                     try:
@@ -133,60 +167,67 @@ class App():
                         y1 = int(obj[4] * initial_h)
                         x2 = int(obj[5] * initial_w)
                         y2 = int(obj[6] * initial_h)                        
-                        crop_image = self.orig_frame[y1:y2, x1:x2, :]
-                        crop_image = cv2.cvtColor(crop_image, cv2.COLOR_BGR2RGB) 
-                        crop_image = Image.fromarray(crop_image)
-                        crop_images.append(self.reid_prep(crop_image).unsqueeze(0))  
-                        self.group.add(self.path, column='img', index=n+count)
-                        self.group.add(count, column='id', index=n+count)
-                        self.group.add([x1, y1, x2, y2], column='bbox', index=n+count)                        
-                        count += 1
-                        
+                        crop_image = frame[y1:y2, x1:x2, :]                        
+                        crop_images.append(crop_image)  
+                        bboxes.append("{} {} {} {}".format(x1, y1, x2, y2))                       
+                        count += 1                        
                     except:
                         continue
         
-        return crop_images
+        return crop_images, count, bboxes
 
     def get_embedding(self, det):
         if len(det) > 0:
-            det = torch.cat(det, dim=0)
+            det = self.reid_prep(det)
             with torch.no_grad():
                 feats = self.ReIDNet(det.cuda())
             feats = F.normalize(feats)
             self.group.add_feat(feats)
     
-    def get_colors(self):
-        for i in self.group.df.index:
+    def get_colors(self, df):
+        ucs = []
+        lcs = []
+        ucis = []
+        lcis = []
+        for i in df.index:
             uci = -1
             lci = -1
             uc = 'none'
             lc = 'none'
-            x1, y1, x2, y2 = self.group.df.loc[i, 'bbox']
-            img = self.orig_frame[y1:y2, x1:x2, :]
+
+            # read and crop image
+            x1, y1, x2, y2 = [i for i in map(int, df.loc[i, 'bbox'].split(" "))]
+            img = cv2.imread(df.loc[i, 'img'])
+            img = img[y1:y2, x1:x2, :]
             color_img = get_color_img(img, 'LAB')
+
+            # get pose
             start = time.time()
             subset, candidate = get_pose(self.PoseNet, img)     
             end = time.time()
             self.pose_avg_time.update(end-start)
 
+            # get color
             start = time.time()
             sup_img = superpixelize(color_img)
-            usamples, upoints = get_sample_points(sup_img, subset, candidate, parts=UPPER)
+            usamples = get_sample_points(sup_img, subset, candidate, parts=UPPER)
+            lsamples = get_sample_points(sup_img, subset, candidate, parts=THIGH)
+
             if usamples.shape[0] > 0:
-                uci = get_color(img, usamples, upoints)
-                uc = Color.get_color_name(uci)                
-            
-            lsamples, lpoints = get_sample_points(sup_img, subset, candidate, parts=THIGH)
+                uci = get_color(img, usamples, LAB(accurate=True))
+                uc = Color.get_color_name(uci)                   
             if lsamples.shape[0] > 0:                
-                lci = get_color(img, lsamples, lpoints)     
+                lci = get_color(img, lsamples, LAB(accurate=True))     
                 lc = Color.get_color_name(lci)           
             end = time.time()
             self.color_avg_time.update(end-start)
 
-            self.group.add(uci, column='uci', index=i)
-            self.group.add(lci, column='lci', index=i)
-            self.group.add(uc, column='uc', index=i)
-            self.group.add(lc, column='lc', index=i)
+            ucs.append(uc)
+            lcs.append(lc)
+            ucis.append(uci)
+            lcis.append(lci)
+
+        return ucs, lcs, ucis, lcis
    
     def show_image(self):
         image = self.orig_frame.copy()
@@ -199,7 +240,7 @@ class App():
         self.group = PersonDB()
 
         
-    def render(self):
+    def render(self, frame):
         to_plot = self.orig_frame.copy()
         for i in self.group.df.index:
             bbox = self.group.df.loc[i, 'bbox']
@@ -226,11 +267,22 @@ class App():
         logger.info("Starting ...")
         count = 0
         while True:
-            frame = self.get_input()
+            path, frame = self.get_input()
             if self.terminate:
                 break
-            det = self.get_det(frame)
-            self.get_colors()        
+            dets, count, bboxes = self.get_det(frame)
+
+            self.group.df.img = [path] * count
+            self.group.df.id = lists(range(count))
+            self.group.df.bbox = bboxes
+
+            ucs, lcs, ucis, lcis = self.get_colors(self.group.df)  
+
+            self.group.df.uc = ucs
+            self.group.df.lc = lcs
+            self.group.df.uci = ucis
+            self.group.df.lci = lcis
+                  
             self.update()
             count += 1
             logger.info("Det:{:.3f}s, Pose:{:.3f}s, Color:{:.3f}".format(self.det_avg_time.avg, self.pose_avg_time.avg, self.color_avg_time.avg))
@@ -274,7 +326,7 @@ class PersonDB():
             else:
                 self.df = self.df.append(df, sort=False)
     def save(self, path):
-        self.df.to_csv("{}/people.csv".format(path))
+        self.df.to_csv("{}".format(path))
 
 
 
@@ -282,8 +334,69 @@ class PersonDB():
 if __name__ == '__main__':
     model_config.merge_from_file("/media/allen/mass/deep-learning-works/reid_app.yml")
     app_config.merge_from_file("/media/allen/mass/deep-learning-works/app.yml")
-
-    print(app_config)
-
     app = App(model_config, app_config)
-    app.build()
+
+    # for branch in os.listdir('/media/allen/mass/recording4/'):   
+    #     app_config.SAVE_OUTPUT = '/media/allen/mass/office_color4/{}.csv'.format(branch)
+    #     if osp.exists(app_config.SAVE_OUTPUT):
+    #         logger.info("{} exists".format(app_config.SAVE_OUTPUT))
+    #         continue
+    #     app_config.INPUT.PATH = osp.join('/media/allen/mass/recording4/', branch)
+    #     app.setIO(app_config)
+    #     print(app_config)        
+    #     app.build()
+    
+
+    df = pd.read_csv("/media/allen/mass/office_color/office_color.csv")
+
+    df = df.drop('Unnamed: 0', axis=1)
+
+    src = "/media/allen/mass/office/office/"
+
+    df.img = df.img.apply(lambda x: osp.join(src, x))    
+    
+    # Color = LAB(accurate=True)
+
+    pattern = re.compile(r'\[(\d+), (\d+), (\d+), (\d+)\]')
+    
+    ucs = []
+    lcs = []
+    ucis = []
+    lcis = []
+    for i in tqdm(df.index):
+        uci = -1
+        lci = -1
+        uc = 'none'
+        lc = 'none'
+
+        # read and crop image
+        x1, y1, x2, y2 = [i for i in map(int, pattern.search(df.loc[i, 'bbox']).groups())]    
+        img = cv2.imread(df.loc[i, 'img'])
+        img = img[y1:y2, x1:x2, :]
+        color_img = get_color_img(img, 'LAB')
+
+        # get pose
+        subset, candidate = get_pose(app.PoseNet, img)    
+
+        # get color
+        sup_img = superpixelize(color_img)
+        usamples = get_sample_points(sup_img, subset, candidate, parts=UPPER)
+        lsamples = get_sample_points(sup_img, subset, candidate, parts=THIGH)
+
+        if usamples.shape[0] > 0:
+            uci = get_color(img, usamples, LAB(accurate=True))
+            uc = Color.get_color_name(uci)                   
+        if lsamples.shape[0] > 0:                
+            lci = get_color(img, lsamples, LAB(accurate=True))     
+            lc = Color.get_color_name(lci)    
+
+        ucs.append(uc)
+        lcs.append(lc)
+        ucis.append(uci)
+        lcis.append(lci)
+
+    df.uc = ucs
+    df.lc = lcs
+    df.uci = ucis
+    df.lci = lcis
+    df.to_csv("/media/allen/mass/office_color/office_color_accurate.csv")

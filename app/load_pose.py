@@ -103,24 +103,30 @@ class Color_space():
         return self.color_values[i]
 
 class LAB(Color_space):
-    def __init__(self):
-        self.color_names = np.unique(lab_colors)
+    def __init__(self, accurate=False):
+        if accurate:
+            self.color_names = np.array(lab_colors)
+        else:
+            self.color_names = np.unique(lab_colors)
         color_center = []
-        for color in self.color_names:
+        for color in np.unique(lab_colors):
             mask = lab_colors == color
             avg = lab_matrix[mask].mean(axis=0)
             color_center.append(avg)
         cie_lab = np.array([color_center])
         cv_lab = np.zeros_like(cie_lab)
         cv_lab[...,0] = cie_lab[...,0] * 255 / 100
-        cv_lab[...,1] = cie_lab[...,1] - 128
-        cv_lab[...,2] = cie_lab[...,2] - 128
+        cv_lab[...,1] = cie_lab[...,1] + 128
+        cv_lab[...,2] = cie_lab[...,2] + 128
         cv_lab = cv_lab.astype(np.uint8)
         cv_bgr = cv2.cvtColor(cv_lab, cv2.COLOR_LAB2BGR)
         np.squeeze(cv_bgr)
         self.color_values = [(int(b),int(g),int(r)) for b, g, r in np.squeeze(cv_bgr)]
-        self.lab_centers = np.squeeze(cie_lab)
-Color = LAB()
+        if accurate:
+            self.lab_centers = lab_matrix
+        else:
+            self.lab_centers = np.squeeze(cie_lab)
+Color = LAB(accurate=True)
 
 def get_pose(model, img):    
     pil_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)   
@@ -152,7 +158,6 @@ def get_pose(model, img):
 
 def get_sample_points(img, persons, candidate, parts=UPPER):
     samples = []
-    points = []
     pts = []
 
     for person in persons:
@@ -172,40 +177,17 @@ def get_sample_points(img, persons, candidate, parts=UPPER):
                 for x, y in zip(x_coord, y_coord):
                     samples.append(img[y, x, :])            
                 
-                points.append(np.vstack([x_coord, y_coord]))
     samples = np.array(samples)
-    if len(points) > 0:
-        points = np.transpose(np.hstack(points))
-    else:
-        points = np.array(points)
     
-    return samples, points
+    return samples
 
-def get_color(orig, samples, points, use_hsv=False):
-    h, w = orig.shape[:2]   
-    
-    if use_hsv:
-        n = samples.shape[0]
-        if (samples[:,2] < 40).sum() > n/2:
-            mode = 0
-        else:
-            if (samples[:,1] > 50).sum() < n/2:
-                if (samples[:,2] < 90).sum() > n/2:
-                    mode = 7
-                else:
-                    mode = 8
-            else:
-                dist = cdist(samples[:,0][:,np.newaxis], Color.H).argmin(axis=1)
-                mode = stats.mode(dist)[0][0]      
-        color = Color.get_color(mode)        
-    else:
-        color_center = []
-        for c_s in samples:
-            delta = delta_e_cie2000(c_s, Color.lab_centers)
-            color_center.append(np.argmin(delta))
-        color = stats.mode(color_center)[0][0]  
-        # dist = cdist(samples, Color.BGR).argmin(axis=1)
-        # mode = stats.mode(dist)[0][0]   
+def get_color(orig, samples, color_space):
+    h, w = orig.shape[:2]       
+    color_center = []
+    for c_s in samples:
+        delta = delta_e_cie2000(c_s, color_space.lab_centers)
+        color_center.append(np.argmin(delta))
+    color = stats.mode(color_center)[0][0] 
     return color
 
 def superpixelize(color_img):
