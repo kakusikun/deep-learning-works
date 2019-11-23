@@ -19,6 +19,19 @@ from yacs.config import CfgNode as CN
 # Config definition
 # -----------------------------------------------------------------------------
 
+_A = CN()
+_A.INPUT = CN()
+_A.INPUT.TYPE = "image"
+_A.INPUT.PATH = ""
+
+_A.DNET = CN()
+_A.DNET.TYPE = "gt"
+_A.DNET.PATH = ""
+_A.DNET.INPUT_SIZE = ()
+_A.SAVE = False
+_A.SAVE_OUTPUT = ""
+
+
 _C = CN()
 
 _C.EXPERIMENT = ""
@@ -164,6 +177,9 @@ _C.SOLVER.MODEL_FREEZE_PEROID = 0
 _C.OUTPUT_DIR = ""
 _C.RESUME = ""
 _C.EVALUATE = ""
+
+
+
 
 def build_output(cfg, config_file=""):
     time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
