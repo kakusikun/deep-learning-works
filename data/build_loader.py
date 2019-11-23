@@ -5,6 +5,7 @@ from data.build_transform import build_transform
 from data.sampler import IdBasedSampler, BlancedPARSampler
 from torchvision.datasets.cifar import CIFAR10
 import logging
+import sys
 
 def build_imagenet_loader(cfg):
 
@@ -73,28 +74,27 @@ def build_reid_loader(cfg, return_indice=False, use_sampler=True):
         val_trans = build_transform(cfg, is_train=False)
 
         train_dataset = build_reid_dataset(dataset, train_trans)
-
-        cfg.DATASET.NAME = cfg.REID.TRT
-        trt_dataset = get_img_data(cfg)
-        query_dataset = build_reid_dataset(trt_dataset.query, val_trans)
-        gallery_dataset = build_reid_dataset(trt_dataset.gallery, val_trans)
-    
     else:
         dataset = get_img_data(cfg)
         train_trans = build_transform(cfg)
         val_trans = build_transform(cfg, is_train=False)
+
+        cfg.MODEL.NUM_CLASSES = dataset.num_train_pids
 
         if cfg.DATASET.ATTENTION_MAPS != "":
             train_dataset = build_reid_atmap_dataset(dataset.train, cfg)
         else:
             train_dataset = build_reid_dataset(dataset.train, train_trans, return_indice=return_indice)
 
-        if cfg.DATASET.TEST != "":
-            cfg.DATASET.NAME = cfg.DATASET.TEST
-            dataset = get_img_data(cfg)
+    if cfg.DATASET.TEST != "":
+        cfg.DATASET.NAME = cfg.DATASET.TEST
+        dataset = get_img_data(cfg)
 
         query_dataset = build_reid_dataset(dataset.query, val_trans)
         gallery_dataset = build_reid_dataset(dataset.gallery, val_trans)    
+    else:
+        logger.info("Benchmark is not specified")
+        sys.exit(1)
 
     num_workers = cfg.DATALOADER.NUM_WORKERS
 

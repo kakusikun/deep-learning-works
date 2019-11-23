@@ -312,7 +312,7 @@ class Market1501(object):
         num_total_pids = num_train_pids + num_query_pids
         num_total_imgs = num_train_imgs + num_query_imgs + num_gallery_imgs
 
-        logger.info("=> Market1501 loaded")
+        logger.info("=> {} loaded".format(cfg.DATASET.NAME.upper()))
         logger.info("Dataset statistics:")
         logger.info("  ------------------------------")
         logger.info("  subset   | # ids | # images")
@@ -346,7 +346,7 @@ class Market1501(object):
     def _process_dir(self, dir_path, relabel=False):
         img_paths = [osp.join(root, f) for root, _, files in os.walk(dir_path) 
                                for f in files if 'jpg' in f or 'png' in f]
-        pattern = re.compile(r'([-\d]+)_c(\d)')
+        pattern = re.compile(r'([-\d]+)_c(\d+)s')
 
         pid_container = set()
         for img_path in img_paths:
@@ -392,6 +392,18 @@ class CUHK02(Market1501):
 
     def __init__(self, cfg, **kwargs):
         super(CUHK02, self).__init__(cfg)
+
+class TWENTYSIX(Market1501):
+    """
+    using market1501 data arrangement
+    
+    Dataset statistics:
+    # identities: 
+    # images:  (train) + 0 (query) + 0 (gallery)
+    """
+    
+    def __init__(self, cfg, **kwargs):
+        super(TWENTYSIX, self).__init__(cfg)
 
 class CUHK01(Market1501):
     """
@@ -1592,6 +1604,7 @@ __img_factory = {
     'sogo': SOGO,
     'deepfashion': DeepFashion2,
     'cocoperson': COCO_Person,
+    '26th': TWENTYSIX
 }
 
 __vid_factory = {

@@ -115,13 +115,19 @@ class ReIDEngine(Engine):
         logger.info("------------------")
 
         logger.info("Computing Recall")
-        rs, confs, gts = eval_recall(distmat, q_pids, g_pids, q_camids, g_camids)
+        rs, confs, gts, fg = eval_recall(distmat, q_pids, g_pids, q_camids, g_camids)
 
-        logger.info("Results ------------: {:>4} / {:>4} / {:>4}".format("AVG", "MIN", "MAX"))
-        logger.info("Number of candidates: {:.2f} / {} / {}".format(rs.mean(), rs.min(), rs.max()))
-        logger.info("          Confidence: {:.2f} / {:.2f} / {:.2f}".format(confs.mean(), confs.min(), confs.max()))
-        logger.info("    Number of target: {:.2f} / {} / {}".format(gts.mean(), gts.min(), gts.max()))  
+        logger.info("Results ------------: {:>4} / {:>4} / {:>4}".format("Q0.5", "Q0.75", "Q0.95"))
+        logger.info("Number of candidates: {:.2f} / {} / {}".format(np.quantile(rs, q = 0.5), np.quantile(rs, q = 0.75), np.quantile(rs, q = 0.95)))
+        logger.info("          Confidence: {:.2f} / {:.2f} / {:.2f}".format(np.quantile(confs, q = 0.5), np.quantile(confs, q = 0.75), np.quantile(confs, q = 0.95)))
+        logger.info("    Number of target: {:.2f} / {} / {}".format(np.quantile(gts, q = 0.5), np.quantile(gts, q = 0.75), np.quantile(gts, q = 0.95)))  
         logger.info("------------------")
+        
+        if eval:
+            np.save(self.cfg.OUTPUT_DIR+"/rs.npy", rs)
+            np.save(self.cfg.OUTPUT_DIR+"/confs.npy", confs)
+            np.save(self.cfg.OUTPUT_DIR+"/gts.npy", gts)
+            np.save(self.cfg.OUTPUT_DIR+"/filtered_gallery.npy", fg)
 
         if not eval:
             self.accu = cmc[0]

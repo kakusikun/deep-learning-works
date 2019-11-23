@@ -189,14 +189,18 @@ def eval_recall(distmat, q_pids, g_pids, q_camids, g_camids):
     num_rs = []
     confs = []
     num_gts = []
+    filtered_gallery = []
     for q_idx in tqdm(range(num_q), desc="Recall"):
+        indice = np.arange(g_pids.shape[0])
         q_pid = q_pids[q_idx]
         q_camid = q_camids[q_idx]
 
         # remove gallery samples that have the same pid and camid with query
         order = indices[q_idx]    
         remove = (g_pids[order] == q_pid) & (g_camids[order] == q_camid)
-        num_gt = (g_pids[order] [~remove] == q_pid).sum()
+        num_gt = (g_pids[order][~remove] == q_pid).sum()
+        indice = indice[order]
+        indice[remove] = -1
 
         # compute cmc curve
         orig_cmc = matches[q_idx][~remove] # binary vector, positions with value 1 are correct matches
@@ -207,17 +211,19 @@ def eval_recall(distmat, q_pids, g_pids, q_camids, g_camids):
 
         cmc = orig_cmc.cumsum()
         num_r = (cmc == num_gt).argmax()+1
-        conf = np.max(1 - distmat[q_idx][order][~remove][num_r-1], 0)
+        conf = np.max((1 - distmat[q_idx][order][~remove][num_r-1], 0))
         
         num_rs.append(num_r)
         confs.append(conf)
         num_gts.append(num_gt)
+        filtered_gallery.append(indice)
 
     rs = np.array(num_rs)
     confs = np.array(confs)
     gts = np.array(num_gts)
+    fg = np.array(filtered_gallery)
 
-    return rs, confs, gts
+    return rs, confs, gts, fg
     # if save:                
     #     plt.figure(figsize=(12, 5))
     #     sns.set()
