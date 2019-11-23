@@ -5,9 +5,7 @@ import cv2
 import xml.etree.ElementTree as ET
 import time
 import re
-
 from app.load_openvino import DNet, in_blob, out_blob
-
 from app.load_pose import *
 
 import torch
@@ -210,15 +208,17 @@ class App():
             # get color
             start = time.time()
             sup_img = superpixelize(color_img)
-            usamples = get_sample_points(sup_img, subset, candidate, parts=UPPER)
-            lsamples = get_sample_points(sup_img, subset, candidate, parts=THIGH)
+            usamples, upoints = get_sample_points(sup_img, subset, candidate, parts=UPPER)
+            lsamples, lpoints = get_sample_points(sup_img, subset, candidate, parts=THIGH)    
 
             if usamples.shape[0] > 0:
-                uci = get_color(img, usamples, LAB(accurate=True))
-                uc = Color.get_color_name(uci)                   
+                uci = get_color(usamples, LAB(accurate=True))
+                uc = Color.get_color_name(uci)    
+                self.visualize(sup_img, upoints, (0,0,255))               
             if lsamples.shape[0] > 0:                
-                lci = get_color(img, lsamples, LAB(accurate=True))     
-                lc = Color.get_color_name(lci)           
+                lci = get_color(lsamples, LAB(accurate=True))     
+                lc = Color.get_color_name(lci)     
+                self.visualize(sup_img, lpoints, (0,255,0))      
             end = time.time()
             self.color_avg_time.update(end-start)
 
@@ -239,9 +239,14 @@ class App():
         self.people.update(self.group.df)
         self.group = PersonDB()
 
+    def visualize(self, to_plot, points, color):
+        for i in range(0, len(points), 2):
+            x1 ,y1 = int(points[i]), int(points[i+1])
+            cv2.circle(to_plot, (x1, y1), 5, (0,0,0), -1)
+            cv2.circle(to_plot, (x1, y1), 4, color, -1)
         
     def render(self, frame):
-        to_plot = self.orig_frame.copy()
+        to_plot = frame.copy()
         for i in self.group.df.index:
             bbox = self.group.df.loc[i, 'bbox']
             uci = self.group.df.loc[i, 'uci']
@@ -352,17 +357,24 @@ if __name__ == '__main__':
     df = df.drop('Unnamed: 0', axis=1)
 
     src = "/media/allen/mass/office/office/"
+    dst = "/media/allen/mass/office/vis_polygon/"
+    if not osp.exists(dst):
+        os.mkdir(dst)
 
-    df.img = df.img.apply(lambda x: osp.join(src, x))    
+    # df.img = df.img.apply(lambda x: osp.join(src, x))    
     
     # Color = LAB(accurate=True)
 
     pattern = re.compile(r'\[(\d+), (\d+), (\d+), (\d+)\]')
-    
+    LAB_Color = LAB(accurate=True)
     ucs = []
     lcs = []
     ucis = []
     lcis = []
+    upts = []
+    lpts = []
+    uptsi = []
+    lptsi = []
     for i in tqdm(df.index):
         uci = -1
         lci = -1
@@ -371,32 +383,54 @@ if __name__ == '__main__':
 
         # read and crop image
         x1, y1, x2, y2 = [i for i in map(int, pattern.search(df.loc[i, 'bbox']).groups())]    
-        img = cv2.imread(df.loc[i, 'img'])
+        img = cv2.imread(osp.join(src, df.loc[i, 'img']))
         img = img[y1:y2, x1:x2, :]
-        color_img = get_color_img(img, 'LAB')
+        color_img = get_color_img(img.copy(), 'LAB')
 
         # get pose
         subset, candidate = get_pose(app.PoseNet, img)    
 
         # get color
-        sup_img = superpixelize(color_img)
-        usamples = get_sample_points(sup_img, subset, candidate, parts=UPPER)
-        lsamples = get_sample_points(sup_img, subset, candidate, parts=THIGH)
+        # sup_img = superpixelize(color_img)
+        usamples, upoints = get_sample_points(color_img, subset, candidate, parts=UPPER)
+        lsamples, lpoints = get_sample_points(color_img, subset, candidate, parts=THIGH)    
 
+        fname, ext = osp.splitext(df.loc[i, 'img'])
+        fname = "{}_{}{}".format(fname, i, ext)
+
+        # uplot = lplot = False
         if usamples.shape[0] > 0:
-            uci = get_color(img, usamples, LAB(accurate=True))
-            uc = Color.get_color_name(uci)                   
+            uci = get_color(usamples, LAB_Color)
+            uc = LAB_Color.get_color_name(uci)    
+            upts.extend(upoints)
+            uptsi.extend([i]*len(upoints))
+            # app.visualize(img, upoints, (0,0,255))   
+            # uplot = True
         if lsamples.shape[0] > 0:                
-            lci = get_color(img, lsamples, LAB(accurate=True))     
-            lc = Color.get_color_name(lci)    
+            lci = get_color(lsamples, LAB_Color)     
+            lc = LAB_Color.get_color_name(lci)   
+            lpts.extend(lpoints)
+            lptsi.extend([i]*len(lpoints))  
+            # app.visualize(img, lpoints, (0,255,0)) 
+            # lplot = True
 
         ucs.append(uc)
         lcs.append(lc)
         ucis.append(uci)
         lcis.append(lci)
 
+    upts = np.array(upts)
+    uptsi = np.array(uptsi)
+    lpts = np.array(lpts)
+    lptsi = np.array(lptsi)
+
+    np.save(osp.join(dst, 'upts.npy'), upts)
+    np.save(osp.join(dst, 'uptsi.npy'), uptsi)
+    np.save(osp.join(dst, 'lpts.npy'), lpts)
+    np.save(osp.join(dst, 'lptsi.npy'), lptsi)
+    
     df.uc = ucs
     df.lc = lcs
     df.uci = ucis
     df.lci = lcis
-    df.to_csv("/media/allen/mass/office_color/office_color_accurate.csv")
+    df.to_csv("/media/allen/mass/office_color/office_color_polygon.csv")

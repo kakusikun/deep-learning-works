@@ -9,7 +9,7 @@ from scipy.spatial.distance import cdist
 from scipy import stats
 
 import cv2
-from PIL import Image
+from PIL import Image, ImageDraw
 from skimage.segmentation import slic
 from skimage import io
 from skimage import img_as_float
@@ -39,7 +39,7 @@ right_hip = 8
 left_hip = 11
 right_knee = 9
 left_knee = 12
-UPPER = [[2, 11], [5, 8]]
+UPPER = [[2, 11, 5, 8]]
 THIGH = [[8, 9], [11, 12]]
 IMPORTANT = [2,5,8,9,11,12]
 
@@ -126,7 +126,7 @@ class LAB(Color_space):
             self.lab_centers = lab_matrix
         else:
             self.lab_centers = np.squeeze(cie_lab)
-Color = LAB(accurate=True)
+
 
 def get_pose(model, img):    
     pil_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)   
@@ -158,8 +158,9 @@ def get_pose(model, img):
 
 def get_sample_points(img, persons, candidate, parts=UPPER):
     samples = []
+    points = []
     pts = []
-
+    
     for person in persons:
         pts.append((person[IMPORTANT] > 0).sum())
 
@@ -167,22 +168,55 @@ def get_sample_points(img, persons, candidate, parts=UPPER):
         idx = np.array(pts).argmax()
         person = persons[idx]  
     
-        for part in parts:
-            if (person[part] > 0).sum() == len(part):              
+        # for part in parts:
+        #     if (person[part] > 0).sum() == len(part):              
 
-                x_coord = np.linspace(candidate[int(person[part[0]])][0], 
-                                    candidate[int(person[part[1]])][0], num=10).astype(int)
-                y_coord = np.linspace(candidate[int(person[part[0]])][1], 
-                                    candidate[int(person[part[1]])][1], num=10).astype(int)                        
-                for x, y in zip(x_coord, y_coord):
-                    samples.append(img[y, x, :])            
-                
-    samples = np.array(samples)
+        #         x_coord = np.linspace(candidate[int(person[part[0]])][0], 
+        #                             candidate[int(person[part[1]])][0], num=10).astype(int)
+        #         y_coord = np.linspace(candidate[int(person[part[0]])][1], 
+        #                             candidate[int(person[part[1]])][1], num=10).astype(int)                        
+        #         for x, y in zip(x_coord, y_coord):
+        #             samples.append(img[y, x, :])    
+        if parts == UPPER:
+            for part in parts:
+                if (person[part] > 0).sum() > 2:  
+                    polygon = []  
+                    for joint in part:   
+                        if  person[joint] > 0:
+                            polygon.extend([int(candidate[int(person[joint])][0]), 
+                                            int(candidate[int(person[joint])][1])])
+                    temp = Image.new('L', (img.shape[1], img.shape[0]), 0)
+                    ImageDraw.Draw(temp).polygon(polygon, outline=1, fill=1)
+                    mask = np.array(temp).astype(bool)
+                    samples.append(img[mask,:])
+                    points.extend(polygon)
+        else:
+            for part in parts:
+                if (person[part] > 0).sum() == 2:  
+                    polygon = []  
+                    x1, y1 = candidate[int(person[part[0]])][:2]
+                    x2, y2 = candidate[int(person[part[1]])][:2]
+                    x, y = abs(x2-x1), abs(y2-y1)
+                    angle = np.arctan(y/x)
+                    x_offset = 2 * np.tan(np.pi/2 - angle)
+                    polygon = np.array([[x1-x_offset, y1-2], [x1+x_offset, y1+2],
+                                        [x2-x_offset, y2-2], [x2+x_offset, y2+2]]).astype(int)
+                    polygon[:,0] = np.clip(polygon[:,0], 0, img.shape[1])
+                    polygon[:,1] = np.clip(polygon[:,1], 0, img.shape[0])
+                    polygon = polygon.reshape(-1).tolist()                                       
+                    temp = Image.new('L', (img.shape[1], img.shape[0]), 0)
+                    ImageDraw.Draw(temp).polygon(polygon, outline=1, fill=1)
+                    mask = np.array(temp).astype(bool)
+                    samples.append(img[mask,:])
+                    points.extend(polygon)
+    if len(samples) > 0:
+        samples = np.vstack(samples)
+    else:
+        samples = np.array(samples)
     
-    return samples
+    return samples, points
 
-def get_color(orig, samples, color_space):
-    h, w = orig.shape[:2]       
+def get_color(samples, color_space):
     color_center = []
     for c_s in samples:
         delta = delta_e_cie2000(c_s, color_space.lab_centers)
@@ -191,7 +225,7 @@ def get_color(orig, samples, color_space):
     return color
 
 def superpixelize(color_img):
-    segments = slic(color_img, n_segments=5, compactness=10, sigma=1)
+    segments = slic(color_img, n_segments=100, compactness=10, sigma=1)
     groups = np.unique(segments)
     vis = np.zeros_like(color_img)
     for g in groups:
@@ -210,6 +244,8 @@ def get_color_img(img, CODE):
         trans_img[...,0] = trans_img[...,0] * 100.0 / 255
         trans_img[...,1] = trans_img[...,1] - 128
         trans_img[...,2] = trans_img[...,2] - 128
+    elif CODE == 'HLS':
+        trans_img = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
     else:
         return None
     return trans_img

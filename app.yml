@@ -1,12 +1,12 @@
 INPUT:
   TYPE: "image"
-  PATH: "/home/allen/26th_people"
+  PATH: "/media/allen/mass/recording4"
 DNET:
   TYPE: "net"
   PATH: "/home/allen/R5/intel/computer_vision_sdk_2018.5.445/deployment_tools/intel_models/person-detection-retail-0013/FP32/person-detection-retail-0013.xml"
   INPUT_SIZE: (544, 320)
 
 SAVE: True
-SAVE_OUTPUT: "/media/allen/mass/26th_color"
+SAVE_OUTPUT: "/media/allen/mass/office_color4"
 
-PNET: "/media/allen/mass/deep-learning-works/app/pose/pose_model_scratch.pth"
+PNET: "/media/allen/mass/deep-learning-works/external/pose_model_scratch.pth"
