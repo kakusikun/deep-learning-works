@@ -1,6 +1,6 @@
 from torch.utils import data
-from data.data_manager import init_img_dataset, init_vid_dataset
-from data.build_data import build_image_dataset, build_reid_dataset, build_reid_atmap_dataset, build_par_dataset, build_update_reid_dataset
+from data.data import get_img_data, init_vid_dataset
+from data.build_data import *
 from data.build_transform import build_transform
 from data.sampler import IdBasedSampler, BlancedPARSampler
 from torchvision.datasets.cifar import CIFAR10
@@ -8,13 +8,13 @@ import logging
 
 def build_imagenet_loader(cfg):
 
-    dataset = init_img_dataset(cfg)
+    dataset = get_img_data(cfg)
 
     train_trans = build_transform(cfg)
     val_trans = build_transform(cfg, is_train=False)
 
-    train_dataset = build_image_dataset(dataset.train, train_trans, dataset.train_lmdb)
-    val_dataset = build_image_dataset(dataset.val, val_trans, dataset.val_lmdb)
+    train_dataset = build_image_dataset(dataset.train, train_trans)
+    val_dataset = build_image_dataset(dataset.val, val_trans)
 
     num_workers = cfg.DATALOADER.NUM_WORKERS
 
@@ -57,7 +57,7 @@ def build_reid_loader(cfg, return_indice=False, use_sampler=True):
         temp_datasets = []
         for name in dataset_names:
             cfg.DATASET.NAME = name
-            dataset = init_img_dataset(cfg)
+            dataset = get_img_data(cfg)
             temp_datasets.append(dataset)
             cfg.MODEL.NUM_CLASSES += dataset.num_train_pids
 
@@ -75,12 +75,12 @@ def build_reid_loader(cfg, return_indice=False, use_sampler=True):
         train_dataset = build_reid_dataset(dataset, train_trans)
 
         cfg.DATASET.NAME = cfg.REID.TRT
-        trt_dataset = init_img_dataset(cfg)
+        trt_dataset = get_img_data(cfg)
         query_dataset = build_reid_dataset(trt_dataset.query, val_trans)
         gallery_dataset = build_reid_dataset(trt_dataset.gallery, val_trans)
     
     else:
-        dataset = init_img_dataset(cfg)
+        dataset = get_img_data(cfg)
         train_trans = build_transform(cfg)
         val_trans = build_transform(cfg, is_train=False)
 
@@ -91,7 +91,7 @@ def build_reid_loader(cfg, return_indice=False, use_sampler=True):
 
         if cfg.DATASET.TEST != "":
             cfg.DATASET.NAME = cfg.DATASET.TEST
-            dataset = init_img_dataset(cfg)
+            dataset = get_img_data(cfg)
 
         query_dataset = build_reid_dataset(dataset.query, val_trans)
         gallery_dataset = build_reid_dataset(dataset.gallery, val_trans)    
@@ -138,10 +138,10 @@ def build_reid_loader(cfg, return_indice=False, use_sampler=True):
         gallery_dataset, batch_size=cfg.INPUT.SIZE_TEST, shuffle=False, num_workers=num_workers, pin_memory=True, drop_last=False
     )
     return t_loader, q_loader, g_loader
-
+    
 def build_par_loader(cfg):
 
-    dataset = init_img_dataset(cfg)
+    dataset = get_img_data(cfg)
 
     train_trans = build_transform(cfg)
     val_trans = build_transform(cfg, is_train=False)
@@ -163,7 +163,7 @@ def build_par_loader(cfg):
     return t_loader, v_loader
 
 def build_update_reid_loader(cfg, new_labels):
-    dataset = init_img_dataset(cfg)
+    dataset = get_img_data(cfg)
 
     train_trans = build_transform(cfg)
     val_trans = build_transform(cfg, is_train=False)
@@ -192,10 +192,9 @@ def build_update_reid_loader(cfg, new_labels):
 
     return t_loader, q_loader, g_loader
 
-
 def build_plain_reid_loader(cfg):
         
-    dataset = init_img_dataset(cfg)
+    dataset = get_img_data(cfg)
     train_trans = build_transform(cfg)
     val_trans = build_transform(cfg, is_train=False)
 
@@ -221,3 +220,24 @@ def build_plain_reid_loader(cfg):
         gallery_dataset, batch_size=cfg.INPUT.SIZE_TEST, shuffle=False, num_workers=num_workers, pin_memory=True, drop_last=False
     )
     return t_loader, q_loader, g_loader
+
+def build_coco_person_loader(cfg):
+    data = get_img_data(cfg)
+
+    train_dataset = build_COCO_Person_dataset(data.train_coco, data.train_images, src=data.train_dir, split='train')
+    val_dataset = build_COCO_Person_dataset(data.val_coco, data.val_images, src=data.val_dir, split='val')
+
+    num_workers = cfg.DATALOADER.NUM_WORKERS
+
+    t_loader = data.DataLoader(
+        train_dataset, 
+        batch_size=cfg.INPUT.SIZE_TRAIN, 
+        shuffle=False, 
+        num_workers=num_workers, 
+        pin_memory=True,
+        drop_last=False
+    )
+    v_loader = data.DataLoader(
+        val_dataset, batch_size=cfg.INPUT.SIZE_TEST, shuffle=False, num_workers=num_workers, pin_memory=True, drop_last=False
+    )
+    return t_loader, v_loader

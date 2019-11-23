@@ -6,39 +6,26 @@ import sys
 import cv2
 import numpy as np
 import torch.utils.data as data
-import lmdb
 import math
 from PIL import Image
 import cv2
-from data import caffe_pb2
+# from data import caffe_pb2
 from data.build_transform import RandomErasing, _RandomCrop, _RandomHorizontalFlip
 import torchvision.transforms as T
 import torchvision.transforms.functional as F
 from tools.image import get_affine_transform, affine_transform, draw_umich_gaussian, gaussian_radius
-datum = caffe_pb2.Datum()
 
 
 class build_image_dataset(data.Dataset):
-    def __init__(self, dataset, transform=None, use_lmdb=None):
+    def __init__(self, dataset, transform=None):
         self.dataset = dataset
         self.transform = transform
-        if use_lmdb is not None:  
-            lmdb_env = lmdb.open(use_lmdb)
-            self.lmdb_txn = lmdb_env.begin()
-        else:
-            self.lmdb_txn = None
     
     def __getitem__(self, index):
         img_path, label = self.dataset[index]
 
-        if self.lmdb_txn is not None:
-            raw = self.lmdb_txn.get(img_path.encode())
-            datum.ParseFromString(raw)
-            img = Image.frombytes('RGB', (256,256), datum.data)
-            label = datum.label
-        else:
-            img = Image.open(img_path)        
-            img = img.convert('RGB')
+        img = Image.open(img_path)        
+        img = img.convert('RGB')
 
         if self.transform is not None:
             img = self.transform(img)
@@ -201,18 +188,16 @@ class build_par_dataset(data.Dataset):
 
 class build_COCO_Person_dataset(data.Dataset):
     # DeepFastion2 KeyPoints
-    def __init__(self, data_handle, data, src, split):
-        self.coco = data_handle
+    def __init__(self, data_coco, data, src, split):
+        self.coco = data_coco
         self.num_classes = 1
         self.max_objs = 32
         self.default_res = (512, 512)    
         self.images = data
         self.src = src
         self.split = split
-        self.mean = np.array([0.40789654, 0.44719302, 0.47026115],
-                   dtype=np.float32).reshape(1, 1, 3)
-        self.std  = np.array([0.28863828, 0.27408164, 0.27809835],
-                   dtype=np.float32).reshape(1, 1, 3)
+        self.mean = np.array([0.40789654, 0.44719302, 0.47026115], dtype=np.float32).reshape(1, 1, 3)
+        self.std  = np.array([0.28863828, 0.27408164, 0.27809835], dtype=np.float32).reshape(1, 1, 3)
         
     def _coco_box_to_bbox(self, box):
         bbox = np.array([box[0], box[1], box[0] + box[2], box[1] + box[3]],
@@ -223,7 +208,7 @@ class build_COCO_Person_dataset(data.Dataset):
         img = cv2.imread(path)
         height, width = img.shape[:2]         
         long_side = np.max(img.shape[:2])
-        canvas = np.zeros([long_side, long_side, 3])
+        canvas = np.zeros([long_side, long_side, 3]) + (self.mean * 255.)
         h_offset, w_offset = int((long_side-height)/2), int((long_side-width)/2)
         canvas[h_offset:(height+h_offset), w_offset:(width+w_offset), :] = img
         img = canvas.astype(np.uint8)   
@@ -236,9 +221,7 @@ class build_COCO_Person_dataset(data.Dataset):
         return len(self.images)
         
     def __getitem__(self, index):
-        img_id = self.images[index]
-        fname = self.coco.loadImgs(ids=[img_id])[0]['file_name']
-        img_path = osp.join(self.src, fname)
+        img_id, img_path = self.images[index]        
         ann_ids = self.coco.getAnnIds(imgIds=[img_id])
         anns = self.coco.loadAnns(ids=ann_ids)
         num_objs = min(len(anns), self.max_objs)        
@@ -302,20 +285,22 @@ class build_COCO_Person_dataset(data.Dataset):
                     ind[k] = ct_int[1] * output_res + ct_int[0]
                     reg[k] = ct - ct_int
                     reg_mask[k] = 1  
-            
-            ret = {   'input': inp, 
-                         'hm': hm,           'wh': wh,         'reg': reg,
-                   'reg_mask': reg_mask,    'ind': ind}
+                        
+            return inp, hm, wh, reg, reg_mask, ind
         else:
             img = cv2.imread(img_path)
+            h, w = img.shape[:2]         
+            h_offset, w_offset = 16 - (h % 16), 16 - (w % 16)
+            canvas = np.zeros([h + h_offset, w + w_offset, 3]) + (self.mean * 255.)
+            canvas[:h, :w, :] = img
+            img = canvas.astype(np.uint8) 
             # [-1,1]
-            inp = (inp.astype(np.float32) / 255.)
+            inp = (img.astype(np.float32) / 255.)
             inp = (inp - self.mean) / self.std
             # HWC => CHW
             inp = inp.transpose(2, 0, 1)
-            ret = {'input': inp}
 
-        return ret
+            return inp, img_id
 
 class build_DFKP_dataset(data.Dataset):
     # DeepFastion2 KeyPoints
@@ -329,10 +314,8 @@ class build_DFKP_dataset(data.Dataset):
         self.images = data
         self.src = src
         self.split = split
-        self.mean = np.array([0.40789654, 0.44719302, 0.47026115],
-                   dtype=np.float32).reshape(1, 1, 3)
-        self.std  = np.array([0.28863828, 0.27408164, 0.27809835],
-                   dtype=np.float32).reshape(1, 1, 3)
+        self.mean = np.array([0.40789654, 0.44719302, 0.47026115], dtype=np.float32).reshape(1, 1, 3)
+        self.std  = np.array([0.28863828, 0.27408164, 0.27809835], dtype=np.float32).reshape(1, 1, 3)
         
     def _coco_box_to_bbox(self, box):
         bbox = np.array([box[0], box[1], box[0] + box[2], box[1] + box[3]],
@@ -343,7 +326,7 @@ class build_DFKP_dataset(data.Dataset):
         img = cv2.imread(path)
         height, width = img.shape[:2]         
         long_side = np.max(img.shape[:2])
-        canvas = np.zeros([long_side, long_side, 3])
+        canvas = np.zeros([long_side, long_side, 3]) + (self.mean * 255.)
         h_offset, w_offset = int((long_side-height)/2), int((long_side-width)/2)
         canvas[h_offset:(height+h_offset), w_offset:(width+w_offset), :] = img
         img = canvas.astype(np.uint8)   
@@ -380,7 +363,7 @@ class build_DFKP_dataset(data.Dataset):
             inp = cv2.warpAffine(img, trans_input, self.default_res, flags=cv2.INTER_LINEAR)
             # [-1,1]
             inp = (inp.astype(np.float32) / 255.)
-            inp = (inp - 0.5) / 0.5
+            inp = (inp - self.mean) / self.std
             # HWC => CHW
             inp = inp.transpose(2, 0, 1)
 
@@ -467,9 +450,14 @@ class build_DFKP_dataset(data.Dataset):
                    'hps_mask': kps_mask, 'hp_ind': hp_ind, 'hp_mask': hp_mask}
         else:
             img = cv2.imread(img_path)
+            h, w = img.shape[:2]         
+            h_offset, w_offset = h % 16, w % 16
+            canvas = np.zeros([h + h_offset, w + w_offset, 3]) + (self.mean * 255.)
+            canvas[:h, :w, :] = img
+            img = canvas.astype(np.uint8)  
             # [-1,1]
-            inp = (inp.astype(np.float32) / 255.)
-            inp = (inp - 0.5) / 0.5
+            inp = (img.astype(np.float32) / 255.)
+            inp = (inp - self.mean) / self.std
             # HWC => CHW
             inp = inp.transpose(2, 0, 1)
             ret = {'input': inp}

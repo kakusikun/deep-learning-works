@@ -262,7 +262,7 @@ class Regressor(nn.Module):
         self.regressor = nn.Sequential(
             g_name(name + '/conv1', nn.Conv2d(in_channels, out_channels, 3, stride=1, padding=1, bias=False, groups=1)),
             g_name(name + '/leaky_relu', nn.LeakyReLU(negative_slope=0.01, inplace=True)),
-            g_name(name + '/conv2', nn.Conv2d(out_channels, out_channels, 1, stride=1, padding=1, bias=False, groups=1)),
+            g_name(name + '/conv2', nn.Conv2d(out_channels, out_channels, 1, stride=1, padding=0, bias=False, groups=1)),
         )
     
     def forward(self, x):
@@ -311,7 +311,7 @@ class OSNet(nn.Module):
         self.seg1 = Conv3x3(self.g_name + '/seg1', 256, 128)
         self.seg2 = Conv3x3(self.g_name + '/seg2', 256, 128)
         self.seg3_1 = Conv3x3(self.g_name + '/seg3_1', 256, 128)
-        self.seg3_2 = Conv3x3(self.g_name + '/seg3_2', 256, 128)
+        self.seg3_2 = Conv3x3(self.g_name + '/seg3_2', 128, 128)
         self.seg3_1_upsample = upsample(self.g_name + '/seg3_1/upsample' , scale_factor=2, in_channels=128)
         self.seg3_2_upsample = upsample(self.g_name + '/seg3_2/upsample' , scale_factor=2, in_channels=128)
         self.seg2_upsample   = upsample(self.g_name + '/seg2/upsample'   , scale_factor=2, in_channels=128)
