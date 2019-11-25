@@ -83,7 +83,7 @@ class Upsample(nn.Module):
         super(Upsample, self).__init__()
         self.scale_factor = scale_factor
         self.in_channels = in_channels
-        self.handle = nn.Upsample(scale_factor=scale_factor, mode='bilinear')
+        self.handle = nn.Upsample(scale_factor=scale_factor, mode='bilinear', align_corners=True)
     
     def forward(self, x):
         x = self.handle(x)

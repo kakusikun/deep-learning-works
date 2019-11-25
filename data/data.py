@@ -54,14 +54,14 @@ class COCO_Person():
         if not osp.exists(self.train_dir):
             raise RuntimeError("'{}' is not available".format(self.train_dir))
         if not osp.exists(self.train_anno):
-            orig_json = 'instances{}'.format(osp.basename(self.train_anno).split("_")[-1])
+            orig_json = 'instances_{}'.format(osp.basename(self.train_anno).split("_")[-1])
             if not osp.exists(osp.join(self.dataset_dir, orig_json)):
                 raise RuntimeError("'{}' is not available to make person of coco".format(osp.join(self.dataset_dir, orig_json)))
             self.make_person_coco(osp.join(self.dataset_dir, orig_json), self.train_anno)
         if not osp.exists(self.val_dir):
             raise RuntimeError("'{}' is not available".format(self.val_dir))        
         if not osp.exists(self.val_anno):
-            orig_json = 'instances{}'.format(osp.basename(self.val_anno).split("_")[-1])
+            orig_json = 'instances_{}'.format(osp.basename(self.val_anno).split("_")[-1])
             if not osp.exists(osp.join(self.dataset_dir, orig_json)):
                 raise RuntimeError("'{}' is not available to make person of coco".format(osp.join(self.dataset_dir, orig_json)))
             self.make_person_coco(osp.join(self.dataset_dir, orig_json), self.val_anno)
