@@ -208,7 +208,7 @@ class build_COCO_Person_dataset(data.Dataset):
         img = cv2.imread(path)
         height, width = img.shape[:2]         
         long_side = np.max(img.shape[:2])
-        canvas = np.zeros([long_side, long_side, 3]) + (self.mean * 255.)
+        canvas = np.zeros([long_side, long_side, 3])
         h_offset, w_offset = int((long_side-height)/2), int((long_side-width)/2)
         canvas[h_offset:(height+h_offset), w_offset:(width+w_offset), :] = img
         img = canvas.astype(np.uint8)   
@@ -293,7 +293,7 @@ class build_COCO_Person_dataset(data.Dataset):
             img = cv2.imread(img_path)
             h, w = img.shape[:2]         
             h_offset, w_offset = 16 - (h % 16), 16 - (w % 16)
-            canvas = np.zeros([h + h_offset, w + w_offset, 3]) + (self.mean * 255.)
+            canvas = np.zeros([h + h_offset, w + w_offset, 3])
             canvas[:h, :w, :] = img
             img = canvas.astype(np.uint8) 
             # [-1,1]
@@ -328,7 +328,7 @@ class build_DFKP_dataset(data.Dataset):
         img = cv2.imread(path)
         height, width = img.shape[:2]         
         long_side = np.max(img.shape[:2])
-        canvas = np.zeros([long_side, long_side, 3]) + (self.mean * 255.)
+        canvas = np.zeros([long_side, long_side, 3])
         h_offset, w_offset = int((long_side-height)/2), int((long_side-width)/2)
         canvas[h_offset:(height+h_offset), w_offset:(width+w_offset), :] = img
         img = canvas.astype(np.uint8)   
@@ -454,7 +454,7 @@ class build_DFKP_dataset(data.Dataset):
             img = cv2.imread(img_path)
             h, w = img.shape[:2]         
             h_offset, w_offset = h % 16, w % 16
-            canvas = np.zeros([h + h_offset, w + w_offset, 3]) + (self.mean * 255.)
+            canvas = np.zeros([h + h_offset, w + w_offset, 3])
             canvas[:h, :w, :] = img
             img = canvas.astype(np.uint8)  
             # [-1,1]
