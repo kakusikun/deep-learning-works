@@ -24,9 +24,9 @@ class COCO_Person():
     def __init__(self, cfg):
         self.dataset_dir = cfg.DATASET.TRAIN_PATH       
         self.train_dir = osp.join(self.dataset_dir, "train2017")
-        self.train_anno = osp.join(self.dataset_dir, "instances_train2017.json")
+        self.train_anno = osp.join(self.dataset_dir, "person_train2017.json")
         self.val_dir = osp.join(self.dataset_dir, "val2017")
-        self.val_anno = osp.join(self.dataset_dir, "instances_val2017.json")
+        self.val_anno = osp.join(self.dataset_dir, "person_val2017.json")
         self._check_before_run()
         
         train_coco, train_images, train_num_samples = self._process_dir(self.train_anno, self.train_dir)
