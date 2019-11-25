@@ -298,9 +298,9 @@ class OSNet(nn.Module):
             g_name(name + '/block0/reduce/max', nn.MaxPool2d(3, stride=2, padding=1)),            
         )
 
-        self.stage1 = self._make_layer(name + '/block1', blocks[0], layers[0], channels[0], channels[1], reduce_spatial_size=False)
+        self.stage1 = self._make_layer(name + '/block1', blocks[0], layers[0], channels[0], channels[1], reduce_spatial_size=True)
         self.stage2 = self._make_layer(name + '/block2', blocks[1], layers[1], channels[1], channels[2], reduce_spatial_size=True)
-        self.stage3 = self._make_layer(name + '/block3', blocks[2], layers[2], channels[2], channels[3], reduce_spatial_size=True)
+        self.stage3 = self._make_layer(name + '/block3', blocks[2], layers[2], channels[2], channels[3], reduce_spatial_size=False)
 
         self.fpn1 = Conv1x1(self.g_name + '/fpn1', channels[1], 256)
         self.fpn2 = Conv1x1(self.g_name + '/fpn2', channels[2], 256)
@@ -309,13 +309,15 @@ class OSNet(nn.Module):
         self.fpn2_upsample = upsample(self.g_name + '/fpn2/upsample' , scale_factor=2, in_channels=256)
 
         self.seg1 = Conv3x3(self.g_name + '/seg1', 256, 128)
-        self.seg2 = Conv3x3(self.g_name + '/seg2', 256, 128)
+        self.seg1_upsample   = upsample(self.g_name + '/seg1/upsample'   , scale_factor=2, in_channels=128)
+        self.seg2_1 = Conv3x3(self.g_name + '/seg2_1', 256, 128)
+        self.seg2_2 = Conv3x3(self.g_name + '/seg2_2', 128, 128)
+        self.seg2_1_upsample = upsample(self.g_name + '/seg2_1/upsample'   , scale_factor=2, in_channels=128)
+        self.seg2_2_upsample = upsample(self.g_name + '/seg2_2/upsample'   , scale_factor=2, in_channels=128)
         self.seg3_1 = Conv3x3(self.g_name + '/seg3_1', 256, 128)
         self.seg3_2 = Conv3x3(self.g_name + '/seg3_2', 128, 128)
         self.seg3_1_upsample = upsample(self.g_name + '/seg3_1/upsample' , scale_factor=2, in_channels=128)
-        self.seg3_2_upsample = upsample(self.g_name + '/seg3_2/upsample' , scale_factor=2, in_channels=128)
-        self.seg2_upsample   = upsample(self.g_name + '/seg2/upsample'   , scale_factor=2, in_channels=128)
-
+        self.seg3_2_upsample = upsample(self.g_name + '/seg3_2/upsample' , scale_factor=2, in_channels=128)    
 
         self.hm_reg     = Regressor(self.g_name + '/object_heatmap', 128, num_classes)
         self.offset_reg = Regressor(self.g_name + '/object_offset', 128, 2)
@@ -376,13 +378,14 @@ class OSNet(nn.Module):
         stage3 = self.stage3(stage2)   
 
         fpn3 = self.fpn3(stage3)
-        fpn2 = self.fpn2(stage2) + self.fpn3_upsample(fpn3)
+        fpn2 = self.fpn2(stage2) + fpn3 # self.fpn3_upsample(fpn3)
         fpn1 = self.fpn1(stage1) + self.fpn2_upsample(fpn2)
 
         seg3_1 = self.seg3_1_upsample(self.seg3_1(fpn3))
         seg3_2 = self.seg3_2_upsample(self.seg3_2(seg3_1))
-        seg2   = self.seg2_upsample(self.seg2(fpn2)) + seg3_2
-        seg1   = self.seg1(fpn1) + seg2
+        seg2_1 = self.seg2_1_upsample(self.seg2_1(fpn2))
+        seg2_2 = self.seg2_2_upsample(self.seg2_2(seg2_1)) + seg3_2
+        seg1   = self.seg1_upsample(self.seg1(fpn1)) + seg2_2
 
         ob_hm     = self.hm_reg(seg1)
         ob_offset = self.offset_reg(seg1)
@@ -407,7 +410,7 @@ class OSNet(nn.Module):
         fpn3 = generate_caffe_prototxt(self.fpn3, caffe_net, stage3)
 
         fpn3_upsample = generate_caffe_prototxt(self.fpn3_upsample, caffe_net, fpn3)
-        fpn2 = L.Eltwise(stage2, fpn3_upsample, operation=P.Eltwise.SUM)
+        fpn2 = L.Eltwise(stage2, fpn3_upsample, operation=P.Eltwise.SUM)        
         caffe_net[self.g_name + '/fpn2/add'] = fpn2
         fpn2_upsample = generate_caffe_prototxt(self.fpn2_upsample, caffe_net, fpn2)
         fpn1 = L.Eltwise(stage1, fpn2_upsample, operation=P.Eltwise.SUM)
@@ -417,12 +420,15 @@ class OSNet(nn.Module):
         seg3_1 = generate_caffe_prototxt(self.seg3_1_upsample, caffe_net, fpn3)
         seg3_1 = generate_caffe_prototxt(self.seg3_2, caffe_net, seg3_1)
         seg3_2 = generate_caffe_prototxt(self.seg3_2_upsample, caffe_net, seg3_1)
-        fpn2 = generate_caffe_prototxt(self.seg2, caffe_net, fpn2)
-        fpn2 = generate_caffe_prototxt(self.seg2_upsample, caffe_net, fpn2)
-        seg2 = L.Eltwise(fpn2, seg3_2, operation=P.Eltwise.SUM)
-        caffe_net[self.g_name + '/seg2/add'] = seg2
+        fpn2 = generate_caffe_prototxt(self.seg2_1, caffe_net, fpn2)
+        seg2_1 = generate_caffe_prototxt(self.seg2_1_upsample, caffe_net, fpn2)
+        seg2_1 = generate_caffe_prototxt(self.seg2_2, caffe_net, seg2_1)
+        seg2_2 = generate_caffe_prototxt(self.seg2_2_upsample, caffe_net, seg2_1)
+        seg2_2 = L.Eltwise(seg2_2, seg3_2, operation=P.Eltwise.SUM)        
+        caffe_net[self.g_name + '/seg2/add'] = seg2_2
         fpn1 = generate_caffe_prototxt(self.seg1, caffe_net, fpn1)
-        seg1 = L.Eltwise(seg2, fpn1, operation=P.Eltwise.SUM)
+        seg1 = generate_caffe_prototxt(self.seg1_upsample, caffe_net, fpn1)
+        seg1 = L.Eltwise(seg2_2, seg1, operation=P.Eltwise.SUM)
         caffe_net[self.g_name + '/seg1/add'] = seg1
         
         ob_hm = generate_caffe_prototxt(self.hm_reg, caffe_net, seg1)
