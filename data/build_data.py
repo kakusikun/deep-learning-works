@@ -264,6 +264,8 @@ class build_COCO_Person_dataset(data.Dataset):
 
             for k in range(num_objs):
                 ann = anns[k]
+                if ann['category_id'] != 1:
+                    continue
                 bbox = self._coco_box_to_bbox(ann['bbox'])
                 bbox[[0, 2]] += w_offset
                 bbox[[1, 3]] += h_offset

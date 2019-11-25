@@ -222,20 +222,20 @@ def build_plain_reid_loader(cfg):
     return t_loader, q_loader, g_loader
 
 def build_coco_person_loader(cfg):
-    data = get_img_data(cfg)
+    dataset = get_img_data(cfg)
 
-    train_dataset = build_COCO_Person_dataset(data.train_coco, data.train_images, src=data.train_dir, split='train')
-    val_dataset = build_COCO_Person_dataset(data.val_coco, data.val_images, src=data.val_dir, split='val')
+    train_dataset = build_COCO_Person_dataset(dataset.train_coco, dataset.train_images, src=dataset.train_dir, split='train')
+    val_dataset = build_COCO_Person_dataset(dataset.val_coco, dataset.val_images, src=dataset.val_dir, split='val')
 
     num_workers = cfg.DATALOADER.NUM_WORKERS
 
     t_loader = data.DataLoader(
         train_dataset, 
         batch_size=cfg.INPUT.SIZE_TRAIN, 
-        shuffle=False, 
+        shuffle=True, 
         num_workers=num_workers, 
         pin_memory=True,
-        drop_last=False
+        drop_last=True
     )
     v_loader = data.DataLoader(
         val_dataset, batch_size=cfg.INPUT.SIZE_TEST, shuffle=False, num_workers=num_workers, pin_memory=True, drop_last=False
