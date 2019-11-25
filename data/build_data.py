@@ -188,13 +188,12 @@ class build_par_dataset(data.Dataset):
 
 class build_COCO_Person_dataset(data.Dataset):
     # DeepFastion2 KeyPoints
-    def __init__(self, data_coco, data, src, split):
+    def __init__(self, data_coco, data, split):
         self.coco = data_coco
         self.num_classes = 1
         self.max_objs = 32
         self.default_res = (512, 512)    
         self.images = data
-        self.src = src
         self.split = split
         self.mean = np.array([0.40789654, 0.44719302, 0.47026115], dtype=np.float32).reshape(1, 1, 3)
         self.std  = np.array([0.28863828, 0.27408164, 0.27809835], dtype=np.float32).reshape(1, 1, 3)

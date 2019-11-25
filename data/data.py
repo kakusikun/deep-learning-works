@@ -16,6 +16,7 @@ from collections import defaultdict
 from tqdm import tqdm
 import logging
 import pycocotools.coco as coco
+import json
 logger = logging.getLogger("logger")
 
 from tools.utils import mkdir_if_missing, write_json, read_json
@@ -53,12 +54,17 @@ class COCO_Person():
         if not osp.exists(self.train_dir):
             raise RuntimeError("'{}' is not available".format(self.train_dir))
         if not osp.exists(self.train_anno):
-            raise RuntimeError("'{}' is not available".format(self.train_anno))
+            orig_json = 'instances{}'.format(osp.basename(self.train_anno).split("_")[-1])
+            if not osp.exists(osp.join(self.dataset_dir, orig_json)):
+                raise RuntimeError("'{}' is not available to make person of coco".format(osp.join(self.dataset_dir, orig_json)))
+            self.make_person_coco(osp.join(self.dataset_dir, orig_json), self.train_anno)
         if not osp.exists(self.val_dir):
             raise RuntimeError("'{}' is not available".format(self.val_dir))        
         if not osp.exists(self.val_anno):
-            raise RuntimeError("'{}' is not available".format(self.val_anno))
-
+            orig_json = 'instances{}'.format(osp.basename(self.val_anno).split("_")[-1])
+            if not osp.exists(osp.join(self.dataset_dir, orig_json)):
+                raise RuntimeError("'{}' is not available to make person of coco".format(osp.join(self.dataset_dir, orig_json)))
+            self.make_person_coco(osp.join(self.dataset_dir, orig_json), self.val_anno)
     
     def _process_dir(self, anno_path, img_path):
         data_handle = coco.COCO(anno_path)
@@ -76,6 +82,34 @@ class COCO_Person():
         num_samples = len(images)
         
         return data_handle, images, num_samples
+    
+    def make_person_coco(self, src, dst):
+        logger.info("Making person of coco of {} ...".format(dst))
+        anno_path = src
+
+        f = open(anno_path, 'r')
+        coco_json = json.loads(f.readline())
+        coco_person = {}
+        coco_person['info'] = coco_json['info']
+        coco_person['licenses'] = coco_json['licenses']
+        coco_person['categories'] = [coco_json['categories'][0]]
+
+        del coco_json
+
+        coco_data = coco.COCO(anno_path)
+        person_img_ids = coco_data.getImgIds(catIds=[1])
+        annids = coco_data.getAnnIds(imgIds=person_img_ids)
+        anns = coco_data.loadAnns(ids=annids)
+        person_anns = []
+        for ann in anns:
+            if ann['category_id'] == 1:
+                person_anns.append(ann)
+        person_imgs = coco_data.loadImgs(ids=person_img_ids)
+        
+        coco_person['images'] = person_imgs
+        coco_person['annotations'] = person_anns
+
+        json.dump(coco_person, open(dst, 'w'))
 
 class DeepFashion2():
     def __init__(self, cfg):
