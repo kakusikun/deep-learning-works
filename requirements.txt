@@ -16,3 +16,4 @@ seaborn==0.9.0
 colormath
 Cython
 pycocotools
+numba
