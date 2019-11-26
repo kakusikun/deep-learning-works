@@ -39,6 +39,8 @@ _C.EXPERIMENT = ""
 
 _C.TASK = ""
 
+_C.ORACLE = False
+
 _C.MODEL = CN()
 _C.MODEL.GPU = []
 _C.MODEL.NUM_CLASSES = 0

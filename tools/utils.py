@@ -67,12 +67,18 @@ def _topk(scores, K=40):
 
     return topk_score, topk_inds, topk_clses, topk_ys, topk_xs
 
-def ctdet_post_process(dets, h, w, num_classes):
+def ctdet_post_process(dets, h, w, c, s, num_classes):
   # dets: batch x max_dets x dim
   # return 1-based class det dict
+  if not isinstance(s, np.ndarray):
+      s = np.array([s,s])
   ret = []
   for i in range(dets.shape[0]):
     top_preds = {}
+    dets[i, :, :2] = transform_preds(
+          dets[i, :, 0:2], c[i], s[i], (w, h))
+    dets[i, :, 2:4] = transform_preds(
+          dets[i, :, 2:4], c[i], s[i], (w, h))
     classes = dets[i, :, -1]
     for j in range(num_classes):
       inds = (classes == j)
@@ -107,6 +113,7 @@ def ctdet_decode(heat, wh, reg=None, cat_spec_wh=False, K=100):
       wh = wh.view(batch, K, 2)
     
     valid_object = wh[:,:,0].gt(0) * wh[:,:,1].gt(0)
+    
     clses  = clses.view(batch, K, 1).float()
     scores = scores.view(batch, K, 1)
     bboxes = torch.cat([xs - wh[..., 0:1] / 2, 

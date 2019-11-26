@@ -6,6 +6,7 @@ import torch.nn.functional as F
 import torchvision.transforms as T
 import torchvision
 from engine.engine import Engine, data_prefetcher
+from tools.oracle_utils import gen_oracle_map
 from tools.utils import ctdet_decode, ctdet_post_process
 from pycocotools.cocoeval import COCOeval
 import json
@@ -61,12 +62,23 @@ class CenterEngine(Engine):
         self._eval_epoch_start()
         with torch.no_grad():
             for batch in tqdm(self.vdata, desc="Validation"):                
-                img, img_id = batch
-                if self.use_gpu: img = img.cuda()                
-                ob_hm, ob_offset, ob_size = self.core(img)
+                img, hm, wh, reg, reg_mask, ind, c, s, img_id = batch
+
+                if self.cfg.ORACLE:
+                    ob_hm     = hm.cuda()
+                    ob_size   = torch.from_numpy(gen_oracle_map(wh.detach().cpu().numpy(), 
+                                                                ind.detach().cpu().numpy(), 
+                                                                img.shape[3] // 4, img.shape[2] // 4)).cuda()
+                    ob_offset = torch.from_numpy(gen_oracle_map(reg.detach().cpu().numpy(), 
+                                                                ind.detach().cpu().numpy(), 
+                                                                img.shape[3] // 4, img.shape[2] // 4)).cuda()
+                else:
+                    if self.use_gpu: img = img.cuda()                
+                    ob_hm, ob_offset, ob_size = self.core(img)
+                  
                 dets = ctdet_decode(ob_hm, ob_size, reg=ob_offset, K=100)
                 dets = dets.detach().cpu().numpy().reshape(1, -1, dets.shape[1])
-                dets_out = ctdet_post_process(dets.copy(), ob_hm.shape[2], ob_hm.shape[3], ob_hm.shape[1])
+                dets_out = ctdet_post_process(dets.copy(), ob_hm.shape[2], ob_hm.shape[3], c.numpy(), s.numpy(), ob_hm.shape[1])
                 results[img_id[0]] = dets_out[0]
         cce = coco_eval(self.vdata.dataset.coco, results, self.cfg.OUTPUT_DIR)  
 
