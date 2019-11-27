@@ -13,7 +13,7 @@ from visualizer.visualizer import Visualizer
 from model.managers.manager_reid_ssg import SSGManager
 from model.utility import get_self_label
 
-from tools.utils import deploy_gpu
+from tools.utils import deploy_macro
 from tools.logger import setup_logger
 import torch.nn as nn
 import torch
@@ -70,7 +70,7 @@ def main():
     logger.info("Running with config:\n{}".format(cfg))
     action = input("Config Confirmed ? (Y/N)").lower().strip()
     if action == 'y':
-        deploy_gpu(cfg)
+        deploy_macro(cfg)
         train(cfg)    
     else:
         shutil.rmtree(cfg.OUTPUT_DIR)
