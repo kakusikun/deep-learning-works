@@ -33,7 +33,7 @@ class CenterManager(TrainingManager):
         self.loss_has_param = []
         self.loss_name = ["focal", "reg_wh", "reg_offset"]
 
-        def loss_func(feats, targets):
+        def loss_func(feats, batch):
             focal_loss = 0.0
             wh_loss    = 0.0
             off_loss   = 0.0
@@ -42,13 +42,13 @@ class CenterManager(TrainingManager):
                 for head in feat.keys():
                     if head == 'hm':
                         output = _sigmoid(feat[head])
-                        focal_loss += focal(output, hm)
+                        focal_loss += focal(output, batch['hm'])
                     elif head == 'wh':
                         output = feat[head]
-                        wh_loss += regli(ob_size  , reg_mask, ind, wh)
+                        wh_loss += regli(output, batch['reg_mask'], batch['ind'], batch['wh'])
                     else:
                         output = feat[head]
-                        off_loss += regli(ob_offset, reg_mask, ind, reg)
+                        off_loss += regli(output, batch['reg_mask'], batch['ind'], batch['reg'])
 
             each_loss = [focal_loss, wh_loss, off_loss]
             loss = each_loss[0] + 0.1 * each_loss[1] + each_loss[2]

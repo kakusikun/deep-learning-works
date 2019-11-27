@@ -76,6 +76,7 @@ class CenterEngine(Engine):
                                                                   batch['inp'].shape[3] // 8, batch['inp'].shape[2] // 8)).cuda()
                 else:               
                     feat = self.core(batch['inp'])[-1]
+                    feat['hm'].sigmoid_()
                   
                 dets = ctdet_decode(feat['hm'], feat['wh'], reg=feat['reg'], K=100)
                 dets = dets.detach().cpu().numpy().reshape(1, -1, dets.shape[1])
