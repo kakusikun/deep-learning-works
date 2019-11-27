@@ -93,10 +93,13 @@ class fire_module(nn.Module):
         self.conv_1x1 = nn.Conv2d(out_dim // sr, out_dim // 2, kernel_size=1, stride=stride, bias=False)
         self.conv_3x3 = nn.Conv2d(out_dim // sr, out_dim // 2, kernel_size=3, padding=1, 
                                   stride=stride, groups=out_dim // sr, bias=False)
-        # self.bn2      = nn.BatchNorm2d(out_dim)
-        self.bn2      = Norm(out_dim, activation='identity')
+        # self.bn2      = nn.BatchNorm2d(out_dim)        
         self.skip     = (stride == 1 and inp_dim == out_dim)
-        self.relu     = nn.LeakyReLU(inplace=True) if Norm is ABN else nn.ReLU(inplace=True)
+        if not self.skip:
+            self.bn2  = Norm(out_dim)
+        else:
+            self.bn2  = Norm(out_dim, activation='identity')
+            self.relu = nn.LeakyReLU(inplace=True) if Norm is ABN else nn.ReLU(inplace=True)
         # self.relu     = nn.ReLU(inplace=True)
 
     def forward(self, x):
@@ -107,7 +110,7 @@ class fire_module(nn.Module):
         if self.skip:
             return self.relu(bn2 + x)
         else:
-            return self.relu(bn2)
+            return bn2
 
 def make_pool_layer(dim):
     return nn.Sequential()
