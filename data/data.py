@@ -120,8 +120,8 @@ class DeepFashion2():
         self.val_anno = osp.join(self.dataset_dir, "deepfashion2_validation.json")
         self._check_before_run()
         
-        # train_handle, train_images, train_num_samples = self._process_dir(self.train_anno)
-        val_handle, val_images, val_num_samples = self._process_dir(self.val_anno)
+        train_coco, train_images, train_num_samples = self._process_dir(self.train_anno, self.train_dir)
+        val_coco, val_images, val_num_samples = self._process_dir(self.val_anno, self.val_dir)
         
         logger.info("=> DeepFashion2 is loaded")
         logger.info("Dataset statistics:")
@@ -151,15 +151,17 @@ class DeepFashion2():
             raise RuntimeError("'{}' is not available".format(self.val_anno))
 
     
-    def _process_dir(self, path):
-        data_handle = coco.COCO(path)
-        image_ids = data_handle.getImgIds()  
+    def _process_dir(self, anno_path, img_path):
+        data_handle = coco.COCO(anno_path)
+        image_ids = data_handle.getImgIds() 
 
         images = []
         for img_id in image_ids:
             idxs = data_handle.getAnnIds(imgIds=[img_id])
             if len(idxs) > 0:
-                images.append(img_id)
+                fname = data_handle.loadImgs(ids=[img_id])[0]['file_name']
+                fname = osp.join(img_path, fname)
+                images.append((img_id, fname))
      
         num_samples = len(images)
         
