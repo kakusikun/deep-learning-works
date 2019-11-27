@@ -252,14 +252,14 @@ class build_COCO_Person_dataset(data.Dataset):
             s = max((inp.shape[0]-h_offset), (inp.shape[1]-w_offset)) * 1.0        
 
         if self.split == 'train':
-            output_res = self.default_res[0] // 4
+            output_res = self.default_res[0] // 8
             num_classes = self.num_classes
             trans_output = get_affine_transform(c, s, 0, [output_res, output_res])
         else:
-            output_res_w, output_res_h = inp.shape[1] // 4, inp.shape[0] // 4
+            output_res_w, output_res_h = inp.shape[1] // 8, inp.shape[0] // 8
             num_classes = self.num_classes
             trans_output = get_affine_transform(c, s, 0, [output_res_w, output_res_h])
-            
+
         # [0,1]
         inp = (inp.astype(np.float32) / 255.)
         inp = (inp - self.mean) / self.std
@@ -310,10 +310,13 @@ class build_COCO_Person_dataset(data.Dataset):
                 reg[k] = ct - ct_int
                 reg_mask[k] = 1  
 
-        if self.split == 'train':
-            return inp, hm, wh, reg, reg_mask, ind, c, s
-        else:
-            return inp, hm, wh, reg, reg_mask, ind, c, s, img_id
+        ret = {'inp': inp, 
+               'hm': hm, 'wh':wh, 'reg':reg,
+               'reg_mask': reg_mask, 'ind': ind}
+
+        if self.split != 'train':            
+            ret.update({'img_id': img_id, 'c': c, 's': s})
+        return ret
 
 class build_DFKP_dataset(data.Dataset):
     # DeepFastion2 KeyPoints
@@ -380,7 +383,7 @@ class build_DFKP_dataset(data.Dataset):
             # HWC => CHW
             inp = inp.transpose(2, 0, 1)
 
-            output_res = self.default_res[0] // 4
+            output_res = self.default_res[0] // 8
             num_joints = self.num_joints
             num_classes = self.num_classes
             trans_output = get_affine_transform(c, s, 0, [output_res, output_res])
