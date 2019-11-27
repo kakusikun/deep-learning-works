@@ -141,37 +141,57 @@ class data_prefetcher():
             return
         # if record_stream() doesn't work, another option is to make sure device inputs are created
         # on the main stream.
-        self.next_batch_gpu = []
-        for i in range(len(self.next_batch)):
-            self.next_batch_gpu.append(torch.empty_like(self.next_batch[i], device='cuda'))
-        # self.next_input_gpu = torch.empty_like(self.next_input, device='cuda')
-        # self.next_target_gpu = torch.empty_like(self.next_target, device='cuda')
-        # Need to make sure the memory allocated for next_* is not still in use by the main stream
-        # at the time we start copying to next_*:
-        self.stream.wait_stream(torch.cuda.current_stream())
-        with torch.cuda.stream(self.stream):
-            #  for i in range(len(self.next_batch)):
-                #  self.next_batch[i] = self.next_batch[i].cuda(non_blocking=True)
-            # more code for the alternative if record_stream() doesn't work:
-            # copy_ will record the use of the pinned source tensor in this side stream.
+        if isinstance(self.next_batch, list):
+            self.next_batch_gpu = []
             for i in range(len(self.next_batch)):
-                self.next_batch_gpu[i].copy_(self.next_batch[i], non_blocking=True)
-            # self.next_input_gpu.copy_(self.next_input, non_blocking=True)
-            # self.next_target_gpu.copy_(self.next_target, non_blocking=True)
-            self.next_batch = self.next_batch_gpu
-            # self.next_input = self.next_input_gpu
-            # self.next_target = self.next_target_gpu
+                self.next_batch_gpu.append(torch.empty_like(self.next_batch[i], device='cuda'))
+            # Need to make sure the memory allocated for next_* is not still in use by the main stream
+            # at the time we start copying to next_*:
+            self.stream.wait_stream(torch.cuda.current_stream())
+            with torch.cuda.stream(self.stream):
+                # more code for the alternative if record_stream() doesn't work:
+                # copy_ will record the use of the pinned source tensor in this side stream.
+                for i in range(len(self.next_batch)):
+                    self.next_batch_gpu[i].copy_(self.next_batch[i], non_blocking=True)
+                self.next_batch = self.next_batch_gpu
 
-            # With Amp, it isn't necessary to manually convert data to half.
-            # if args.fp16:
-            #     self.next_input = self.next_input.half()
-            # else:
-            
+                # With Amp, it isn't necessary to manually convert data to half.
+                # if args.fp16:
+                #     self.next_input = self.next_input.half()
+                # else:
+        elif isinstance(self.next_batch, dict):
+            self.next_batch_gpu = {}
+            for key in self.next_batch.keys():
+                self.next_batch_gpu[key] = torch.empty_like(self.next_batch[key], device='cuda')
+            # Need to make sure the memory allocated for next_* is not still in use by the main stream
+            # at the time we start copying to next_*:
+            self.stream.wait_stream(torch.cuda.current_stream())
+            with torch.cuda.stream(self.stream):
+                # more code for the alternative if record_stream() doesn't work:
+                # copy_ will record the use of the pinned source tensor in this side stream.
+                for key in self.next_batch.keys():
+                    self.next_batch_gpu[key].copy_(self.next_batch[key], non_blocking=True)
+                self.next_batch = self.next_batch_gpu
+
+                # With Amp, it isn't necessary to manually convert data to half.
+                # if args.fp16:
+                #     self.next_input = self.next_input.half()
+                # else:
+        else:
+            raise TypeError
     def next(self):
         torch.cuda.current_stream().wait_stream(self.stream)
         batch = self.next_batch
-        if batch is not None:
-            for i in range(len(batch)):
-                batch[i].record_stream(torch.cuda.current_stream())
+        if isinstance(batch, list):
+            if batch is not None:
+                for i in range(len(batch)):
+                    batch[i].record_stream(torch.cuda.current_stream())
+        elif isinstance(self.next_batch, dict):
+            if batch is not None:
+                for key in batch.keys():
+                    batch[key].record_stream(torch.cuda.current_stream())
+        else:
+            raise TypeError
+
         self.preload()
         return batch

@@ -44,9 +44,9 @@ class CenterEngine(Engine):
             batch = prefetcher.next()
             if batch is None:
                 break
-            images = batch[0]
+            images = batch['inp']
             feats = self.core(images) 
-            self.total_loss, self.each_loss = self.manager.loss_func(feats, batch[1:])
+            self.total_loss, self.each_loss = self.manager.loss_func(feats, batch)
             self.total_loss.backward()
 
             self._train_iter_end()
@@ -57,29 +57,32 @@ class CenterEngine(Engine):
 
     def _evaluate(self, eval=False):
         logger.info("Epoch {} evaluation start".format(self.epoch))
-        
+        prefetcher = data_prefetcher(self.vdata)
         results = {}
         self._eval_epoch_start()
         with torch.no_grad():
-            for batch in tqdm(self.vdata, desc="Validation"):                
-                img, hm, wh, reg, reg_mask, ind, c, s, img_id = batch
-
+            for _ in tqdm(range(len(self.vdata)), desc="Validation"):                
+                batch = prefetcher.next()
+                if batch is None:
+                    break
                 if self.cfg.ORACLE:
-                    ob_hm     = hm.cuda()
-                    ob_size   = torch.from_numpy(gen_oracle_map(wh.detach().cpu().numpy(), 
-                                                                ind.detach().cpu().numpy(), 
-                                                                img.shape[3] // 4, img.shape[2] // 4)).cuda()
-                    ob_offset = torch.from_numpy(gen_oracle_map(reg.detach().cpu().numpy(), 
-                                                                ind.detach().cpu().numpy(), 
-                                                                img.shape[3] // 4, img.shape[2] // 4)).cuda()
-                else:
-                    if self.use_gpu: img = img.cuda()                
-                    ob_hm, ob_offset, ob_size = self.core(img)
+                    feat = {}
+                    feat['hm']  = batch['hm']
+                    feat['wh']  = torch.from_numpy(gen_oracle_map(batch['wh'].detach().cpu().numpy(), 
+                                                                  batch['ind'].detach().cpu().numpy(), 
+                                                                  batch['inp'].shape[3] // 8, batch['inp'].shape[2] // 8)).cuda()
+                    feat['reg'] = torch.from_numpy(gen_oracle_map(batch['reg'].detach().cpu().numpy(), 
+                                                                  batch['ind'].detach().cpu().numpy(), 
+                                                                  batch['inp'].shape[3] // 8, batch['inp'].shape[2] // 8)).cuda()
+                else:               
+                    feat = self.core(batch['inp'])[-1]
                   
-                dets = ctdet_decode(ob_hm, ob_size, reg=ob_offset, K=100)
+                dets = ctdet_decode(feat['hm'], feat['wh'], reg=feat['reg'], K=100)
                 dets = dets.detach().cpu().numpy().reshape(1, -1, dets.shape[1])
-                dets_out = ctdet_post_process(dets.copy(), ob_hm.shape[2], ob_hm.shape[3], c.numpy(), s.numpy(), ob_hm.shape[1])
-                results[img_id[0]] = dets_out[0]
+                dets_out = ctdet_post_process(dets.copy(), feat['hm'].shape[2], feat['hm'].shape[3], 
+                                              batch['c'].cpu().numpy(), batch['s'].cpu().numpy(), 
+                                              feat['hm'].shape[1])
+                results[batch['img_id'][0]] = dets_out[0]
         cce = coco_eval(self.vdata.dataset.coco, results, self.cfg.OUTPUT_DIR)  
 
         logger.info('Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets={:>3d} ] = {:.3f}'.format(cce.params.maxDets[2], cce.stats[0]))

@@ -49,6 +49,7 @@ _C.MODEL.PRETRAIN = "own"
 _C.MODEL.TASK = "classifier"
 _C.MODEL.POOLING = "AVG"
 _C.MODEL.SAVE_CRITERION = "acc"
+_C.MODEL.NORM = "BN"
 
 # -----------------------------------------------------------------------------
 # INPUT
