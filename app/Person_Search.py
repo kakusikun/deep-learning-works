@@ -20,7 +20,7 @@ from config.config_manager import _C as model_config
 from config.config_manager import _A as app_config
 from model.managers.manager_reid_trick import TrickManager
 from data.build_transform import build_transform
-from tools.utils import deploy_gpu, AverageMeter
+from tools.utils import deploy_macro, AverageMeter
 from tools.logger import setup_logger
 import time
 logger = setup_logger("/home/allen/", log_name="REID")
@@ -37,7 +37,7 @@ class App():
             self.group = PersonDB()
             self.frame_idx = 0
             self.terminate = False
-            deploy_gpu(model_config)
+            deploy_macro(model_config)
             self.setIO()
             self.set_DetNet()
             self.set_ReIDNet()
@@ -375,17 +375,19 @@ if __name__ == '__main__':
     lpts = []
     uptsi = []
     lptsi = []
+    indice = []
     for i in tqdm(df.index):
         uci = -1
         lci = -1
-        uc = 'none'
-        lc = 'none'
+        uc = ''
+        lc = ''
+        indice.append(i)
 
         # read and crop image
         x1, y1, x2, y2 = [i for i in map(int, pattern.search(df.loc[i, 'bbox']).groups())]    
         img = cv2.imread(osp.join(src, df.loc[i, 'img']))
         img = img[y1:y2, x1:x2, :]
-        color_img = get_color_img(img.copy(), 'LAB')
+        color_img = get_color_img(img.copy(), 'HLS')
 
         # get pose
         subset, candidate = get_pose(app.PoseNet, img)    
@@ -395,25 +397,49 @@ if __name__ == '__main__':
         usamples, upoints = get_sample_points(color_img, subset, candidate, parts=UPPER)
         lsamples, lpoints = get_sample_points(color_img, subset, candidate, parts=THIGH)    
 
-        fname, ext = osp.splitext(df.loc[i, 'img'])
+        fname, ext = osp.splitext(df.loc[i, 'img'])        
         fname = "{}_{}{}".format(fname, i, ext)
-
+        print(fname)
         # uplot = lplot = False
+        
         if usamples.shape[0] > 0:
-            uci = get_color(usamples, LAB_Color)
-            uc = LAB_Color.get_color_name(uci)    
+            # uci = get_color(usamples, LAB_Color)
+            # uc = LAB_Color.get_color_name(uci)   
+            h, s, l = get_hsl_median(usamples)
+            uc = '{} {} {}'.format(h,s,l) 
             upts.extend(upoints)
             uptsi.extend([i]*len(upoints))
             # app.visualize(img, upoints, (0,0,255))   
             # uplot = True
         if lsamples.shape[0] > 0:                
-            lci = get_color(lsamples, LAB_Color)     
-            lc = LAB_Color.get_color_name(lci)   
+            # lci = get_color(lsamples, LAB_Color)     
+            # lc = LAB_Color.get_color_name(lci) 
+            h, s, l = get_hsl_median(lsamples)
+            lc = '{} {} {}'.format(h,s,l)  
             lpts.extend(lpoints)
             lptsi.extend([i]*len(lpoints))  
             # app.visualize(img, lpoints, (0,255,0)) 
             # lplot = True
+        # except:
+        #     print("Stop at index {}".format(i))
+        #     upts = np.array(upts)
+        #     uptsi = np.array(uptsi)
+        #     lpts = np.array(lpts)
+        #     lptsi = np.array(lptsi)
 
+        #     np.save(osp.join(dst, 'upts.npy'), upts)
+        #     np.save(osp.join(dst, 'uptsi.npy'), uptsi)
+        #     np.save(osp.join(dst, 'lpts.npy'), lpts)
+        #     np.save(osp.join(dst, 'lptsi.npy'), lptsi)
+            
+        #     df.uc = ucs
+        #     df.lc = lcs
+        #     df.uci = ucis
+        #     df.lci = lcis
+        #     df.to_csv("/media/allen/mass/office_color/office_color_polygon.csv")
+        #     sys.exit(1)
+
+        print(i, "---", uc, "---", lc)
         ucs.append(uc)
         lcs.append(lc)
         ucis.append(uci)
@@ -429,8 +455,8 @@ if __name__ == '__main__':
     np.save(osp.join(dst, 'lpts.npy'), lpts)
     np.save(osp.join(dst, 'lptsi.npy'), lptsi)
     
-    df.uc = ucs
-    df.lc = lcs
-    df.uci = ucis
-    df.lci = lcis
+    df.uc = pd.Series(ucs, index=indice)
+    df.lc = pd.Series(lcs, index=indice)
+    df.uci = pd.Series(ucis, index=indice)
+    df.lci = pd.Series(lcis, index=indice)
     df.to_csv("/media/allen/mass/office_color/office_color_polygon.csv")

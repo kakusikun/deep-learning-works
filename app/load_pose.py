@@ -196,11 +196,11 @@ def get_sample_points(img, persons, candidate, parts=UPPER):
                     polygon = []  
                     x1, y1 = candidate[int(person[part[0]])][:2]
                     x2, y2 = candidate[int(person[part[1]])][:2]
-                    x, y = abs(x2-x1), abs(y2-y1)
-                    angle = np.arctan(y/x)
-                    x_offset = 2 * np.tan(np.pi/2 - angle)
-                    polygon = np.array([[x1-x_offset, y1-2], [x1+x_offset, y1+2],
-                                        [x2-x_offset, y2-2], [x2+x_offset, y2+2]]).astype(int)
+                    x, y = x2-x1, y2-y1
+                    angle = np.arctan(x/y)
+                    x_offset, y_offset = 2 * np.cos(angle), 2 * np.sin(angle)
+                    polygon = np.array([[x1-x_offset, y1+y_offset], [x1+x_offset, y1-y_offset],
+                                        [x2+x_offset, y2-y_offset], [x2-x_offset, y2+y_offset]]).astype(int)
                     polygon[:,0] = np.clip(polygon[:,0], 0, img.shape[1])
                     polygon[:,1] = np.clip(polygon[:,1], 0, img.shape[0])
                     polygon = polygon.reshape(-1).tolist()                                       
@@ -223,6 +223,30 @@ def get_color(samples, color_space):
         color_center.append(np.argmin(delta))
     color = stats.mode(color_center)[0][0] 
     return color
+
+def get_hsl_median(samples, h_ths=15, l_ths=26):
+    h = np.quantile(samples[:,0], q=0.5).astype(int)
+    if h < h_ths:
+        h_l = (180 - (h_ths - h), 180)
+    else:
+        h_l = h - h_ths
+    if h > (180 - h_ths):
+        h_u = (0, (h + h_ths) - 180)
+    else:
+        h_u = h + h_ths
+    if isinstance(h_l, tuple):
+        h_mask = (((samples[:,0] > h_l[0]) * (samples[:,0] <= h_l[1])) + (samples[:,0] < h_u)).astype(bool)
+    elif isinstance(h_u, tuple):
+        h_mask = (((samples[:,0] >= h_u[0]) * (samples[:,0] < h_u[1])) + (samples[:,0] > h_l)).astype(bool)
+    else:
+        h_mask = ((samples[:,0] > h_l) * (samples[:,0] < h_u)).astype(bool)
+        
+    l = np.quantile(samples[h_mask,1], q=0.5).astype(int)
+    l_u = np.clip(l+l_ths, 0, 255)
+    l_l = np.clip(l-l_ths, 0, 255)
+    l_mask = ((samples[:,1] > l_l) * (samples[:,1] < l_u) * h_mask).astype(bool)
+    s = np.quantile(samples[l_mask,2], q=0.5).astype(int)
+    return h, s, l
 
 def superpixelize(color_img):
     segments = slic(color_img, n_segments=100, compactness=10, sigma=1)

@@ -16,7 +16,7 @@ from config.config_manager import _C as model_config
 from config.config_manager import _A as app_config
 from model.managers.manager_reid_trick import TrickManager
 from data.build_transform import build_transform
-from tools.utils import deploy_gpu
+from tools.utils import deploy_macro
 from tools.logger import setup_logger
 import time
 logger = setup_logger("/home/allen/", log_name="REID")
@@ -37,7 +37,7 @@ class App():
         self.num_person = 0
         self.frame_idx = 0
         self.terminate = False
-        deploy_gpu(model_config)
+        deploy_macro(model_config)
         self.setIO()
         self.set_DetNet()
         self.set_ReIDNet()

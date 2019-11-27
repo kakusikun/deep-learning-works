@@ -167,7 +167,7 @@ def dist_idx_to_pair_idx(d, i):
     y = (i + (x * (b + x + 2) / 2).float() + 1).long()
     return x, y
     
-def deploy_gpu(cfg):
+def deploy_macro(cfg):
     cudnn.benchmark = True
     gpu = ""
     for _gpu in cfg.MODEL.GPU:

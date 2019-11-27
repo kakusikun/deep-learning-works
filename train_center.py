@@ -11,7 +11,7 @@ from solver.optimizer import Solver
 from visualizer.visualizer import Visualizer
 from model.managers.manager_center import CenterManager
 from tools.logger import setup_logger
-from tools.utils import deploy_gpu
+from tools.utils import deploy_macro
 import torch.nn as nn
 
 def train(cfg):
@@ -62,7 +62,7 @@ def main():
 
     logger = setup_logger(cfg.OUTPUT_DIR)
 
-    deploy_gpu(cfg)
+    deploy_macro(cfg)
     train(cfg)    
     
 
