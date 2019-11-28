@@ -13,7 +13,7 @@ import cv2
 from data.build_transform import RandomErasing, _RandomCrop, _RandomHorizontalFlip
 import torchvision.transforms as T
 import torchvision.transforms.functional as F
-from tools.image import get_affine_transform, affine_transform, draw_umich_gaussian, gaussian_radius
+from tools.image import get_affine_transform, affine_transform, draw_umich_gaussian, gaussian_radius, color_aug
 
 
 class build_image_dataset(data.Dataset):
@@ -199,6 +199,12 @@ class build_COCO_dataset(data.Dataset):
         self.mean = np.array([0.40789654, 0.44719302, 0.47026115], dtype=np.float32).reshape(1, 1, 3)
         self.std  = np.array([0.28863828, 0.27408164, 0.27809835], dtype=np.float32).reshape(1, 1, 3)
         self.cat_ids = {v: i for i, v in enumerate(self.coco.getCatIds())}
+        self._data_rng = np.random.RandomState(123)
+        self._eig_val = np.array([0.2141788, 0.01817699, 0.00341571], dtype=np.float32)
+        self._eig_vec = np.array([[-0.58752847, -0.69563484,  0.41340352],
+                                  [ -0.5832747,  0.00994535, -0.81221408],
+                                  [-0.56089297,  0.71832671,  0.41158938]], dtype=np.float32)
+
     def _coco_box_to_bbox(self, box):
         bbox = np.array([box[0], box[1], box[0] + box[2], box[1] + box[3]],
                         dtype=np.float32)
@@ -233,7 +239,7 @@ class build_COCO_dataset(data.Dataset):
         ann_ids = self.coco.getAnnIds(imgIds=[img_id])
         anns = self.coco.loadAnns(ids=ann_ids)
         num_objs = min(len(anns), self.max_objs)        
-
+        flipped = False
         if self.split == 'train':
             # keep aspect ratio to resize to default resolution
             img, w_offset, h_offset, scale = self._prerocessing(img_path)
@@ -244,9 +250,12 @@ class build_COCO_dataset(data.Dataset):
             c[0] = c[0] + s * np.clip(np.random.randn()*cf, -2*cf, 2*cf)
             c[1] = c[1] + s * np.clip(np.random.randn()*cf, -2*cf, 2*cf)
             s = s * np.clip(np.random.randn()*sf + 1, 1 - sf, 1 + sf)
+            if np.random.random() < 0.5:
+                flipped = True
+                img = img[:, ::-1, :]
+                c[0] =  img.shape[1] - c[0] - 1
             trans_input = get_affine_transform(c, s, 0, self.default_res)
-            inp = cv2.warpAffine(img, trans_input, self.default_res, flags=cv2.INTER_LINEAR)
-
+            inp = cv2.warpAffine(img, trans_input, self.default_res, flags=cv2.INTER_LINEAR)        
         else:
             inp, w_offset, h_offset, scale = self._prerocessing(img_path, is_train=False) 
             c = np.array([(inp.shape[1]-w_offset) / 2., (inp.shape[0]-h_offset) / 2.], dtype=np.float32)
@@ -262,7 +271,10 @@ class build_COCO_dataset(data.Dataset):
             trans_output = get_affine_transform(c, s, 0, [output_res_w, output_res_h])
 
         # [0,1]
-        inp = (inp.astype(np.float32) / 255.)
+        inp = (inp.astype(np.float32) / 255.)       
+        if self.split == 'train' and np.random.random() < 0.5:
+            color_aug(self._data_rng, inp, self._eig_val, self._eig_vec)
+
         inp = (inp - self.mean) / self.std
         # HWC => CHW
         inp = inp.transpose(2, 0, 1)
@@ -288,6 +300,8 @@ class build_COCO_dataset(data.Dataset):
                 bbox[[0, 2]] += w_offset
                 bbox[[1, 3]] += h_offset
                 bbox *= scale
+                if flipped:
+                    bbox[[0, 2]] = img.shape[1] - bbox[[2, 0]] - 1
 
             cls_id = int(self.cat_ids[ann['category_id']])
             bbox[:2] = affine_transform(bbox[:2], trans_output)
@@ -309,7 +323,7 @@ class build_COCO_dataset(data.Dataset):
                 reg[k] = ct - ct_int
                 reg_mask[k] = 1  
 
-        ret = {'inp': inp, 
+        ret = {'inp': inp,
                'hm': hm, 'wh':wh, 'reg':reg,
                'reg_mask': reg_mask, 'ind': ind}
 
