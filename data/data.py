@@ -21,7 +21,7 @@ logger = logging.getLogger("logger")
 
 from tools.utils import mkdir_if_missing, write_json, read_json
 
-class COCO_Person():
+class COCO_Data():
     def __init__(self, cfg):
         self.dataset_dir = cfg.DATASET.TRAIN_PATH
         cat, self.cat_id = cfg.COCO.TARGET  
@@ -1649,7 +1649,7 @@ __img_factory = {
     'par': PAR,
     'sogo': SOGO,
     'deepfashion': DeepFashion2,
-    'cocoperson': COCO_Person,
+    'coco': COCO_Data,
     '26th': TWENTYSIX
 }
 
