@@ -19,6 +19,25 @@ class CenterEngine(Engine):
     def __init__(self, cfg, opts, tdata, vdata, show, manager):
         super(CenterEngine, self).__init__(cfg, opts, tdata, vdata, None, None, show, manager)
 
+    def _train_epoch_start(self): 
+        self.epoch += 1
+        if self.cfg.SOLVER.MODEL_FREEZE_PEROID > 0:
+            if self.epoch == 1:
+                for n, p in self.core.named_parameters():
+                    if n.find('hm') == -1 and n.find('wh') == -1 and n.find('reg') == -1:
+                        p.requires_grad_(False)
+                        logger.info("{:<60} Module Freezed".format(n))
+
+            elif self.epoch == self.cfg.SOLVER.MODEL_FREEZE_PEROID + 1:
+                for n, p in self.core.named_parameters():
+                    if n.find('hm') == -1 and n.find('wh') == -1 and n.find('reg') == -1:
+                        p.requires_grad_(True)
+                        logger.info("{:<60} Module Thawed".format(n))
+
+        logger.info("Epoch {} start".format(self.epoch))
+
+        self.core.train() 
+
     def _train_iter_start(self):
         self.iter += 1
         for opt in self.opts:
