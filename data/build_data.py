@@ -186,18 +186,19 @@ class build_par_dataset(data.Dataset):
     def __len__(self):
         return len(self.dataset)
 
-class build_COCO_Person_dataset(data.Dataset):
+class build_COCO_dataset(data.Dataset):
     # DeepFastion2 KeyPoints
     def __init__(self, data_coco, data, split):
         self.coco = data_coco
-        self.num_classes = 1
-        self.max_objs = 32
+        cats = self.coco.loadCats(self.coco.getCatIds())
+        self.num_classes = len(cats)
+        self.max_objs = 128
         self.default_res = (512, 512)    
         self.images = data
         self.split = split
         self.mean = np.array([0.40789654, 0.44719302, 0.47026115], dtype=np.float32).reshape(1, 1, 3)
         self.std  = np.array([0.28863828, 0.27408164, 0.27809835], dtype=np.float32).reshape(1, 1, 3)
-        
+        self.cat_ids = {v: i for i, v in enumerate(self.coco.getCatIds())}
     def _coco_box_to_bbox(self, box):
         bbox = np.array([box[0], box[1], box[0] + box[2], box[1] + box[3]],
                         dtype=np.float32)
@@ -282,15 +283,13 @@ class build_COCO_Person_dataset(data.Dataset):
 
         for k in range(num_objs):
             ann = anns[k]
-            if ann['category_id'] != 1:
-                continue
             bbox = self._coco_box_to_bbox(ann['bbox'])
             if self.split == 'train':
                 bbox[[0, 2]] += w_offset
                 bbox[[1, 3]] += h_offset
                 bbox *= scale
 
-            cls_id = 0
+            cls_id = int(self.cat_ids[ann['category_id']])
             bbox[:2] = affine_transform(bbox[:2], trans_output)
             bbox[2:] = affine_transform(bbox[2:], trans_output)
             if self.split == 'train':

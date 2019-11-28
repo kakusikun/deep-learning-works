@@ -77,7 +77,7 @@ class CenterEngine(Engine):
                 else:               
                     feat = self.core(batch['inp'])[-1]
                     feat['hm'].sigmoid_()
-                  
+
                 dets = ctdet_decode(feat['hm'], feat['wh'], reg=feat['reg'], K=100)
                 dets = dets.detach().cpu().numpy().reshape(1, -1, dets.shape[1])
                 dets_out = ctdet_post_process(dets.copy(), feat['hm'].shape[2], feat['hm'].shape[3], 
@@ -109,7 +109,7 @@ class CenterEngine(Engine):
 def _to_float(x):
     return float("{:.2f}".format(x))
 
-def convert_eval_format(all_bboxes):
+def convert_eval_format(all_bboxes, valid_ids):
     # import pdb; pdb.set_trace()
     detections = []
     for image_id in all_bboxes:
@@ -119,27 +119,20 @@ def convert_eval_format(all_bboxes):
                 bbox[3] -= bbox[1]
                 score = bbox[4]
                 bbox_out  = list(map(_to_float, bbox[0:4]))
-
+                category_id = valid_ids[cls_ind - 1]
                 detection = {
                     "image_id": int(image_id),
-                    "category_id": int(1),
+                    "category_id": int(category_id),
                     "bbox": bbox_out,
                     "score": float("{:.2f}".format(score))
                 }
-                if len(bbox) > 5:
-                    extreme_points = list(map(_to_float, bbox[5:13]))
-                    detection["extreme_points"] = extreme_points
                 detections.append(detection)
     return detections
 
 def coco_eval(coco, results, save_dir):
-    json.dump(convert_eval_format(results), open('{}/results.json'.format(save_dir), 'w'))
+    json.dump(convert_eval_format(results, coco.getCatIds()), open('{}/results.json'.format(save_dir), 'w'))
     coco_dets = coco.loadRes('{}/results.json'.format(save_dir))
     coco_eval = COCOeval(coco, coco_dets, "bbox")
-    person_cat_ids = coco.getCatIds(catNms=['person'])
-    person_image_ids = coco.getImgIds(catIds=person_cat_ids) 
-    coco_eval.params.imgIds = sorted(person_image_ids)
-    coco_eval.params.catIds = sorted(person_cat_ids)
     coco_eval.evaluate()
     coco_eval.accumulate()
     coco_eval.summarize()

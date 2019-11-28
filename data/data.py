@@ -23,15 +23,16 @@ from tools.utils import mkdir_if_missing, write_json, read_json
 
 class COCO_Person():
     def __init__(self, cfg):
-        self.dataset_dir = cfg.DATASET.TRAIN_PATH       
-        self.train_dir = osp.join(self.dataset_dir, "train2017")
-        self.train_anno = osp.join(self.dataset_dir, "person_train2017.json")
-        self.val_dir = osp.join(self.dataset_dir, "val2017")
-        self.val_anno = osp.join(self.dataset_dir, "person_val2017.json")
+        self.dataset_dir = cfg.DATASET.TRAIN_PATH
+        cat, self.cat_id = cfg.COCO.TARGET  
+        self.train_dir   = osp.join(self.dataset_dir, "train2017")
+        self.train_anno  = osp.join(self.dataset_dir, cat, "instances_train2017.json")
+        self.val_dir     = osp.join(self.dataset_dir, "val2017")
+        self.val_anno    = osp.join(self.dataset_dir, cat, "instances_val2017.json")
         self._check_before_run()
         
-        train_coco, train_images, train_num_samples = self._process_dir(self.train_anno, self.train_dir)
-        val_coco, val_images, val_num_samples = self._process_dir(self.val_anno, self.val_dir)
+        train_coco, train_images, train_num_samples = self._process_dir(self.train_anno, self.train_dir, cat, split='train')
+        val_coco, val_images, val_num_samples = self._process_dir(self.val_anno, self.val_dir, cat, split='val')
         
         logger.info("=> COCO_Person is loaded")
         logger.info("Dataset statistics:")
@@ -54,27 +55,34 @@ class COCO_Person():
         if not osp.exists(self.train_dir):
             raise RuntimeError("'{}' is not available".format(self.train_dir))
         if not osp.exists(self.train_anno):
-            orig_json = 'instances_{}'.format(osp.basename(self.train_anno).split("_")[-1])
-            if not osp.exists(osp.join(self.dataset_dir, orig_json)):
-                raise RuntimeError("'{}' is not available to make person of coco".format(osp.join(self.dataset_dir, orig_json)))
-            self.make_person_coco(osp.join(self.dataset_dir, orig_json), self.train_anno)
+            orig_json = osp.join(self.dataset_dir, 'original', "instances_train2017.json")
+            if not osp.exists(orig_json):
+                raise RuntimeError("'{}' is not available to make target of coco".format(orig_json))
+            self.make_target_coco(orig_json, self.train_anno)
         if not osp.exists(self.val_dir):
             raise RuntimeError("'{}' is not available".format(self.val_dir))        
         if not osp.exists(self.val_anno):
-            orig_json = 'instances_{}'.format(osp.basename(self.val_anno).split("_")[-1])
-            if not osp.exists(osp.join(self.dataset_dir, orig_json)):
-                raise RuntimeError("'{}' is not available to make person of coco".format(osp.join(self.dataset_dir, orig_json)))
-            self.make_person_coco(osp.join(self.dataset_dir, orig_json), self.val_anno)
+            orig_json = osp.join(self.dataset_dir, 'original', "instances_val2017.json")
+            if not osp.exists(orig_json):
+                raise RuntimeError("'{}' is not available to make target of coco".format(orig_json))
+            self.make_target_coco(orig_json, self.val_anno)
     
-    def _process_dir(self, anno_path, img_path):
+    def _process_dir(self, anno_path, img_path, category, split='train'):
         data_handle = coco.COCO(anno_path)
-        cat_ids = data_handle.getCatIds(catNms=['person'])
-        image_ids = data_handle.getImgIds(catIds=cat_ids) 
+        if category == 'original':
+            image_ids = data_handle.getImgIds() 
+        else:
+            cat_ids = data_handle.getCatIds(catNms=[category])
+            image_ids = data_handle.getImgIds(catIds=cat_ids) 
 
         images = []
         for img_id in image_ids:
             idxs = data_handle.getAnnIds(imgIds=[img_id])
-            if len(idxs) > 0:
+            if split == 'train' and len(idxs) > 0:
+                fname = data_handle.loadImgs(ids=[img_id])[0]['file_name']
+                fname = osp.join(img_path, fname)
+                images.append((img_id, fname))
+            else:
                 fname = data_handle.loadImgs(ids=[img_id])[0]['file_name']
                 fname = osp.join(img_path, fname)
                 images.append((img_id, fname))
@@ -83,8 +91,10 @@ class COCO_Person():
         
         return data_handle, images, num_samples
     
-    def make_person_coco(self, src, dst):
-        logger.info("Making person of coco of {} ...".format(dst))
+    def make_target_coco(self, src, dst):
+        logger.info("Making target of coco of {} ...".format(dst))
+        if not osp.exists(osp.dirname(dst)):
+            os.mkdir(osp.dirname(dst))
         anno_path = src
 
         f = open(anno_path, 'r')
@@ -97,12 +107,12 @@ class COCO_Person():
         del coco_json
 
         coco_data = coco.COCO(anno_path)
-        person_img_ids = coco_data.getImgIds(catIds=[1])
+        person_img_ids = coco_data.getImgIds(catIds=[self.cat_id])
         annids = coco_data.getAnnIds(imgIds=person_img_ids)
         anns = coco_data.loadAnns(ids=annids)
         person_anns = []
         for ann in anns:
-            if ann['category_id'] == 1:
+            if ann['category_id'] == self.cat_id:
                 person_anns.append(ann)
         person_imgs = coco_data.loadImgs(ids=person_img_ids)
         

@@ -5,7 +5,7 @@ import logging
 
 from config.config_manager import _C as cfg
 from config.config_manager import build_output
-from data.build_loader import build_coco_person_loader
+from data.build_loader import build_coco_loader
 from engine.engines.engine_center import CenterEngine
 from solver.optimizer import Solver
 from visualizer.visualizer import Visualizer
@@ -16,7 +16,7 @@ import torch.nn as nn
 
 def train(cfg):
 
-    train_loader, val_loader = build_coco_person_loader(cfg)
+    train_loader, val_loader = build_coco_loader(cfg)
 
     manager = CenterManager(cfg)
 

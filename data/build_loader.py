@@ -221,11 +221,11 @@ def build_plain_reid_loader(cfg):
     )
     return t_loader, q_loader, g_loader
 
-def build_coco_person_loader(cfg):
+def build_coco_loader(cfg):
     dataset = get_img_data(cfg)
 
-    train_dataset = build_COCO_Person_dataset(dataset.train_coco, dataset.train_images, split='train')
-    val_dataset = build_COCO_Person_dataset(dataset.val_coco, dataset.val_images, split='val')
+    train_dataset = build_COCO_dataset(dataset.train_coco, dataset.train_images, split='train')
+    val_dataset = build_COCO_dataset(dataset.val_coco, dataset.val_images, split='val')
 
     num_workers = cfg.DATALOADER.NUM_WORKERS
 
