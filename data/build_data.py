@@ -224,7 +224,7 @@ class build_COCO_dataset(data.Dataset):
         else:
             img = cv2.imread(path)
             h, w = img.shape[:2]         
-            h_offset, w_offset = 16 - (h % 16), 16 - (w % 16)
+            h_offset, w_offset = 128 - (h % 128), 128 - (w % 128)
             canvas = np.zeros([h + h_offset, w + w_offset, 3])
             canvas[:h, :w, :] = img
             img = canvas.astype(np.uint8)
