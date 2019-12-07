@@ -67,11 +67,9 @@ def _topk(scores, K=40):
 
     return topk_score, topk_inds, topk_clses, topk_ys, topk_xs
 
-def ctdet_post_process(dets, h, w, c, s, num_classes):
+def ctdet_post_process(dets, c, s, h, w, num_classes):
   # dets: batch x max_dets x dim
   # return 1-based class det dict
-  if not isinstance(s, np.ndarray):
-      s = np.array([s,s])
   ret = []
   for i in range(dets.shape[0]):
     top_preds = {}

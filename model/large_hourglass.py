@@ -203,7 +203,7 @@ class HourglassNet(nn.Module):
             # nn.BatchNorm2d(256)
         )
 
-    def __init__(self, cfg, heads, stacks=2, Norm=BN):
+    def __init__(self, heads, stacks=2, Norm=BN):
         super(HourglassNet, self).__init__()
         self.stacks = stacks
         self.heads= heads
@@ -310,5 +310,5 @@ def get_large_hourglass_net(cfg):
         Norm = ABN
     else:
         Norm = BN
-    model = HourglassNet(cfg, heads, Norm=Norm)
+    model = HourglassNet(heads, Norm=Norm)
     return model

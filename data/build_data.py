@@ -210,26 +210,11 @@ class build_COCO_dataset(data.Dataset):
                         dtype=np.float32)
         return bbox
 
-    def _prerocessing(self, path, is_train=True):
-        if is_train:
-            img = cv2.imread(path)
-            height, width = img.shape[:2]         
-            long_side = np.max(img.shape[:2])
-            canvas = np.zeros([long_side, long_side, 3])
-            h_offset, w_offset = int((long_side-height)/2), int((long_side-width)/2)
-            canvas[h_offset:(height+h_offset), w_offset:(width+w_offset), :] = img
-            img = canvas.astype(np.uint8)   
-            scale = self.default_res[0] / long_side        
-            img = cv2.resize(img, self.default_res) 
-        else:
-            img = cv2.imread(path)
-            h, w = img.shape[:2]         
-            h_offset, w_offset = 128 - (h % 128), 128 - (w % 128)
-            canvas = np.zeros([h + h_offset, w + w_offset, 3])
-            canvas[:h, :w, :] = img
-            img = canvas.astype(np.uint8)
-            scale = 1.0
-        return img, w_offset, h_offset, scale
+    def _get_border(self, border, size):
+        i = 1
+        while size - border // i <= border // i:
+            i *= 2
+        return border // i
     
     def __len__(self):
         return len(self.images)
@@ -238,52 +223,51 @@ class build_COCO_dataset(data.Dataset):
         img_id, img_path = self.images[index]        
         ann_ids = self.coco.getAnnIds(imgIds=[img_id])
         anns = self.coco.loadAnns(ids=ann_ids)
-        num_objs = min(len(anns), self.max_objs)        
+        num_objs = min(len(anns), self.max_objs)   
+        
+        img = cv2.imread(img_path)
+        height, width = img.shape[0], img.shape[1]    
+        c = np.array([img.shape[1] / 2., img.shape[0] / 2.], dtype=np.float32)
+        s = max(img.shape[0], img.shape[1]) * 1.0
+        input_h, input_w = self.default_res
+        # image position augmentation
+        # scale
         flipped = False
         if self.split == 'train':
-            # keep aspect ratio to resize to default resolution
-            img, w_offset, h_offset, scale = self._prerocessing(img_path)
-            c = np.array([img.shape[1] / 2., img.shape[0] / 2.], dtype=np.float32)
-            s = max(img.shape[0], img.shape[1]) * 1.0
-            sf = 0.4
-            cf = 0.1
-            c[0] = c[0] + s * np.clip(np.random.randn()*cf, -2*cf, 2*cf)
-            c[1] = c[1] + s * np.clip(np.random.randn()*cf, -2*cf, 2*cf)
-            s = s * np.clip(np.random.randn()*sf + 1, 1 - sf, 1 + sf)
+            s = s * np.random.choice(np.arange(0.6, 1.4, 0.1))
+            w_border = self._get_border(128, img.shape[1])
+            h_border = self._get_border(128, img.shape[0])
+            # location
+            c[0] = np.random.randint(low=w_border, high=img.shape[1] - w_border)
+            c[1] = np.random.randint(low=h_border, high=img.shape[0] - h_border)
+            # hflip
+            
             if np.random.random() < 0.5:
                 flipped = True
                 img = img[:, ::-1, :]
-                c[0] =  img.shape[1] - c[0] - 1
-            trans_input = get_affine_transform(c, s, 0, self.default_res)
-            inp = cv2.warpAffine(img, trans_input, self.default_res, flags=cv2.INTER_LINEAR)        
-        else:
-            inp, w_offset, h_offset, scale = self._prerocessing(img_path, is_train=False) 
-            c = np.array([(inp.shape[1]-w_offset) / 2., (inp.shape[0]-h_offset) / 2.], dtype=np.float32)
-            s = max((inp.shape[0]-h_offset), (inp.shape[1]-w_offset)) * 1.0        
-
-        if self.split == 'train':
-            output_res = self.default_res[0] // 8
-            num_classes = self.num_classes
-            trans_output = get_affine_transform(c, s, 0, [output_res, output_res])
-        else:
-            output_res_w, output_res_h = inp.shape[1] // 8, inp.shape[0] // 8
-            num_classes = self.num_classes
-            trans_output = get_affine_transform(c, s, 0, [output_res_w, output_res_h])
-
-        # [0,1]
-        inp = (inp.astype(np.float32) / 255.)       
+                c[0] =  width - c[0] - 1
+        # processing
+        trans_input = get_affine_transform(c, s, 0, [input_w, input_h])
+        inp = cv2.warpAffine(img, trans_input, (input_w, input_h), flags=cv2.INTER_LINEAR)
+        # rescale image pixel value to [0,1]
+        inp = (inp.astype(np.float32) / 255.)
+        # image color augmentation       
         if self.split == 'train' and np.random.random() < 0.5:
             color_aug(self._data_rng, inp, self._eig_val, self._eig_vec)
-
+        # image normalize
         inp = (inp - self.mean) / self.std
         # HWC => CHW
         inp = inp.transpose(2, 0, 1)
 
+        output_h = input_h // 8
+        output_w = input_w // 8
+
+        num_classes = self.num_classes
+        # transform that applying to gt
+        trans_output = get_affine_transform(c, s, 0, [output_w, output_h])
+
         # center, object heatmap
-        if self.split == 'train':
-            hm = np.zeros((num_classes, output_res, output_res), dtype=np.float32)
-        else:
-            hm = np.zeros((num_classes, output_res_h, output_res_w), dtype=np.float32)
+        hm = np.zeros((num_classes, output_h, output_w), dtype=np.float32)
         # object size
         wh             = np.zeros((self.max_objs, 2), dtype=np.float32)
         # object offset
@@ -296,18 +280,15 @@ class build_COCO_dataset(data.Dataset):
         for k in range(num_objs):
             ann = anns[k]
             bbox = self._coco_box_to_bbox(ann['bbox'])
-            if self.split == 'train':
-                bbox[[0, 2]] += w_offset
-                bbox[[1, 3]] += h_offset
-                bbox *= scale
-                if flipped:
-                    bbox[[0, 2]] = img.shape[1] - bbox[[2, 0]] - 1
-
+            
             cls_id = int(self.cat_ids[ann['category_id']])
+            if flipped:
+                bbox[[0, 2]] = width - bbox[[2, 0]] - 1
             bbox[:2] = affine_transform(bbox[:2], trans_output)
             bbox[2:] = affine_transform(bbox[2:], trans_output)
-            if self.split == 'train':
-                bbox = np.clip(bbox, 0, output_res - 1)
+            bbox[[0, 2]] = np.clip(bbox[[0, 2]], 0, output_w - 1)
+            bbox[[1, 3]] = np.clip(bbox[[1, 3]], 0, output_h - 1)
+            
             h, w = bbox[3] - bbox[1], bbox[2] - bbox[0]            
             if h > 0 and w > 0:
                 radius = gaussian_radius((math.ceil(h), math.ceil(w)))
@@ -316,21 +297,14 @@ class build_COCO_dataset(data.Dataset):
                 ct_int = ct.astype(np.int32)
                 draw_gaussian(hm[cls_id], ct_int, radius)
                 wh[k] = 1. * w, 1. * h
-                if self.split == 'train':
-                    ind[k] = ct_int[1] * output_res + ct_int[0]
-                else:
-                    ind[k] = ct_int[1] * output_res_w + ct_int[0]
+                ind[k] = ct_int[1] * output_w + ct_int[0]
                 reg[k] = ct - ct_int
                 reg_mask[k] = 1  
-
         ret = {'inp': inp,
                'hm': hm, 'wh':wh, 'reg':reg,
-               'reg_mask': reg_mask, 'ind': ind}
-
-        if self.split != 'train':            
-            ret.update({'img_id': img_id, 'c': c, 's': s})
+               'reg_mask': reg_mask, 'ind': ind,
+               'img_id': img_id, 'c': c, 's': s}
         return ret
-
 class build_DFKP_dataset(data.Dataset):
     # DeepFastion2 KeyPoints
     def __init__(self, data_coco, data, split):

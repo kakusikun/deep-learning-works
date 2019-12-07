@@ -99,9 +99,8 @@ class CenterEngine(Engine):
 
                 dets = ctdet_decode(feat['hm'], feat['wh'], reg=feat['reg'], K=100)
                 dets = dets.detach().cpu().numpy().reshape(1, -1, dets.shape[1])
-                dets_out = ctdet_post_process(dets.copy(), feat['hm'].shape[2], feat['hm'].shape[3], 
-                                              batch['c'].cpu().numpy(), batch['s'].cpu().numpy(), 
-                                              feat['hm'].shape[1])
+                dets_out = ctdet_post_process(dets.copy(), batch['c'].cpu().numpy(), batch['s'].cpu().numpy(), 
+                                               feat['hm'].shape[2], feat['hm'].shape[3], feat['hm'].shape[1])
                 results[batch['img_id'][0]] = dets_out[0]
         cce = coco_eval(self.vdata.dataset.coco, results, self.cfg.OUTPUT_DIR)  
 
