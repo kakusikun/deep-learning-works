@@ -56,13 +56,10 @@ class CenterEngine(Engine):
             self.show.add_scalar('train/opt/{}/lr'.format(i), self.opts[i].monitor_lr, self.iter)
 
     def _train_once(self):
-        prefetcher = data_prefetcher(self.tdata)
-        for _ in tqdm(range(len(self.tdata)), desc="Epoch[{}/{}]".format(self.epoch, self.max_epoch)):
+        for batch in tqdm(self.tdata, desc="Epoch[{}/{}]".format(self.epoch, self.max_epoch)):
             self._train_iter_start()
-
-            batch = prefetcher.next()
-            if batch is None:
-                break
+            for key in batch.keys():
+                batch[key] = batch[key].cuda()
             images = batch['inp']
             feats = self.core(images) 
             self.total_loss, self.each_loss = self.manager.loss_func(feats, batch)
@@ -76,14 +73,12 @@ class CenterEngine(Engine):
 
     def _evaluate(self, eval=False):
         logger.info("Epoch {} evaluation start".format(self.epoch))
-        prefetcher = data_prefetcher(self.vdata)
         results = {}
         self._eval_epoch_start()
         with torch.no_grad():
-            for _ in tqdm(range(len(self.vdata)), desc="Validation"):                
-                batch = prefetcher.next()
-                if batch is None:
-                    break
+            for batch in tqdm(self.vdata, desc="Validation"):
+                for key in batch.keys():
+                    batch[key] = batch[key].cuda()
                 if self.cfg.ORACLE:
                     feat = {}
                     feat['hm']  = batch['hm']
