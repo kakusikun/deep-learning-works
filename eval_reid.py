@@ -4,11 +4,11 @@ from tqdm import tqdm
 import torch
 import torch.nn.functional as F
 from tools.eval_reid_metrics import eval_single_query, eval_recall, evaluate
-from model.OSNetv2 import osnet_x1_0
-from config.config_manager import _C as cfg
+from manager.OSNetv2 import osnet_x1_0
+from config.config_factory import _C as cfg
 from data.build_loader import build_reid_loader
-from model.managers.manager_reid_trick import TrickManager
-from model.managers.manager_reid_trick_att import AttentionManager
+from manager.base_managers.manager_reid_trick import TrickManager
+from manager.base_managers.manager_reid_trick_att import AttentionManager
 from tools.logger import setup_logger
 from engine.engines.engine_reid_trick import ReIDEngine
 import numpy as np
@@ -43,7 +43,7 @@ if action == 'y':
     unitnorm_feat = True    
 
     if cfg.MODEL.PRETRAIN == "outside":
-        core = osnet_x1_0(cfg.MODEL.NUM_CLASSES)
+        core = osnet_x1_0(cfg.DB.NUM_CLASSES)
         checkpoint = torch.load(cfg.EVALUATE)
         model_state = core.state_dict()
         checkpointRefine = {}             

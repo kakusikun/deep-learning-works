@@ -296,11 +296,11 @@ class HourglassNet(nn.Module):
 
 def get_large_hourglass_net(cfg):
     if cfg.TASK == 'object':
-        heads = {'hm': cfg.MODEL.NUM_CLASSES,
+        heads = {'hm': cfg.DB.NUM_CLASSES,
                  'wh': 2,
                  'reg': 2}
     elif cfg.TASK == 'keypoint':
-        heads = {'hm': cfg.MODEL.NUM_CLASSES, 
+        heads = {'hm': cfg.DB.NUM_CLASSES, 
                  'wh': 2, 
                  'hps': 294*2,
                  'reg': 2,

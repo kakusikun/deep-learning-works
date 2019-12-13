@@ -3,13 +3,13 @@ import argparse
 import shutil
 import sys
 
-from config.config_manager import _C as cfg
-from config.config_manager import build_output
+from config.config_factory import _C as cfg
+from config.config_factory import build_output
 from data.build_loader import build_reid_loader
 from engine.engines.reid_engine_normal import ReIDEngine
 from solver.optimizer import Solver
 from visualizer.visualizer import Visualizer
-from model.managers.normal_manager import NormalManager
+from manager.base_managers.normal_manager import NormalManager
 from tools.logger import setup_logger
 import torch.nn as nn
 

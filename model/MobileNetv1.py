@@ -8,7 +8,7 @@ import numpy as np
 import torch
 from torch import nn
 from torch.nn import functional as F
-from model.t2c import *
+from manager.t2c import *
 
 class MobileNetv1(nn.Module):
     def __init__(self, num_classes=1000, isbackbone=False, alpha=1):

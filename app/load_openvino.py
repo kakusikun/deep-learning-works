@@ -1,6 +1,6 @@
 import os
 import sys
-from config.config_manager import _A as app_config
+from config.config_factory import _A as app_config
 app_config.merge_from_file("/media/allen/mass/deep-learning-works/app.yml")
 sys.path.insert(0, "/home/allen/R5/intel/computer_vision_sdk_2018.5.455/python/python3.6/ubuntu16")
 from openvino.inference_engine import IENetwork, IEPlugin

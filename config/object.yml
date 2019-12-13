@@ -1,0 +1,48 @@
+EXPERIMENT: "Hourglass-Squeeze_cocoperson_focal_regl1_Adam_lr_0.0005_plateau_10_scratch"
+# [modelname]_[task]_[loss]_[opt]_[lr]_[trick]_[pretrain]
+
+TASK: "object"
+ORACLE: True
+
+MODEL:
+  GPU: [1]
+  NUM_CLASSES: 80 #D:702, M:751 MSMT:2012(merge)
+  NAME: "hourglass-squeeze"
+  PRETRAIN: "outside"
+  TASK: "object"
+  NORM: 'ABN'
+
+INPUT:
+  IMAGE_SIZE: (512,512)
+  TRAIN_BS: 1
+  TEST_BS: 1
+
+COCO:
+  TARGET: ('original', -1)
+  
+DATALOADER:
+  NUM_WORKERS: 30
+
+DATASET:
+  NAME: "coco"
+  TRAIN_PATH: "/media/allen/mass/COCO/"
+
+SOLVER:
+  OPTIMIZER_NAME: "Adam"
+  START_EPOCH: 0
+  MAX_EPOCHS: 400
+  BASE_LR: 0.0005
+  BIAS_LR_FACTOR: 1.0
+  WEIGHT_DECAY: 0.0005
+  WEIGHT_DECAY_BIAS_FACTOR: 1.0
+  EVALUATE_FREQ: 5
+
+  LR_POLICY: "plateau"
+  MIN_LR: 1e-6
+  # WARMUP: True
+  GAMMA: 0.1
+  # WARMUP_FACTOR: 0.01
+  # WARMUP_SIZE: 10.0
+  PLATEAU_SIZE: 10.0
+
+EVALUATE: "/home/allen/CenterNet_CornerNet-Squeeze_COCO.pth"

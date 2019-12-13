@@ -5,16 +5,16 @@ import torch
 import torch.nn.functional as F
 import torchvision.transforms as T
 import torchvision
-from engine.engine import Engine, data_prefetcher
+from engine.base_engine import BaseEngine, data_prefetcher
 from tools.eval_reid_metrics import evaluate, eval_recall
 import numpy as np
 import logging
 logger = logging.getLogger("logger")
 # recover = T.Compose([T.Normalize(mean = [-0.485/0.229, -0.456/0.224, -0.406/0.225], std = [1/0.229,1/0.224,1/0.225])])
 
-class ReIDEngine(Engine):
-    def __init__(self, cfg, opts, tdata, qdata, gdata, show, manager):
-        super(ReIDEngine, self).__init__(cfg, opts, tdata, None, qdata, gdata, show, manager)
+class ReIDEngine(BaseEngine):
+    def __init__(self, cfg, opts, loader, show, manager):
+        super(ReIDEngine, self).__init__(cfg, opts, loader, show, manager)
 
     def _train_iter_start(self):
         self.iter += 1

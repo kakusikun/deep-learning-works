@@ -5,10 +5,10 @@ from tqdm import tqdm
 import torch
 import torch.nn.functional as F
 from tools.eval_par_metrics import eval_par_accuracy
-from model.OSNetv2 import osnet_x1_0
-from config.config_manager import _C as cfg
+from manager.OSNetv2 import osnet_x1_0
+from config.config_factory import _C as cfg
 from data.build_loader import build_par_loader
-from model.managers.manager_par import PARManager
+from manager.base_managers.manager_par import PARManager
 from tools.logger import setup_logger
 from engine.engines.engine_par import PAREngine
 import numpy as np

@@ -2,14 +2,14 @@ import argparse
 import shutil
 import sys
 
-from config.config_manager import _C as cfg
-from config.config_manager import build_output
+from config.config_factory import _C as cfg
+from config.config_factory import build_output
 from data.build_loader import build_cifar10_loader
 from engine.engine_imagenet import ImageNetEngine
 from solver.optimizer import Solver
 from visualizer.visualizer import Visualizer
-from model.manager import TrainingManager
-from model.utility import CrossEntropyLossLS
+from manager.base_manager import BaseManager
+from manager.utility import CrossEntropyLossLS
 import logging
 logger = logging.getLogger("logger")
 
@@ -20,7 +20,7 @@ def train(cfg):
 
     train_loader, val_loader = build_cifar10_loader(cfg)
 
-    manager = TrainingManager(cfg)
+    manager = BaseManager(cfg)
 
     manager.use_multigpu()
 
@@ -35,7 +35,7 @@ def train(cfg):
 
     visualizer = Visualizer(cfg)
     
-    engine = ImageNetEngine(cfg, CrossEntropyLossLS(cfg.MODEL.NUM_CLASSES), opt, train_loader, val_loader, visualizer, manager)
+    engine = ImageNetEngine(cfg, CrossEntropyLossLS(cfg.DB.NUM_CLASSES), opt, train_loader, val_loader, visualizer, manager)
     engine.Train()
 
 

@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 import torchvision.transforms as T
 import torchvision
-from engine.engine import Engine, data_prefetcher
+from engine.base_engine import BaseEngine, data_prefetcher
 from tools.oracle_utils import gen_oracle_map
 from tools.utils import ctdet_decode, ctdet_post_process
 from pycocotools.cocoeval import COCOeval
@@ -15,9 +15,9 @@ import logging
 logger = logging.getLogger("logger")
 # recover = T.Compose([T.Normalize(mean = [-0.485/0.229, -0.456/0.224, -0.406/0.225], std = [1/0.229,1/0.224,1/0.225])])
 
-class CenterEngine(Engine):
-    def __init__(self, cfg, opts, tdata, vdata, show, manager):
-        super(CenterEngine, self).__init__(cfg, opts, tdata, vdata, None, None, show, manager)
+class CenterEngine(BaseEngine):
+    def __init__(self, cfg, opts, loader, show, manager):
+        super(CenterEngine, self).__init__(cfg, opts, loader, show, manager)
 
     def _train_epoch_start(self): 
         self.epoch += 1

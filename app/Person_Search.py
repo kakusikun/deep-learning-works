@@ -5,7 +5,10 @@ import cv2
 import xml.etree.ElementTree as ET
 import time
 import re
-from app.load_openvino import DNet, in_blob, out_blob
+try:
+    from app.load_openvino import DNet, in_blob, out_blob
+except:
+    DNet, in_blob, out_blob = None, None, None
 from app.load_pose import *
 
 import torch
@@ -16,9 +19,9 @@ import pandas as pd
 import os.path as osp
 from tqdm import tqdm
 
-from config.config_manager import _C as model_config
-from config.config_manager import _A as app_config
-from model.managers.manager_reid_trick import TrickManager
+from config.config_factory import _C as model_config
+from config.config_factory import _A as app_config
+from manager.base_managers.manager_reid_trick import TrickManager
 from data.build_transform import build_transform
 from tools.utils import deploy_macro, AverageMeter
 from tools.logger import setup_logger
@@ -239,11 +242,11 @@ class App():
         self.people.update(self.group.df)
         self.group = PersonDB()
 
-    def visualize(self, to_plot, points, color):
+    def visualize(self, to_plot, points, color, thick):
         for i in range(0, len(points), 2):
             x1 ,y1 = int(points[i]), int(points[i+1])
-            cv2.circle(to_plot, (x1, y1), 5, (0,0,0), -1)
-            cv2.circle(to_plot, (x1, y1), 4, color, -1)
+            cv2.circle(to_plot, (x1, y1), thick+1, (0,0,0), -1)
+            cv2.circle(to_plot, (x1, y1), thick, color, -1)
         
     def render(self, frame):
         to_plot = frame.copy()

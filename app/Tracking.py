@@ -12,9 +12,9 @@ import numpy as np
 from PIL import Image
 from sklearn.utils.linear_assignment_ import linear_assignment as linassign
 
-from config.config_manager import _C as model_config
-from config.config_manager import _A as app_config
-from model.managers.manager_reid_trick import TrickManager
+from config.config_factory import _C as model_config
+from config.config_factory import _A as app_config
+from manager.base_managers.manager_reid_trick import TrickManager
 from data.build_transform import build_transform
 from tools.utils import deploy_macro
 from tools.logger import setup_logger

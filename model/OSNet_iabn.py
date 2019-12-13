@@ -7,7 +7,7 @@ import sys
 import torch
 from torch import nn
 from torch.nn import functional as F
-from model.utility import ConvFC 
+from manager.utility import ConvFC 
 import torchvision
 
 from inplace_abn import InPlaceABN as IABN

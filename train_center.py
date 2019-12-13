@@ -3,13 +3,13 @@ import shutil
 import sys
 import logging
 
-from config.config_manager import _C as cfg
-from config.config_manager import build_output
+from config.config_factory import _C as cfg
+from config.config_factory import build_output
 from data.build_loader import build_coco_loader
 from engine.engines.engine_center import CenterEngine
 from solver.optimizer import Solver
 from visualizer.visualizer import Visualizer
-from model.managers.manager_center import CenterManager
+from manager.base_managers.manager_center import CenterManager
 from tools.logger import setup_logger
 from tools.utils import deploy_macro
 import torch.nn as nn

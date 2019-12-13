@@ -2,14 +2,14 @@ import argparse
 import shutil
 import sys
 
-from config.config_manager import _C as cfg
-from config.config_manager import build_output
+from config.config_factory import _C as cfg
+from config.config_factory import build_output
 from data.build_loader import build_imagenet_loader
 from engine.engines.engine_imagenet import ImageNetEngine
 from solver.optimizer import Solver
 from visualizer.visualizer import Visualizer
-from model.managers.manager_imagenet import ImageNetManager
-from model.utility import CrossEntropyLossLS
+from manager.base_managers.manager_imagenet import ImageNetManager
+from manager.utility import CrossEntropyLossLS
 from tools.logger import setup_logger
 import torch.nn as nn
 

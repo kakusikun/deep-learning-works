@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from model.utility import Flatten
+from manager.utility import Flatten
 
 class BasicConv(nn.Module):
     def __init__(self, in_planes, out_planes, kernal=1, stride=1, padding=0, groups=1, bias=False):

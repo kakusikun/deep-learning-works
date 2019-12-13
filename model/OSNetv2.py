@@ -6,7 +6,7 @@ __all__ = ['osnet_x1_0', 'osnet_x0_75', 'osnet_x0_5', 'osnet_x0_25', 'osnet_ibn_
 import torch
 from torch import nn
 from torch.nn import functional as F
-from model.utility import ConvFC, AttentionIncorporation
+from manager.utility import ConvFC, AttentionIncorporation
 import torchvision
 
 

@@ -4,14 +4,14 @@ import os
 import sys
 from glob import glob
 
-from config.config_manager import _C as cfg
-from config.config_manager import build_output
+from config.config_factory import _C as cfg
+from config.config_factory import build_output
 from data.build_loader import build_plain_reid_loader, build_update_reid_loader
 from engine.engines.engine_reid_ssg import SSGEngine
 from solver.optimizer import Solver
 from visualizer.visualizer import Visualizer
-from model.managers.manager_reid_ssg import SSGManager
-from model.utility import get_self_label
+from manager.base_managers.manager_reid_ssg import SSGManager
+from manager.utility import get_self_label
 
 from tools.utils import deploy_macro
 from tools.logger import setup_logger

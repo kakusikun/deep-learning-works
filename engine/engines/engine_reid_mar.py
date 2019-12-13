@@ -5,14 +5,14 @@ import torch
 import torch.nn.functional as F
 import torchvision.transforms as T
 import torchvision
-from engine.engine import Engine, data_prefetcher
+from engine.base_engine import BaseEngine, data_prefetcher
 from tools.eval_reid_metrics import evaluate
 import numpy as np
 import logging
 logger = logging.getLogger("logger")
 # recover = T.Compose([T.Normalize(mean = [-0.485/0.229, -0.456/0.224, -0.406/0.225], std = [1/0.229,1/0.224,1/0.225])])
 
-class MAREngine(Engine):
+class MAREngine(BaseEngine):
     def __init__(self, cfg, opts, trtdata, tdata, qdata, gdata, show, manager):
         super(MAREngine, self).__init__(cfg, opts, tdata, None, qdata, gdata, show, manager)
         self.trtdata = trtdata

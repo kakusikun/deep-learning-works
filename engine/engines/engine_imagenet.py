@@ -4,14 +4,14 @@ import torch
 import torch.nn.functional as F
 import torchvision.transforms as T
 import torchvision
-from engine.engine import Engine, data_prefetcher
+from engine.base_engine import BaseEngine, data_prefetcher
 import numpy as np
 import logging
 logger = logging.getLogger("logger")
 
-class ImageNetEngine(Engine):
-    def __init__(self, cfg, opts, tdata, vdata, show, manager):
-        super(ImageNetEngine, self).__init__(cfg, opts, tdata, vdata, None, None, show, manager)
+class ImageNetEngine(BaseEngine):
+    def __init__(self, cfg, opts,loader, show, manager):
+        super(ImageNetEngine, self).__init__(cfg, opts, loader, None, None, show, manager)
         
     def _train_iter_start(self):
         self.iter += 1
