@@ -117,6 +117,7 @@ _C.COCO.TARGET = ('original', -1)
 # -----------------------------------------------------------------------------
 _C.DB = CN()
 _C.DB.NUM_CLASSES = 0
+_C.DB.NUM_KEYPOINTS = 0
 _C.DB.DATA = ""
 _C.DB.DATASET = ""
 _C.DB.LOADER = ""
