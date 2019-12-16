@@ -4,6 +4,7 @@ from database.data.cuhk import CUHK01, CUHK02, CUHK03
 from database.data.dukemtmc import DukeMTMCreID
 from database.data.msmt import MSMT17
 from database.data.imagenet import ImageNet
+from database.data.cifar10 import Cifar10
 
 
 data_factory ={
@@ -16,7 +17,8 @@ data_factory ={
     'cuhk03': CUHK03,
     'duke': DukeMTMCreID,
     'msmt': MSMT17,
-    'imagenet': ImageNet
+    'imagenet': ImageNet,
+    'cifar10': Cifar10,
 }
 
 def get_names():

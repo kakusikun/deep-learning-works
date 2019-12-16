@@ -3,7 +3,7 @@ from model.OSNetv2 import osnet_x1_0
 
 model_factory = {
     'light_hourglass': get_large_hourglass_net,
-    'osnet_reid': osnet_x1_0,
+    'osnet': osnet_x1_0,
 }
 
 def get_names():

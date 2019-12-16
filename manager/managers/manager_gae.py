@@ -36,8 +36,6 @@ class GAEManager(BaseManager):
         #  ce_ls = CrossEntropyLossLS(self.cfg.DB.NUM_CLASSES)
         ce = nn.CrossEntropyLoss()
 
-        self.loss_has_param = []
-
         def loss_func(g_feat, target):
             #  each_loss = [ce_ls(g_feat, target)]            
             each_loss = [ce(g_feat, target)]            

@@ -2,13 +2,13 @@ from database.datasets import *
 from PIL import Image
 
 class build_reid_dataset(data.Dataset):
-    def __init__(self, dataset, transform=None, return_indice=False):
-        self.dataset = dataset
+    def __init__(self, data, transform=None, return_indice=False):
+        self.data = data
         self.transform = transform
         self.return_indice = return_indice
            
     def __getitem__(self, index):
-        img_path, pid, camid = self.dataset[index]
+        img_path, pid, camid = self.data[index]
 
         img = Image.open(img_path)
 
@@ -22,4 +22,4 @@ class build_reid_dataset(data.Dataset):
         return img, pid, camid
 
     def __len__(self):
-        return len(self.dataset)
+        return len(self.data)

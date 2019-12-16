@@ -24,9 +24,9 @@ class RandomErasing(object):
     def __call__(self, img):
 
         if random.uniform(0, 1) >= self.probability:
-            return img, -1, -1, -1, -1
+            return img
 
-        for attempt in range(100):
+        for _ in range(100):
             area = img.size()[1] * img.size()[2]
 
             target_area = random.uniform(self.sl, self.sh) * area
@@ -44,9 +44,9 @@ class RandomErasing(object):
                     img[2, x1:x1 + h, y1:y1 + w] = self.mean[2]
                 else:
                     img[0, x1:x1 + h, y1:y1 + w] = self.mean[0]
-                return img, x1, y1, h, w
+                return img
 
-        return img, -1, -1, -1, -1
+        return img
     
     def by_param(self, img, x1, y1, h, w):
         img[0, x1:x1 + h, y1:y1 + w] = 0

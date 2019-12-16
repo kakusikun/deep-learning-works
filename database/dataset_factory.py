@@ -2,12 +2,15 @@ from database.datasets.coco_kp import build_cocokp_dataset
 from database.datasets.coco_ob import build_coco_dataset
 from database.datasets.reid import build_reid_dataset
 from database.datasets.imagenet import build_image_dataset
+from database.datasets.cifar10 import build_cifar_dataset
+
 
 dataset_factory = {
     'coco_keypoint': build_cocokp_dataset,
     'coco_object': build_coco_dataset,
     'reid': build_reid_dataset,
-    'imagenet': build_image_dataset,    
+    'imagenet': build_image_dataset,
+    'cifar10': build_cifar_dataset,
 }
 
 def get_names():

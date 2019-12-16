@@ -38,27 +38,10 @@ class CenterEngine(BaseEngine):
 
         self.core.train() 
 
-    def _train_iter_start(self):
-        self.iter += 1
-        for opt in self.opts:
-            opt.lr_adjust(self.total_loss, self.iter)
-            opt.zero_grad()
-
-    def _train_iter_end(self):  
-        for opt in self.opts:
-            opt.step()
-
-        self.show.add_scalar('train/total_loss', self.total_loss, self.iter)              
-        for i in range(len(self.each_loss)):
-            self.show.add_scalar('train/loss/{}'.format(self.manager.loss_name[i]), self.each_loss[i], self.iter)
-        self.show.add_scalar('train/accuracy', self.train_accu, self.iter)   
-        for i in range(len(self.opts)):
-            self.show.add_scalar('train/opt/{}/lr'.format(i), self.opts[i].monitor_lr, self.iter)
-
     def _train_once(self):
         for batch in tqdm(self.tdata, desc="Epoch[{}/{}]".format(self.epoch, self.max_epoch)):
             self._train_iter_start()
-            for key in batch.keys():
+            for key in batch:
                 batch[key] = batch[key].cuda()
             images = batch['inp']
             feats = self.core(images) 

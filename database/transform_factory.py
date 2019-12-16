@@ -49,9 +49,8 @@ def get_transform(cfg, trans):
                    
         elif tran == 'center_crop':
             bag_of_transforms.append(T.CenterCrop(size=cfg.INPUT.CROP_SIZE))
-
         else:            
-            raise KeyError("Invalid transform, got '{}', but expected to be one of {}".format(name, transforms))
+            raise KeyError("Invalid transform, got '{}', but expected to be one of {}".format(tran, transforms))
                 
     transform = T.Compose(bag_of_transforms)
 

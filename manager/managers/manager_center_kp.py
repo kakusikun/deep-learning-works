@@ -28,11 +28,13 @@ class CenterKPManager(BaseManager):
         self.model = Model(self.cfg)
 
     def _make_loss(self):
-        regl1 = RegL1Loss()
-        regwl1 = RegWeightedL1Loss()
-        focal = FocalLoss()    
-        self.loss_has_param = []
-        self.loss_name = ["hm", "wh", "offset", "hm_hp", "hp", "hp_offset"]
+        self.crit = {}
+        self.crit['hm'] = FocalLoss()  
+        self.crit['wh'] = RegL1Loss()
+        self.crit['reg'] = RegL1Loss()
+        self.crit['hm_hp'] = FocalLoss()  
+        self.crit['hp'] = RegWeightedL1Loss()
+        self.crit['hp_reg'] = RegL1Loss()        
 
         def loss_func(feats, batch):
             hm_loss    = 0.0
@@ -47,22 +49,22 @@ class CenterKPManager(BaseManager):
                     output = feat[head]
                     if head == 'hm':
                         output = _sigmoid(output)
-                        hm_loss += focal(output, batch['hm'])                 
+                        hm_loss += self.crit[head](output, batch['hm'])                 
                     elif head == 'wh':
-                        wh_loss += regl1(output, batch['reg_mask'], batch['ind'], batch['wh'])
+                        wh_loss += self.crit[head](output, batch['reg_mask'], batch['ind'], batch['wh'])
                     elif head == 'reg':
-                        off_loss += regl1(output, batch['reg_mask'], batch['ind'], batch['reg'])
+                        off_loss += self.crit[head](output, batch['reg_mask'], batch['ind'], batch['reg'])
                     elif head == 'hm_hp':
                         output = _sigmoid(output)
-                        hm_hp_loss += focal(output, batch['hm_hp'])  
-                    elif head == 'hp_offset':
-                        hp_off_loss += regl1(output, batch['hp_mask'], batch['hp_ind'], batch['hp_reg'])
+                        hm_hp_loss += self.crit[head](output, batch['hm_hp'])  
+                    elif head == 'hp_reg':
+                        hp_off_loss += self.crit[head](output, batch['hp_mask'], batch['hp_ind'], batch['hp_reg'])
                     elif head == 'hps':
-                        hp_loss += regwl1(output, batch['hps_mask'], batch['ind'], batch['hps'])
+                        hp_loss += self.crit[head](output, batch['hps_mask'], batch['ind'], batch['hps'])
                     else:
                         sys.exit(1)
-            each_loss = [hm_loss, wh_loss, off_loss, hm_hp_loss, hp_loss, hp_off_loss]
-            loss = each_loss[0] + 0.1 * each_loss[1] + each_loss[2] + each_loss[3] + each_loss[4] + each_loss[5]
+            each_loss = {'hm':hm_loss, 'wh':wh_loss, 'reg':off_loss, 'hm_hp':hm_hp_loss, 'hp':hp_loss, 'hp_reg':hp_off_loss}
+            loss = each_loss['hm'] + 0.1 * each_loss['wh'] + each_loss['reg'] + each_loss['hm_hp'] + each_loss['hp'] + each_loss['hp_reg']
             return loss, each_loss
 
         self.loss_func = loss_func

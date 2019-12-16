@@ -43,6 +43,8 @@ _C.ENGINE = ""
 
 _C.MANAGER = ""
 
+_C.TRAINER = ""
+
 _C.TRAIN_TRANSFORM = ""
 _C.TEST_TRANSFORM = ""
 

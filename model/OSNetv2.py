@@ -204,36 +204,21 @@ class OSNet(nn.Module):
           https://arxiv.org/abs/1905.00953
     """
 
-    def __init__(self, num_classes, blocks, layers, channels, feature_dim=512, pooling='AVG', task='classifier', attention=False, IN=False, **kwargs):
+    def __init__(self, blocks, layers, channels, feature_dim=512):
         super(OSNet, self).__init__()
         num_blocks = len(blocks)
         assert num_blocks == len(layers)
         assert num_blocks == len(channels) - 1 
-        self.task = task
-        self.attention = attention
-        
+        self.feature_dim = feature_dim
+       
         # convolutional backbone
-        self.conv1 = ConvLayer(3, channels[0], 7, stride=2, padding=3, IN=IN)
+        self.conv1 = ConvLayer(3, channels[0], 7, stride=2, padding=3)
         self.maxpool = nn.MaxPool2d(3, stride=2, padding=1)
-        self.conv2 = self._make_layer(blocks[0], layers[0], channels[0], channels[1], reduce_spatial_size=True, IN=IN)
+        self.conv2 = self._make_layer(blocks[0], layers[0], channels[0], channels[1], reduce_spatial_size=True)
         self.conv3 = self._make_layer(blocks[1], layers[1], channels[1], channels[2], reduce_spatial_size=True)
         self.conv4 = self._make_layer(blocks[2], layers[2], channels[2], channels[3], reduce_spatial_size=False)
         self.conv5 = Conv1x1(channels[3], channels[3])
-
-        if pooling == 'AVG':
-            self.global_pool = nn.AdaptiveAvgPool2d(1)
-        elif pooling == 'MAX':
-            self.global_pool = nn.AdaptiveMaxPool2d(1)
-        else:
-            logger.info("{} is not supported".format(pooling))
-            sys.exit(1)
-
-        if self.attention:
-            self.att_incorp = AttentionIncorporation(channels[2])
-
-        if self.task == 'classifier' or self.task == 'attention':
-            # fully connected layer
-            self.fc = self._construct_fc_layer(feature_dim, channels[3], dropout_p=None)
+        # self.global_pool = nn.AdaptiveAvgPool2d(1)
         
         self._init_params()
 
@@ -253,28 +238,7 @@ class OSNet(nn.Module):
             )
         
         return nn.Sequential(*layers)
-
-    def _construct_fc_layer(self, fc_dims, input_dim, dropout_p=None):
-        if fc_dims is None or fc_dims<0:
-            self.feature_dim = input_dim
-            return None
-        
-        if isinstance(fc_dims, int):
-            fc_dims = [fc_dims]
-
-        layers = []
-        for dim in fc_dims:
-            layers.append(nn.Linear(input_dim, dim))
-            # layers.append(nn.BatchNorm1d(dim))
-            # layers.append(nn.ReLU(inplace=True))
-            if dropout_p is not None:
-                layers.append(nn.Dropout(p=dropout_p))
-            input_dim = dim
-        
-        self.feature_dim = fc_dims[-1]
-        
-        return nn.Sequential(*layers)
-
+    
     def _init_params(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -299,48 +263,44 @@ class OSNet(nn.Module):
         x = self.conv1(x)
         x = self.maxpool(x)
         x = self.conv2(x)
-        x3 = self.conv3(x)        
-        x = self.conv4(x3)
+        x = self.conv3(x)        
+        x = self.conv4(x)
         x = self.conv5(x)
-        if self.attention:
-            at_map = self.att_incorp(x3)
-            return x, at_map
         return x
 
     def forward(self, x):
-        if self.attention:
-            x, at_map = self.featuremaps(x)
-        else:
-            x = self.featuremaps(x)
+        x = self.featuremaps(x)
+        return x
         
-        if self.task == 'trick':
-            if self.attention:
-                return x, at_map
-            return x
+        # if self.task == 'trick':
+        #     if self.attention:
+        #         return x, at_map
+        #     return x
 
-        x = self.global_pool(x)        
-        x = x.view(x.size(0), -1)
-        if self.fc is not None:
-            x = self.fc(x)
+        # x = self.global_pool(x)        
+        # x = x.view(x.size(0), -1)
+        # if self.fc is not None:
+        #     x = self.fc(x)
 
-        if self.task == 'attention':            
-            x = x.unsqueeze(2).unsqueeze(3) 
-            if self.attention:
-                return x, at_map
-            return x
+        # if self.task == 'attention':            
+        #     x = x.unsqueeze(2).unsqueeze(3) 
+        #     if self.attention:
+        #         return x, at_map
+        #     return x
             
-        if self.task == 'classifier':
-            return x
+        # if self.task == 'classifier':
+        #     return x
 
 
 
 ##########
 # Instantiation
 ##########
-def osnet_x1_0(num_classes=1000, pooling='AVG', task='classifier', attention=False, **kwargs):
+def osnet_x1_0():
     # standard size (width x1.0)
-    return OSNet(num_classes, blocks=[OSBlock, OSBlock, OSBlock], layers=[2, 2, 2],
-                 channels=[64, 256, 384, 512], pooling=pooling, task=task, **kwargs)
+    return OSNet(blocks=[OSBlock, OSBlock, OSBlock], 
+                 layers=[2, 2, 2],
+                 channels=[64, 256, 384, 512])
 
 def osnet_att_x1_0(num_classes=1000, pooling='AVG', task='classifier', **kwargs):
     # standard size (width x1.0)

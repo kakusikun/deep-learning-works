@@ -18,7 +18,7 @@ class BaseManager():
         self.use_gpu = False
 
         self.loss_func = None
-        self.loss_has_param = []
+        self.submodels = {}
 
     def _check_model(self):
         if self.cfg.EVALUATE:
@@ -30,11 +30,11 @@ class BaseManager():
             self.loadPath = self.cfg.RESUME
             self.load_model()     
         
-    def save_model(self, epoch, opts, acc):
+    def save_model(self, epoch, solvers, acc):
         state = {}
-        for i, opt in enumerate(opts):
-            opt_name = "opt_{}".format(i)
-            opt_state = opt.opt.state_dict()
+        for solver in solvers:
+            opt_name = "opt_{}".format(solver)
+            opt_state = solvers[solver].opt.state_dict()
             state[opt_name] = opt_state
 
         if isinstance(self.model, torch.nn.DataParallel): 
@@ -43,11 +43,11 @@ class BaseManager():
             model_state = self.model.state_dict()
             
         state['model'] = model_state 
-        if len(self.loss_has_param) > 0:
-            for i, loss in enumerate(self.loss_has_param):
-                loss_name = "loss_{}".format(i)
-                loss_state = loss.state_dict()
-                state[loss_name] = loss_state
+        if len(self.submodels) > 0:
+            for submodel in enumerate(self.submodels):
+                submodel_name = "submodel_{}".format(submodel)
+                submodel_state = self.submodels[submodel].state_dict()
+                state[submodel_name] = submodel_state
 
         torch.save(state, os.path.join(self.save_path,'model_{:03}_{:.4f}.pth'.format(epoch, acc)))
 
@@ -74,7 +74,7 @@ class BaseManager():
                                 logger.info("{}model {:55} ...... {}loaded{}".format(bcolors.RESET, k, bcolors.OKGREEN, bcolors.RESET))
                             else:
                                 logger.info("{}model {:55} ...... {}not loaded{}".format(bcolors.RESET, k, bcolors.WARNING, bcolors.RESET))
-                                logger.info(" => With shape does not match(ckpt != model) {} != {}".format(ckpt_w_shape, model_w_shape))
+                                logger.info(" => Shape (ckpt != model) {} != {}".format(ckpt_w_shape, model_w_shape))
                         else:
                             logger.info("{}state {:55} ...... {}skipped{}".format(bcolors.RESET, k, bcolors.WARNING, bcolors.RESET))
                     

@@ -10,11 +10,11 @@ import logging
 logger = logging.getLogger("logger")
 
 class BaseEngine():
-    def __init__(self, cfg, opts, loader, show, manager):
+    def __init__(self, cfg, solvers, loader, show, manager):
         self.cfg = cfg
         self.core = manager.model       
         self.loss_func = manager.loss_func
-        self.opts = opts
+        self.solvers = solvers
         self.tdata = loader['train'] if 'train' in loader else None
         self.vdata = loader['val'] if 'val' in loader else None
         self.qdata = loader['val']['query'] if 'val' in loader and isinstance(loader['val'], dict) and 'query' in loader['val'] else None
@@ -49,10 +49,21 @@ class BaseEngine():
         self.core.train() 
   
     def _train_iter_start(self):
-        raise NotImplementedError
+        self.iter += 1
+        for solver in self.solvers:
+            self.solvers[solver].lr_adjust(self.total_loss, self.iter)
+            self.solvers[solver].zero_grad()
 
     def _train_iter_end(self):                
-        raise NotImplementedError
+        for solver in self.solvers:
+            self.solvers[solver].step()
+
+        self.show.add_scalar('train/total_loss', self.total_loss, self.iter)              
+        for loss in self.manager.crit:
+            self.show.add_scalar('train/loss/{}'.format(loss), self.each_loss[loss], self.iter)
+        self.show.add_scalar('train/accuracy', self.train_accu, self.iter)   
+        for solver in self.solvers:
+            self.show.add_scalar('train/solver/{}/lr'.format(solver), self.solvers[solver].monitor_lr, self.iter)
 
     def _train_epoch_end(self):
         raise NotImplementedError
@@ -72,14 +83,14 @@ class BaseEngine():
                 logger.info("Epoch {} evaluation ends, loss {:.4f}".format(self.epoch, self.test_loss))
                 if self.min_loss > self.test_loss:
                     logger.info("Save checkpoint, with {:.4f} improvement".format(self.min_loss - self.test_loss))
-                    self.manager.save_model(self.epoch, self.opts, self.test_loss)
+                    self.manager.save_model(self.epoch, self.solvers, self.test_loss)
                     self.min_loss = self.test_loss
                 self.show.add_scalar('val/loss', self.min_loss, self.epoch)
             else:
                 logger.info("Epoch {} evaluation ends, accuracy {:.4f}".format(self.epoch, self.accu))
                 if self.accu > self.best_accu:
                     logger.info("Save checkpoint, with {:.4f} improvement".format(self.accu - self.best_accu))
-                    self.manager.save_model(self.epoch, self.opts, self.accu)
+                    self.manager.save_model(self.epoch, self.solvers, self.accu)
                     self.best_accu = self.accu
                 self.show.add_scalar('val/accuracy', self.best_accu, self.epoch)
 
@@ -95,9 +106,9 @@ class BaseEngine():
                 if self.epoch % self.cfg.SOLVER.EVALUATE_FREQ == 0:
                     self._evaluate()
             else:
-                self.manager.save_model(self.epoch, self.opts, 0.0)
-            if self.cfg.SOLVER.LR_POLICY == 'plateau' and self.cfg.SOLVER.MIN_LR >= self.opts[-1].monitor_lr:
-                logger.info("LR {} is less than the min LR {}".format(self.opts[0].monitor_lr, self.cfg.SOLVER.MIN_LR))
+                self.manager.save_model(self.epoch, self.solvers, 0.0)
+            if self.cfg.SOLVER.LR_POLICY == 'plateau' and self.cfg.SOLVER.MIN_LR >= self.solvers['model'].monitor_lr:
+                logger.info("LR {} is less than the min LR {}".format(self.solvers[0].monitor_lr, self.cfg.SOLVER.MIN_LR))
                 break
 
     def Inference(self):
@@ -112,6 +123,10 @@ class BaseEngine():
             scalar = []
             for _tensor in tensor:
                 scalar.append(_tensor.item())
+        elif isinstance(tensor, dict):
+            scalar = {}
+            for _tensor in tensor:
+                scalar[_tensor] = tensor[_tensor].item()
         elif isinstance(tensor, torch.Tensor) and tensor.dim() != 0:
             if tensor.is_cuda:
                 scalar = tensor.cpu().detach().numpy().tolist()

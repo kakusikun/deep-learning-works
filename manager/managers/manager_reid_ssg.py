@@ -38,7 +38,7 @@ class SSGManager(BaseManager):
 
         triplet_loss = TripletLoss()
         #  KD_loss = nn.KLDivLoss(reduction=False)
-        self.loss_has_param = []
+
         self.loss_name = ["triplet_global", "triplet_whole", "triplet_upper", "triplet_lower"]#, "KD"]
 
         def loss_func(local, glob, target):

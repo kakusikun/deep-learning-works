@@ -14,7 +14,7 @@ class ImageNetManager(BaseManager):
     def __init__(self, cfg):
         super(ImageNetManager, self).__init__(cfg)        
 
-        if cfg.TASK == "imagenet":
+        if cfg.TASK == "imagenet" or cfg.TASK == "cifar10":
             self._make_model()
             self._make_loss()
         else:
@@ -22,22 +22,19 @@ class ImageNetManager(BaseManager):
             sys.exit(1)
 
         self._check_model()    
-        
-        self.loss_name = ["cels"]
                         
     def _make_model(self):
         self.model = Model(self.cfg)
 
     def _make_loss(self):
+        self.crit = {}
         #  ce_ls = CrossEntropyLossLS(self.cfg.DB.NUM_CLASSES)
-        ce = nn.CrossEntropyLoss()
+        self.crit['ce'] = nn.CrossEntropyLoss()
 
-        self.loss_has_param = []
-
-        def loss_func(g_feat, target):
+        def loss_func(feat, batch):
             #  each_loss = [ce_ls(g_feat, target)]            
-            each_loss = [ce(g_feat, target)]            
-            loss = each_loss[0]
+            each_loss = {'ce':self.crit['ce'](feat, batch['target'])}
+            loss = each_loss['ce']
             return loss, each_loss
 
         self.loss_func = loss_func
@@ -69,10 +66,14 @@ def weights_init_classifier(module):
 class Model(nn.Module):
     def __init__(self, cfg):
         super(Model, self).__init__()
-        self.backbone = get_model(cfg.MODEL.NAME)(cfg.DB.NUM_CLASSES, task='classifier')
+        self.backbone = get_model(cfg.MODEL.NAME)()
+        self.gap = nn.AdaptiveAvgPool2d(1)        
+        self.classifier = nn.Linear(self.backbone.feature_dim, cfg.DB.NUM_CLASSES, bias=False)        
+        self.classifier.apply(weights_init_classifier)    
 
-        self.backbone.classifier.apply(weights_init_classifier)
-    
     def forward(self, x):
         x = self.backbone(x)
+        x = self.gap(x)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
         return x

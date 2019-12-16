@@ -16,8 +16,8 @@ logger = logging.getLogger("logger")
 # recover = T.Compose([T.Normalize(mean = [-0.485/0.229, -0.456/0.224, -0.406/0.225], std = [1/0.229,1/0.224,1/0.225])])
 
 class CenterKPEngine(BaseEngine):
-    def __init__(self, cfg, opts, loader, show, manager):
-        super(CenterKPEngine, self).__init__(cfg, opts, loader, show, manager)
+    def __init__(self, cfg, solvers, loader, show, manager):
+        super(CenterKPEngine, self).__init__(cfg, solvers, loader, show, manager)
 
     def _train_epoch_start(self): 
         self.epoch += 1
@@ -38,27 +38,10 @@ class CenterKPEngine(BaseEngine):
 
         self.core.train() 
 
-    def _train_iter_start(self):
-        self.iter += 1
-        for opt in self.opts:
-            opt.lr_adjust(self.total_loss, self.iter)
-            opt.zero_grad()
-
-    def _train_iter_end(self):  
-        for opt in self.opts:
-            opt.step()
-
-        self.show.add_scalar('train/total_loss', self.total_loss, self.iter)              
-        for i in range(len(self.each_loss)):
-            self.show.add_scalar('train/loss/{}'.format(self.manager.loss_name[i]), self.each_loss[i], self.iter)
-        self.show.add_scalar('train/accuracy', self.train_accu, self.iter)   
-        for i in range(len(self.opts)):
-            self.show.add_scalar('train/opt/{}/lr'.format(i), self.opts[i].monitor_lr, self.iter)
-
     def _train_once(self):
         for batch in tqdm(self.tdata, desc="Epoch[{}/{}]".format(self.epoch, self.max_epoch)):
             self._train_iter_start()
-            for key in batch.keys():
+            for key in batch:
                 batch[key] = batch[key].cuda()
             images = batch['inp']
             feats = self.core(images) 

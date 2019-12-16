@@ -13,25 +13,8 @@ logger = logging.getLogger("logger")
 # recover = T.Compose([T.Normalize(mean = [-0.485/0.229, -0.456/0.224, -0.406/0.225], std = [1/0.229,1/0.224,1/0.225])])
 
 class ReIDEngine(BaseEngine):
-    def __init__(self, cfg, opts, loader, show, manager):
-        super(ReIDEngine, self).__init__(cfg, opts, loader, show, manager)
-
-    def _train_iter_start(self):
-        self.iter += 1
-        for opt in self.opts:
-            opt.lr_adjust(self.total_loss, self.iter)
-            opt.zero_grad()
-
-    def _train_iter_end(self):  
-        for opt in self.opts:
-            opt.step()
-
-        self.show.add_scalar('train/total_loss', self.total_loss, self.iter)              
-        for i in range(len(self.each_loss)):
-            self.show.add_scalar('train/loss/{}'.format(self.manager.loss_name[i]), self.each_loss[i], self.iter)
-        self.show.add_scalar('train/accuracy', self.train_accu, self.iter)   
-        for i in range(len(self.opts)):
-            self.show.add_scalar('train/opt/{}/lr'.format(i), self.opts[i].monitor_lr, self.iter)
+    def __init__(self, cfg, solvers, loader, show, manager):
+        super(ReIDEngine, self).__init__(cfg, solvers, loader, show, manager)
 
     def _train_once(self):
         prefetcher = data_prefetcher(self.tdata)
@@ -48,8 +31,8 @@ class ReIDEngine(BaseEngine):
             self.total_loss, self.each_loss = self.manager.loss_func(local, glob, target)
             self.total_loss.backward()
 
-            for _loss in self.manager.loss_has_param:
-                for param in _loss.parameters():
+            for submodel in self.manager.submodels:
+                for param in self.manager.submodels[submodel].parameters():
                     param.grad.data *= (1. / self.cfg.SOLVER.CENTER_LOSS_WEIGHT)
 
             self._train_iter_end()

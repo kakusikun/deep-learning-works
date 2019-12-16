@@ -1,31 +1,33 @@
-EXPERIMENT: "Hourglass-Squeeze_cocoperson_focal_regl1_Adam_lr_0.0005_plateau_10_scratch"
+EXPERIMENT: "Hourglass-Squeeze_coco_focal_regl1_regwl1_Adam_lr_0.0005_plateau_10_coco"
 # [modelname]_[task]_[loss]_[opt]_[lr]_[trick]_[pretrain]
 
 TASK: "object"
-ORACLE: True
-
+MANAGER: "center"
+ENGINE: "center"
+TRAINER: "center"
+ORACLE: False
+NUM_WORKERS: 8
 MODEL:
   GPU: [1]
-  NUM_CLASSES: 80 #D:702, M:751 MSMT:2012(merge)
-  NAME: "hourglass-squeeze"
-  PRETRAIN: "outside"
-  TASK: "object"
-  NORM: 'ABN'
+  NAME: "light_hourglass"
+  NORM: 'BN'
 
 INPUT:
-  IMAGE_SIZE: (512,512)
+  RESIZE: (512,512)
   TRAIN_BS: 1
   TEST_BS: 1
 
 COCO:
   TARGET: ('original', -1)
-  
-DATALOADER:
-  NUM_WORKERS: 30
 
-DATASET:
-  NAME: "coco"
-  TRAIN_PATH: "/media/allen/mass/COCO/"
+DB:
+  NUM_CLASSES: 80 #D:702, M:751 MSMT:2012(merge)
+  DATA: "coco"
+  DATASET: "coco_object"
+  LOADER: "coco"
+  USE_TRAIN: True
+  USE_TEST: True
+  PATH: "/media/allen/mass/DB/"
 
 SOLVER:
   OPTIMIZER_NAME: "Adam"
@@ -45,4 +47,4 @@ SOLVER:
   # WARMUP_SIZE: 10.0
   PLATEAU_SIZE: 10.0
 
-EVALUATE: "/home/allen/CenterNet_CornerNet-Squeeze_COCO.pth"
+RESUME: '/media/allen/mass/deep-learning-works/caffe_models/Hourglass-squeeze_coco_focal_regl1_Freeze_Adam_lr_0.0001_plateau_10_COCO_0.2981.pth'

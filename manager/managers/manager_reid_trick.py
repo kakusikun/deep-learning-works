@@ -27,15 +27,18 @@ class TrickManager(BaseManager):
         self.model = Model(self.cfg)
 
     def _make_loss(self):
-        ce_ls = CrossEntropyLossLS(self.cfg.DB.NUM_CLASSES)
-        center_loss = CenterLoss(512, self.cfg.DB.NUM_CLASSES)        
-        triplet_loss = TripletLoss()
-        self.loss_has_param = [center_loss]
-        self.loss_name = ["cels", "triplet", "center"]
+        self.crit = {}
+        self.crit['cels'] = CrossEntropyLossLS(self.cfg.DB.NUM_CLASSES)
+        self.crit['triplet'] = TripletLoss()
+        self.crit['center'] = CenterLoss(512, self.cfg.DB.NUM_CLASSES) 
+        self.submodels['center'] = self.crit['center']
 
         def loss_func(l_feat, g_feat, target):
-            each_loss = [ce_ls(g_feat, target), triplet_loss(l_feat, target)[0], center_loss(l_feat, target)]
-            loss = each_loss[0] + each_loss[1] + self.cfg.SOLVER.CENTER_LOSS_WEIGHT * each_loss[2]
+            each_loss = {'cels':self.crit['cels'](g_feat, target), 
+                         'triplet':self.crit['triplet'](l_feat, target)[0], 
+                         'center':self.crit['center'](l_feat, target)}
+
+            loss = each_loss['cels'] + each_loss['triplet'] + self.cfg.SOLVER.CENTER_LOSS_WEIGHT * each_loss['center']
             return loss, each_loss
 
         self.loss_func = loss_func
@@ -66,17 +69,16 @@ class Model(nn.Module):
         super(Model, self).__init__()
         self.in_planes = 512
         if cfg.MODEL.PRETRAIN == "outside":
-            self.backbone = get_model(cfg.MODEL.NAME)(task='trick') 
+            self.backbone = get_model(cfg.MODEL.NAME)() 
         else:
-            self.backbone = get_model(cfg.MODEL.NAME)(cfg.DB.NUM_CLASSES, task='trick') 
+            self.backbone = get_model(cfg.MODEL.NAME)() 
 
         self.gap = nn.AdaptiveAvgPool2d(1)        
-        self.BNNeck = nn.BatchNorm1d(self.in_planes)
+        self.BNNeck = nn.BatchNorm1d(self.backbone.feature_dim)
         self.BNNeck.bias.requires_grad_(False)  # no shift
         self.BNNeck.apply(weights_init_kaiming)
 
-        self.num_classes = cfg.DB.NUM_CLASSES
-        self.id_fc = nn.Linear(self.in_planes, self.num_classes, bias=False)        
+        self.id_fc = nn.Linear(self.backbone.feature_dim, cfg.DB.NUM_CLASSES, bias=False)        
         self.id_fc.apply(weights_init_classifier)
     
     def forward(self, x):

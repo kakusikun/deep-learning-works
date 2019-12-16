@@ -28,30 +28,30 @@ class CenterManager(BaseManager):
         self.model = Model(self.cfg)
 
     def _make_loss(self):
-        regli = RegL1Loss()
-        focal = FocalLoss()    
-        self.loss_has_param = []
-        self.loss_name = ["focal", "reg_wh", "reg_offset"]
+        self.crit = {}
+        self.crit['hm'] = FocalLoss()  
+        self.crit['wh'] = RegL1Loss()
+        self.crit['reg'] = RegL1Loss()
 
         def loss_func(feats, batch):
-            focal_loss = 0.0
+            hm_loss    = 0.0
             wh_loss    = 0.0
             off_loss   = 0.0
             
             for feat in feats:
                 for head in feat.keys():
+                    output = feat[head]
                     if head == 'hm':
-                        output = _sigmoid(feat[head])
-                        focal_loss += focal(output, batch['hm'])
+                        output = _sigmoid(output)
+                        hm_loss += self.crit[head](output, batch['hm'])                 
                     elif head == 'wh':
-                        output = feat[head]
-                        wh_loss += regli(output, batch['reg_mask'], batch['ind'], batch['wh'])
+                        wh_loss += self.crit[head](output, batch['reg_mask'], batch['ind'], batch['wh'])
+                    elif head == 'reg':
+                        off_loss += self.crit[head](output, batch['reg_mask'], batch['ind'], batch['reg'])
                     else:
-                        output = feat[head]
-                        off_loss += regli(output, batch['reg_mask'], batch['ind'], batch['reg'])
-
-            each_loss = [focal_loss, wh_loss, off_loss]
-            loss = each_loss[0] + 0.1 * each_loss[1] + each_loss[2]
+                        sys.exit(1)
+            each_loss = {'hm':hm_loss, 'wh':wh_loss, 'reg':off_loss}
+            loss = each_loss['hm'] + 0.1 * each_loss['wh'] + each_loss['reg']
             return loss, each_loss
 
         self.loss_func = loss_func

@@ -4,45 +4,24 @@ import torch
 import torch.nn.functional as F
 import torchvision.transforms as T
 import torchvision
-from engine.base_engine import BaseEngine, data_prefetcher
+from engine.base_engine import BaseEngine
 import numpy as np
 import logging
 logger = logging.getLogger("logger")
 
 class ImageNetEngine(BaseEngine):
-    def __init__(self, cfg, opts,loader, show, manager):
-        super(ImageNetEngine, self).__init__(cfg, opts, loader, None, None, show, manager)
+    def __init__(self, cfg, solvers, loader, show, manager):
+        super(ImageNetEngine, self).__init__(cfg, solvers, loader, show, manager)
         
-    def _train_iter_start(self):
-        self.iter += 1
-        for opt in self.opts:
-            opt.lr_adjust(self.total_loss, self.iter)
-            opt.zero_grad()
-   
-    def _train_iter_end(self):           
-        for opt in self.opts:
-            opt.step()
-
-        self.show.add_scalar('train/total_loss', self.total_loss, self.iter)              
-        for i in range(len(self.each_loss)):
-            self.show.add_scalar('train/loss/{}'.format(self.manager.loss_name[i]), self.each_loss[i], self.iter)
-        self.show.add_scalar('train/accuracy', self.train_accu, self.iter)   
-        for i in range(len(self.opts)):
-            self.show.add_scalar('train/opt/{}/lr'.format(i), self.opts[i].monitor_lr, self.iter) 
-
     def _train_once(self):
-        prefetcher = data_prefetcher(self.tdata)
-        for _ in tqdm(range(len(self.tdata)+5), desc="Epoch[{}/{}]".format(self.epoch, self.max_epoch)):
+        for batch in tqdm(self.tdata, desc="Epoch[{}/{}]".format(self.epoch, self.max_epoch)):
             self._train_iter_start()
-
-            batch = prefetcher.next()
-            if batch is None:
-                break
-            images, target = batch  
-            
+            for key in batch:
+                batch[key] = batch[key].cuda()
+            images = batch['inp']            
             outputs = self.core(images)
 
-            self.total_loss, self.each_loss = self.manager.loss_func(outputs, target)
+            self.total_loss, self.each_loss = self.manager.loss_func(outputs, batch)
             self.total_loss.backward()
 
             self._train_iter_end()     
@@ -50,7 +29,7 @@ class ImageNetEngine(BaseEngine):
             self.total_loss = self.tensor_to_scalar(self.total_loss)
             self.each_loss = self.tensor_to_scalar(self.each_loss)
 
-            self.train_accu = (outputs.max(1)[1] == target).float().mean() 
+            self.train_accu = (outputs.max(1)[1] == batch['target']).float().mean() 
            
 
     def _evaluate(self, eval=False):
@@ -59,12 +38,13 @@ class ImageNetEngine(BaseEngine):
         with torch.no_grad():
             self._eval_epoch_start()
             for batch in tqdm(self.vdata, desc="Validation"): 
-                images, target = batch
-                if self.use_gpu: images, target = images.cuda(), target.cuda()
+                for key in batch:
+                    batch[key] = batch[key].cuda()
+                images = batch['inp']      
                 
                 outputs = self.core(images)
 
-                accus.append((outputs.max(1)[1] == target).float().mean())
+                accus.append((outputs.max(1)[1] == batch['target']).float().mean())
           
         self.accu = torch.stack(accus).mean()
 
