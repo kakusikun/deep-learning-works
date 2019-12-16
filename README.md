@@ -10,8 +10,8 @@ Work in deep learning via Pytorch.
 ## Overview
 Fork from following task
 ### Person Re-identification
-* [(SSG) Self-similarity Grouping: A Simple Unsupervised Cross Domain Adaptation Approach for Person Re-identification](https://arxiv.org/abs/1811.10144)
-* [(MAR) Unsupervised Person Re-identification by Soft Multilabel Learning](https://arxiv.org/abs/1903.06325)
+* ~~[(SSG) Self-similarity Grouping: A Simple Unsupervised Cross Domain Adaptation Approach for Person Re-identification](https://arxiv.org/abs/1811.10144)~~
+* ~~[(MAR) Unsupervised Person Re-identification by Soft Multilabel Learning](https://arxiv.org/abs/1903.06325)~~
 * [(BNNeck) Bag of Tricks and A Strong Baseline for Deep Person Re-identification](https://arxiv.org/abs/1903.07071)
 * [(OSNet) Omni-Scale Feature Learning for Person Re-Identification](https://arxiv.org/abs/1905.00953)
 
