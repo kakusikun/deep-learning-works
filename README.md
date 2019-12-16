@@ -15,7 +15,14 @@ Fork from following task
 * [(BNNeck) Bag of Tricks and A Strong Baseline for Deep Person Re-identification](https://arxiv.org/abs/1903.07071)
 * [(OSNet) Omni-Scale Feature Learning for Person Re-Identification](https://arxiv.org/abs/1905.00953)
 
-### Pedestrian attribute recognition
+### Pedestrian Attribute Recognition
 * Multitask Learning using fully connected layer
 
+### Object Detection
+* [(CenterNet) Objects as Points](https://github.com/xingyizhou/CenterNet) + [(CornerNet-Lite) CornerNet-Lite: Efficient Keypoint Based Object Detection](https://github.com/princeton-vl/CornerNet-Lite/tree/master)
+
+### Clothing Detection, Keypoints
+* [(DeepFashion2) A Versatile Benchmark for Detection, Pose Estimation, Segmentation and Re-Identification of Clothing Images](https://github.com/switchablenorms/DeepFashion2)
+
 ## Result
+*working on it*
