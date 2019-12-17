@@ -91,7 +91,6 @@ class CenterKPEngine(BaseEngine):
                 dets_out = multi_pose_post_process(dets.copy(), batch['c'].cpu().numpy(), batch['s'].cpu().numpy(),
                                                    feat['hm'].shape[2], feat['hm'].shape[3], feat['hm'].shape[1])
                 results[batch['img_id'][0]] = dets_out[0]
-                break
 
         if self.cfg.DB.NUM_KEYPOINTS == 17:
             cce, cce_kp = coco_eval(Personeval, self.vdata.dataset.coco, results, self.cfg.OUTPUT_DIR)  
