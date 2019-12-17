@@ -8,7 +8,8 @@ import torchvision
 from engine.base_engine import BaseEngine, data_prefetcher
 from tools.oracle_utils import gen_oracle_map
 from tools.utils import multi_pose_decode, multi_pose_post_process
-from pycocotools.cocoeval import COCOeval
+from tools.deepfashiontools.cocoeval import COCOeval as Clothingeval
+from pycocotools.cocoeval import COCOeval as Personeval
 import json
 import numpy as np
 import logging
@@ -90,8 +91,12 @@ class CenterKPEngine(BaseEngine):
                 dets_out = multi_pose_post_process(dets.copy(), batch['c'].cpu().numpy(), batch['s'].cpu().numpy(),
                                                    feat['hm'].shape[2], feat['hm'].shape[3], feat['hm'].shape[1])
                 results[batch['img_id'][0]] = dets_out[0]
+                break
 
-        cce, cce_kp = coco_eval(self.vdata.dataset.coco, results, self.cfg.OUTPUT_DIR)  
+        if self.cfg.DB.NUM_KEYPOINTS == 17:
+            cce, cce_kp = coco_eval(Personeval, self.vdata.dataset.coco, results, self.cfg.OUTPUT_DIR)  
+        elif self.cfg.DB.NUM_KEYPOINTS == 294:
+            cce, cce_kp = coco_eval(Clothingeval, self.vdata.dataset.coco, results, self.cfg.OUTPUT_DIR)  
 
         logger.info('KP => Average Precision  (AP) @[ IoU=0.50:0.95 ] = {:.3f}'.format(cce_kp.stats[0]))
         logger.info('OD => Average Precision  (AP) @[ IoU=0.50:0.95 ] = {:.3f}'.format(cce.stats[0]))
@@ -131,14 +136,14 @@ def convert_eval_format(all_bboxes, valid_ids):
                 detections.append(detection)
     return detections
 
-def coco_eval(coco, results, save_dir):
+def coco_eval(eval_func, coco, results, save_dir):
     json.dump(convert_eval_format(results, coco.getCatIds()), open('{}/results.json'.format(save_dir), 'w'))
     coco_dets = coco.loadRes('{}/results.json'.format(save_dir))
-    coco_kp_eval = COCOeval(coco, coco_dets, "keypoints")
+    coco_kp_eval = eval_func(coco, coco_dets, "keypoints")
     coco_kp_eval.evaluate()
     coco_kp_eval.accumulate()
     coco_kp_eval.summarize()
-    coco_eval = COCOeval(coco, coco_dets, "bbox")
+    coco_eval = eval_func(coco, coco_dets, "bbox")    
     coco_eval.evaluate()
     coco_eval.accumulate()
     coco_eval.summarize()
