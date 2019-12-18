@@ -53,66 +53,32 @@ class BaseManager():
 
     def load_model(self): 
         state = torch.load(self.loadPath, map_location = torch.device('cpu'))
-        loaded_weights = {}
-        if len(state.keys()) < 10:
-            for key in state.keys():            
-                if 'model' in key:
-                    checkpoint = state[key]
-                    model_state = self.model.state_dict()
-                    
-                    for k, _ in model_state.items():
-                        loaded_weights[k] = False
-
-                    checkpointRefine = {}             
-                    for k, v in checkpoint.items():
-                        if k in model_state and torch.isnan(v).sum() == 0:
-                            ckpt_w_shape = v.size()
-                            model_w_shape = model_state[k].size()
-                            if ckpt_w_shape == model_w_shape:
-                                checkpointRefine[k] = v
-                                loaded_weights[k] = True
-                                logger.info("{}model {:55} ...... {}loaded{}".format(bcolors.RESET, k, bcolors.OKGREEN, bcolors.RESET))
-                            else:
-                                logger.info("{}model {:55} ...... {}not loaded{}".format(bcolors.RESET, k, bcolors.WARNING, bcolors.RESET))
-                                logger.info(" => Shape (ckpt != model) {} != {}".format(ckpt_w_shape, model_w_shape))
-                        else:
-                            logger.info("{}state {:55} ...... {}skipped{}".format(bcolors.RESET, k, bcolors.WARNING, bcolors.RESET))
-                    
-                    for k in loaded_weights.keys():
-                        if not loaded_weights[k]:
-                            logger.info("{}model {:55} ...... {}not loaded{}".format(bcolors.RESET, k, bcolors.WARNING, bcolors.RESET))     
-                        
-                    model_state.update(checkpointRefine)
-                    self.model.load_state_dict(model_state)
-                    
-                #  elif 'loss' in key:
-                    #  idx = int(key.split("_")[-1])
-                    #  self.loss_has_param[idx].load_state_dict(state[key])
-                else:
-                    logger.info("{} is skipped".format(key))
+        model_state = self.model.state_dict()
+        loaded_params = set()
+        if 'model' in state:
+            ckpt = state['model']
         else:
-            checkpoint = state
-            model_state = self.model.backbone.state_dict()
+            ckpt = state
 
-            for k, _ in model_state.items():
-                loaded_weights[k] = False
-
-            checkpointRefine = {}             
-            for k, v in checkpoint.items():
-                if k in model_state and torch.isnan(v).sum() == 0:
-                    checkpointRefine[k] = v
-                    loaded_weights[k] = True
-                    logger.info("{}{:55} ...... {}loaded{}".format(bcolors.RESET, k, bcolors.OKGREEN, bcolors.RESET))
+        for layer, weight in ckpt.items():
+            if layer not in model_state:
+                logger.info("{}ckpt {:55} ...... {}?{}".format(bcolors.RESET, layer, bcolors.WARNING, bcolors.RESET))
+            else:
+                ckpt_w_shape = weight.size()
+                model_w_shape = model_state[layer].size()
+                if torch.isnan(weight).sum() == 0 and ckpt_w_shape == model_w_shape:
+                    loaded_params.add(layer)
+                    model_state[layer] = weight
+                    logger.info("{}model {:55} ...... {}O{}".format(bcolors.RESET, layer, bcolors.OKGREEN, bcolors.RESET))
                 else:
-                    logger.info("{}{:55} ...... {}skipped{}".format(bcolors.RESET, k, bcolors.WARNING, bcolors.RESET))
-
-            for k in loaded_weights.keys():
-                if not loaded_weights[k]:
-                    logger.info("{}{:55} ...... {}not loaded{}".format(bcolors.RESET, k, bcolors.WARNING, bcolors.RESET))     
-
-            model_state.update(checkpointRefine)
-            self.model.backbone.load_state_dict(model_state)
-        logger.info(bcolors.RESET)
+                    logger.info("{}model {:55} ...... {}X{}".format(bcolors.RESET, layer, bcolors.WARNING, bcolors.RESET))
+                    logger.info(" => Shape (ckpt != model) {} != {}".format(ckpt_w_shape, model_w_shape))
+        params = set(model_state.keys())
+        not_loaded_params = list(params.difference(loaded_params))
+        for layer in not_loaded_params:
+            logger.info("{}model {:55} ...... {}!{}".format(bcolors.RESET, layer, bcolors.WARNING, bcolors.RESET))     
+            
+        self.model.load_state_dict(model_state)
 
     def _initialize_weights(self):
         raise NotImplementedError
