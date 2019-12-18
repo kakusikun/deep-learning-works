@@ -7,7 +7,7 @@ import torchvision.transforms as T
 import torchvision
 from engine.base_engine import BaseEngine, data_prefetcher
 from tools.oracle_utils import gen_oracle_map
-from tools.utils import multi_pose_decode, multi_pose_post_process
+from tools.utils import multi_pose_decode, multi_pose_post_process, _sigmoid
 from tools.deepfashiontools.cocoeval import COCOeval as Clothingeval
 from pycocotools.cocoeval import COCOeval as Personeval
 import json
@@ -82,8 +82,8 @@ class CenterKPEngine(BaseEngine):
 
                 else:               
                     feat = self.core(batch['inp'])[-1]
-                    feat['hm'].sigmoid_()
-                    feat['hm_hp'].sigmoid_()
+                    feat['hm'] = _sigmoid(feat['hm'])
+                    feat['hm_hp'] = _sigmoid(feat['hm_hp'])
 
                 dets = multi_pose_decode(feat['hm'], feat['wh'], feat['hps'], 
                                          reg=feat['reg'], hm_hp=feat['hm_hp'], hp_offset=feat['hp_reg'], K=100)
