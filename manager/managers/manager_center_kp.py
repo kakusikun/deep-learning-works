@@ -33,7 +33,7 @@ class CenterKPManager(BaseManager):
         self.crit['wh'] = RegL1Loss()
         self.crit['reg'] = RegL1Loss()
         self.crit['hm_hp'] = FocalLoss()  
-        self.crit['hp'] = RegWeightedL1Loss()
+        self.crit['hps'] = RegWeightedL1Loss()
         self.crit['hp_reg'] = RegL1Loss()        
 
         def loss_func(feats, batch):
@@ -63,8 +63,8 @@ class CenterKPManager(BaseManager):
                         hp_loss += self.crit[head](output, batch['hps_mask'], batch['ind'], batch['hps'])
                     else:
                         sys.exit(1)
-            each_loss = {'hm':hm_loss, 'wh':wh_loss, 'reg':off_loss, 'hm_hp':hm_hp_loss, 'hp':hp_loss, 'hp_reg':hp_off_loss}
-            loss = each_loss['hm'] + 0.1 * each_loss['wh'] + each_loss['reg'] + each_loss['hm_hp'] + each_loss['hp'] + each_loss['hp_reg']
+            each_loss = {'hm':hm_loss, 'wh':wh_loss, 'reg':off_loss, 'hm_hp':hm_hp_loss, 'hps':hp_loss, 'hp_reg':hp_off_loss}
+            loss = each_loss['hm'] + 0.1 * each_loss['wh'] + each_loss['reg'] + each_loss['hm_hp'] + each_loss['hps'] + each_loss['hp_reg']
             return loss, each_loss
 
         self.loss_func = loss_func

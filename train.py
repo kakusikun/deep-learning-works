@@ -48,16 +48,11 @@ def main():
     trainer = get_trainer(cfg.TRAINER)(cfg)
 
     logger.info("Running with config:\n{}".format(cfg))
-    action = input("Config Confirmed ? (Y/N)").lower().strip()
-    if action == 'y':
-        if cfg.EVALUATE:
-            trainer.test()
-            sys.exit(1)
-        trainer.train()        
-    else:
-        shutil.rmtree(cfg.OUTPUT_DIR)
-        logger.info("Training stopped")
-        sys.exit(1) 
+    
+    if cfg.EVALUATE:
+        trainer.test()
+        sys.exit(1)
+    trainer.train()        
     
 
 if __name__ == '__main__':

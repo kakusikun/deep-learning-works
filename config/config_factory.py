@@ -112,7 +112,7 @@ _C.PAR.IGNORE_CAT = []
 # Pedestrian Attribute Recognition
 # -----------------------------------------------------------------------------
 _C.COCO = CN()
-_C.COCO.TARGET = ('original', -1)
+_C.COCO.TARGET = 'original'
 
 # -----------------------------------------------------------------------------
 # Dataset
