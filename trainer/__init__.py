@@ -33,12 +33,14 @@ class BaseTrainer():
 
 class CenterKPTrainer(BaseTrainer):
     def __init__(self, cfg):
+        assert cfg.INPUT.TEST_BS == 1
         super(CenterKPTrainer, self).__init__(cfg)
         self.activate(cfg)
 
 class CenterTrainer(BaseTrainer):
     def __init__(self, cfg):
-        super(CenterTrainer, self).__init__(cfg)
+        assert cfg.INPUT.TEST_BS == 1
+        super(CenterTrainer, self).__init__(cfg)        
         self.activate(cfg)
 
 class ImagenetTrainer(BaseTrainer):
