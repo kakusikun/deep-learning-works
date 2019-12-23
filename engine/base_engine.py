@@ -108,7 +108,7 @@ class BaseEngine():
             else:
                 self.manager.save_model(self.epoch, self.solvers, 0.0)
             if self.cfg.SOLVER.LR_POLICY == 'plateau' and self.cfg.SOLVER.MIN_LR >= self.solvers['model'].monitor_lr:
-                logger.info("LR {} is less than the min LR {}".format(self.solvers[0].monitor_lr, self.cfg.SOLVER.MIN_LR))
+                logger.info("LR {} is less than the min LR {}".format(self.solvers['model'].monitor_lr, self.cfg.SOLVER.MIN_LR))
                 break
 
     def Inference(self):
