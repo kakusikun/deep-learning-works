@@ -5,7 +5,9 @@ import math
 from tools.image import get_affine_transform, affine_transform, draw_umich_gaussian, gaussian_radius, color_aug
 
 class build_coco_dataset(data.Dataset):
-    # DeepFastion2 KeyPoints
+    mean = np.array([0.40789654, 0.44719302, 0.47026115], dtype=np.float32).reshape(1, 1, 3)
+    std  = np.array([0.28863828, 0.27408164, 0.27809835], dtype=np.float32).reshape(1, 1, 3)
+
     def __init__(self, data_coco, data, split):
         self.coco = data_coco
         cats = self.coco.loadCats(self.coco.getCatIds())
@@ -14,8 +16,6 @@ class build_coco_dataset(data.Dataset):
         self.default_res = (512, 512)    
         self.images = data
         self.split = split
-        self.mean = np.array([0.40789654, 0.44719302, 0.47026115], dtype=np.float32).reshape(1, 1, 3)
-        self.std  = np.array([0.28863828, 0.27408164, 0.27809835], dtype=np.float32).reshape(1, 1, 3)
         self.cat_ids = {v: i for i, v in enumerate(self.coco.getCatIds())}
         self._data_rng = np.random.RandomState(123)
         self._eig_val = np.array([0.2141788, 0.01817699, 0.00341571], dtype=np.float32)
@@ -123,3 +123,39 @@ class build_coco_dataset(data.Dataset):
                'reg_mask': reg_mask, 'ind': ind,
                'img_id': img_id, 'c': c, 's': s}
         return ret
+
+    @classmethod
+    def preprocess(self, img, scales, size, is_flip=False):       
+        # height, width = img.shape[0], img.shape[1]    
+        height, width = img.shape[0], img.shape[1]    
+        c = np.array([img.shape[1] / 2., img.shape[0] / 2.], dtype=np.float32)
+        _s = max(img.shape[0], img.shape[1]) * 1.0
+        # input_h, input_w = self.default_res
+        w, h = size
+        input_w = int(np.ceil(w/128)*128)
+        input_h = int(np.ceil(h/128)*128)
+
+        # image position augmentation
+        # scale
+        batch = []
+        cbatch = []
+        sbatch = []
+        
+        for sf in scales:   
+            s = _s * sf
+            if is_flip:
+                img = img[:, ::-1, :]
+                c[0] =  width - c[0] - 1    
+            # processing
+            trans_input = get_affine_transform(c, s, 0, [input_w, input_h])
+            inp = cv2.warpAffine(img, trans_input, (input_w, input_h), flags=cv2.INTER_LINEAR)
+            # rescale image pixel value to [0,1]
+            inp = (inp.astype(np.float32) / 255.)
+            # # image normalize
+            inp = (inp - self.mean) / self.std
+            # HWC => CHW
+            inp = inp.transpose(2, 0, 1)
+            batch.append(inp)
+            cbatch.append(c)
+            sbatch.append(s)
+        return {'inputs': np.array(batch), 'c': np.array(cbatch), 's': np.array(sbatch)}
