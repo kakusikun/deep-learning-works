@@ -6,6 +6,7 @@ from collections import OrderedDict
 import logging
 logger = logging.getLogger("logger")
 from tools import bcolors
+from copy import deepcopy
 
 class BaseManager():
     def __init__(self, cfg):
@@ -69,14 +70,14 @@ class BaseManager():
                 if torch.isnan(weight).sum() == 0 and ckpt_w_shape == model_w_shape:
                     loaded_params.add(layer)
                     model_state[layer] = weight
-                    logger.info("{}model {:55} ...... {}O{}".format(bcolors.RESET, layer, bcolors.OKGREEN, bcolors.RESET))
+                    # logger.info("{}model {:55} ...... {}O{}".format(bcolors.RESET, layer, bcolors.OKGREEN, bcolors.RESET))
                 else:
                     logger.info("{}model {:55} ...... {}X{}".format(bcolors.RESET, layer, bcolors.WARNING, bcolors.RESET))
                     logger.info(" => Shape (ckpt != model) {} != {}".format(ckpt_w_shape, model_w_shape))
         params = set(model_state.keys())
         not_loaded_params = list(params.difference(loaded_params))
         for layer in not_loaded_params:
-            logger.info("{}model {:55} ...... {}!{}".format(bcolors.RESET, layer, bcolors.WARNING, bcolors.RESET))     
+            logger.info("{}model {:55} ...... {}!{}".format(bcolors.RESET, layer, bcolors.WARNING, bcolors.RESET))    
             
         self.model.load_state_dict(model_state)
 
@@ -108,3 +109,36 @@ class BaseManager():
         self.save_path = os.path.join(self.cfg.OUTPUT_DIR, path)
         if not os.path.exists(self.save_path):
             os.mkdir(self.save_path)
+
+    def check_size(self, insize):
+        def check_size_hooker(m, inp, out):
+            if isinstance(out, torch.Tensor):
+                logger.info("{:<60}".format(m.name))
+                if isinstance(inp, tuple):            
+                    for i in inp:
+                        n,c,h,w = i.size()
+                        logger.info("{:>20}{:>3} x {:>3} x {:>3} x {:>3}".format("input, ", n,c,h,w))
+                else:
+                    n,c,h,w = inp.size()
+                    logger.info("{:>20}{:>3} x {:>3} x {:>3} x {:>3}".format("input, ", n,c,h,w))
+                n,c,h,w = out.size()
+                logger.info("{:>20}{:>3} x {:>3} x {:>3} x {:>3}".format("output, ", n,c,h,w))
+
+        hooks = []
+        for n, m in self.model.named_modules():
+            m.name = n
+            handle = m.register_forward_hook(check_size_hooker)
+            hooks.append(handle)
+        
+        dummy_model = deepcopy(self.model)        
+        weight = next(iter(dummy_model.parameters()))
+        if weight.is_cuda:
+            dummy_input = torch.rand(insize).cuda()
+        else:
+            dummy_input = torch.rand(insize)
+        dummy_model.eval()
+        with torch.no_grad():
+            dummy_model(dummy_input)
+
+        for hook in hooks:
+            hook.remove()
