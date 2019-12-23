@@ -37,10 +37,11 @@ class Solver():
             self.opt = torch.optim.SGD(self.params, momentum=self.momentum)
         elif self.opt_name == 'Adam':
             self.opt = torch.optim.Adam(self.params)
-        
+
+        if not self.warmup:
+            self.warmup_iters = 0
+
         if self.lr_policy == "plateau":
-            if not self.warmup:
-                self.warmup_iters = 0
             self.scheduler = WarmupReduceLROnPlateau(optimizer=self.opt, 
                                                             mode="min",
                                                             gamma=self.gamma,
