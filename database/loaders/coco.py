@@ -4,7 +4,7 @@ def build_coco_loader(cfg):
     data = get_data(cfg.DB.DATA)(cfg)
     loader = {}
     if cfg.DB.USE_TRAIN:
-        train_dataset = get_dataset(cfg.DB.DATASET)(data.handle['train'], data.index_map['train'], split='train')
+        train_dataset = get_dataset(cfg.DB.DATASET)(data.handle['train'], data.index_map['train'], split='train', output_stride=cfg.MODEL.OUTPUT_STRIDE)
         loader['train'] = Data.DataLoader(train_dataset, 
                                           batch_size=cfg.INPUT.TRAIN_BS, 
                                           shuffle=True, 
@@ -14,7 +14,7 @@ def build_coco_loader(cfg):
                                 )
         cfg.SOLVER.ITERATIONS_PER_EPOCH = len(loader['train'])
     if cfg.DB.USE_TEST:
-        val_dataset = get_dataset(cfg.DB.DATASET)(data.handle['val'], data.index_map['val'], split='val')
+        val_dataset = get_dataset(cfg.DB.DATASET)(data.handle['val'], data.index_map['val'], split='val', output_stride=cfg.MODEL.OUTPUT_STRIDE)
         loader['val'] = Data.DataLoader(val_dataset, 
                                         batch_size=cfg.INPUT.TEST_BS, 
                                         shuffle=False, 

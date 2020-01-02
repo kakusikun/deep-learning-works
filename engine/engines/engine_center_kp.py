@@ -55,17 +55,17 @@ class CenterKPEngine(BaseEngine):
                     feat['hm']  = batch['hm']
                     feat['wh']  = torch.from_numpy(gen_oracle_map(batch['wh'].detach().cpu().numpy(), 
                                                                   batch['ind'].detach().cpu().numpy(), 
-                                                                  batch['inp'].shape[3] // 8, batch['inp'].shape[2] // 8)).cuda()
+                                                                  batch['inp'].shape[3] // self.cfg.MODEL.OUTPUT_STRIDE, batch['inp'].shape[2] // self.cfg.MODEL.OUTPUT_STRIDE)).cuda()
                     feat['reg'] = torch.from_numpy(gen_oracle_map(batch['reg'].detach().cpu().numpy(), 
                                                                   batch['ind'].detach().cpu().numpy(), 
-                                                                  batch['inp'].shape[3] // 8, batch['inp'].shape[2] // 8)).cuda()
+                                                                  batch['inp'].shape[3] // self.cfg.MODEL.OUTPUT_STRIDE, batch['inp'].shape[2] // self.cfg.MODEL.OUTPUT_STRIDE)).cuda()
                     feat['hm_hp'] = batch['hm_hp']
                     feat['hps'] = torch.from_numpy(gen_oracle_map(batch['hps'].detach().cpu().numpy(), 
                                                                   batch['ind'].detach().cpu().numpy(), 
-                                                                  batch['inp'].shape[3] // 8, batch['inp'].shape[2] // 8)).cuda()
+                                                                  batch['inp'].shape[3] // self.cfg.MODEL.OUTPUT_STRIDE, batch['inp'].shape[2] // self.cfg.MODEL.OUTPUT_STRIDE)).cuda()
                     feat['hp_reg'] = torch.from_numpy(gen_oracle_map(batch['hp_reg'].detach().cpu().numpy(), 
                                                                      batch['hp_ind'].detach().cpu().numpy(), 
-                                                                     batch['inp'].shape[3] // 8, batch['inp'].shape[2] // 8)).cuda()
+                                                                     batch['inp'].shape[3] // self.cfg.MODEL.OUTPUT_STRIDE, batch['inp'].shape[2] // self.cfg.MODEL.OUTPUT_STRIDE)).cuda()
 
                 else:               
                     feat = self.core(batch['inp'])[-1]

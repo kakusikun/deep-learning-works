@@ -8,12 +8,13 @@ class build_cocokp_dataset(data.Dataset):
     mean = np.array([0.40789654, 0.44719302, 0.47026115], dtype=np.float32).reshape(1, 1, 3)
     std  = np.array([0.28863828, 0.27408164, 0.27809835], dtype=np.float32).reshape(1, 1, 3)
 
-    def __init__(self, data_coco, data, split):
+    def __init__(self, data_coco, data, split, output_stride):
         self.coco = data_coco
         self.num_classes = len(self.coco.loadCats(self.coco.getCatIds()))
         self.num_joints = len(self.coco.loadAnns(ids=self.coco.getAnnIds(catIds=[1]))[0]['keypoints']) // 3
         self.max_objs = 32
         self.default_res = (512, 512)    
+        self.output_stride = output_stride
         self.images = data
         self.split = split
         self.cat_ids = {v: i for i, v in enumerate(self.coco.getCatIds())}
@@ -103,8 +104,8 @@ class build_cocokp_dataset(data.Dataset):
         # HWC => CHW
         inp = inp.transpose(2, 0, 1)
 
-        output_h = input_h // 8
-        output_w = input_w // 8
+        output_h = input_h // self.output_stride
+        output_w = input_w // self.output_stride
 
         num_classes = self.num_classes
         num_joints = self.num_joints
