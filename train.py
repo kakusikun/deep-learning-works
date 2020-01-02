@@ -8,7 +8,7 @@ from config.config_factory import build_output
 from trainer.trainer_factory import get_trainer
 
 from tools.logger import setup_logger
-from tools.utils import deploy_macro
+from tools.utils import deploy_macro, print_config
 
 
 def main():
@@ -47,7 +47,8 @@ def main():
 
     trainer = get_trainer(cfg.TRAINER)(cfg)
 
-    logger.info("Running with config:\n{}".format(cfg))
+    logger.info("Running with config")
+    print_config(cfg, args.config)
     
     if cfg.EVALUATE:
         trainer.test()
