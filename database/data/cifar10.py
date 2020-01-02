@@ -24,7 +24,7 @@ class Cifar10(BaseData):
             logger.info("  ------------------------------")
             logger.info("  subset   | # class | # images")
             logger.info("  ------------------------------")
-            logger.info("  val      | {:7d} | {:8d}".format(10, self.n_samples['train']))
+            logger.info("  val      | {:7d} | {:8d}".format(10, self.n_samples['val']))
             logger.info("  ------------------------------")
 
     def _check_before_run(self):
