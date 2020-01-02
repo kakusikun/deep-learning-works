@@ -179,9 +179,6 @@ _C.OUTPUT_DIR = ""
 _C.RESUME = ""
 _C.EVALUATE = ""
 
-
-
-
 def build_output(cfg, config_file=""):
     time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     if cfg.EVALUATE:
