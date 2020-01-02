@@ -17,6 +17,8 @@ from torch.backends import cudnn
 from tools import bcolors
 from tools.image import transform_preds
 
+import yaml
+from yacs.config import CfgNode as CN
 import logging
 from tqdm import tqdm
 logger = logging.getLogger("logger")
@@ -282,6 +284,38 @@ def dist_idx_to_pair_idx(d, i):
     y = (i + (x * (b + x + 2) / 2).float() + 1).long()
     return x, y
     
+def print_config(cfg, cfg_file):
+    with open(cfg_file, 'r') as file:
+        # The FullLoader parameter handles the conversion from YAML
+        # scalar values to Python the dictionary format
+        raw_used_config = yaml.load(file, Loader=yaml.FullLoader)
+
+    def recursive_items(dictionary):
+        for key, value in dictionary.items():
+            if type(value) is dict:
+                yield (key, value)
+                yield from recursive_items(value)
+            else:
+                yield (key, value)
+    
+    used_config = []
+    for key, _ in recursive_items(raw_used_config):
+        used_config.append(key)
+    
+    for k, v in list(cfg.items()):    
+        if isinstance(v, CN):
+            logger.info(k)
+            logger.info("    {}".format("-"*46))
+            for _k, _v in list(v.items()):
+                if _k in used_config:
+                    logger.info("{}    {:<30} ---> {}{}".format(bcolors.OKGREEN, _k, _v, bcolors.RESET))
+                else:
+                    logger.info("    {:<30} ---> {}".format(_k, _v))
+                logger.info("    {}".format("-"*46))
+        else:
+            logger.info("{:<30} ---> {}".format(k, v))
+        logger.info("="*50)
+
 def deploy_macro(cfg):
     cudnn.benchmark = True
     gpu = ""
