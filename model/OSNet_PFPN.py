@@ -407,6 +407,7 @@ class OSNet(nn.Module):
                     nn.init.constant_(m.bias, 0)
 
     def forward(self, x):
+        out = {}
         x = self.conv(x)
         # output : C x H/4 x W/4
         stage1 = self.stage1(x)
@@ -425,18 +426,17 @@ class OSNet(nn.Module):
         seg2_2 = self.seg2_2_upsample(self.seg2_2(seg2_1)) + seg3_2
         seg1   = self.seg1_upsample(self.seg1(fpn1)) + seg2_2
 
-        ob_hm     = self.hm(seg1)
-        ob_offset = self.offset_reg(seg1)
-        ob_size   = self.size_reg(seg1)
+        out['hm']  = self.hm(seg1)
+        out['reg'] = self.offset_reg(seg1)
+        out['wh']  = self.size_reg(seg1)
 
         if self.task == 'keypoint':
-            kp_hm = self.kp_hm(seg1)
-            kp_loc = self.kp_loc_reg(seg1)
-            kp_offset = self.kp_offset_reg(seg1)
-            return ob_hm, ob_offset, ob_size, kp_hm, kp_offset, kp_loc
-        else:
-            return ob_hm, ob_offset, ob_size
+            out['hm_hp']  = self.kp_hm(seg1)
+            out['hps']    = self.kp_loc_reg(seg1)
+            out['hp_reg'] = self.kp_offset_reg(seg1)
 
+        return [out]
+        
     def generate_caffe_prototxt(self, caffe_net, layer):
         layer = generate_caffe_prototxt(self.conv, caffe_net, layer)
         stage1 = generate_caffe_prototxt(self.stage1, caffe_net, layer)
