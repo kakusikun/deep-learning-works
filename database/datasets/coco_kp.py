@@ -19,40 +19,21 @@ class build_cocokp_dataset(data.Dataset):
         self.split = split
         self.cat_ids = {v: i for i, v in enumerate(self.coco.getCatIds())}
         self._data_rng = np.random.RandomState(123)
+
+        # TODO: deprecated
         self._eig_val = np.array([0.2141788, 0.01817699, 0.00341571], dtype=np.float32)
         self._eig_vec = np.array([[-0.58752847, -0.69563484,  0.41340352],
                                   [ -0.5832747,  0.00994535, -0.81221408],
                                   [-0.56089297,  0.71832671,  0.41158938]], dtype=np.float32)
-        if self.num_joints == 17:
-            self.flip_idx = {0:[[1, 2], [3, 4], [5, 6], [7, 8], [9, 10], 
-                                [11, 12], [13, 14], [15, 16]]}
-            self.flip_idx_offset = [0]
-        else:
-            self.flip_idx = {0:[[1,5],[2,4],[6,24],[7,23],[8,22],[9,21],[10,20],[11,19],[12,18],[13,17],[14,16]],
-                            1:[[1,5],[2,4],[6,32],[7,31],[8,30],[9,29],[10,28],[11,27],[12,26],[13,25],[14,24],
-                                [15,23],[16,22],[17,21],[18,20]],
-                            2:[[1,25],[2,4],[3,5],[6,24],[7,23],[8,22],[9,21],[10,20],[11,19],[12,18],[13,17],
-                                [14,16],[15,28],[30,27],[29,26]],
-                            3:[[1,5],[2,4],[3,33],[6,32],[7,31],[8,30],[9,29],[10,28],[11,27],[12,26],[13,25],[14,24],
-                                [15,23],[16,22],[17,21],[18,20],[19,36],[38,35],[37,34]],
-                            4:[[1,5],[2,4],[6,14],[7,13],[8,12],[9,11]],
-                            5:[[1,5],[2,4],[6,14],[7,13],[8,12],[9,11]],
-                            6:[[0,2],[3,9],[4,8],[5,7]],
-                            7:[[0,2],[3,13],[4,12],[5,11],[6,10],[7,9]],
-                            8:[[0,2],[3,7],[4,6]],
-                            9:[[1,5],[2,4],[6,28],[7,27],[8,26],[9,25],[10,24],[11,23],[12,22],[13,21],[14,20],[15,19],
-                                [16,18]],
-                            10:[[1,5],[2,4],[6,36],[7,35],[8,34],[9,33],[10,32],[11,31],[12,30],[13,29],[14,28],[15,27],
-                                [16,26],[17,25],[18,24],[19,23],[20,22]],
-                            11:[[1,5],[2,4],[6,18],[7,17],[8,16],[9,15],[10,14],[11,13]],
-                            12:[[1,5],[2,4],[6,18],[7,17],[8,16],[9,15],[10,14],[11,13]]}
-            self.flip_idx_offset = [0,25,58,89,128,143,158,168,182,190,219,256,275]
+        # TODO: move to transform => kp_flip(num_joints)
+        
 
     def _coco_box_to_bbox(self, box):
         bbox = np.array([box[0], box[1], box[0] + box[2], box[1] + box[3]],
                         dtype=np.float32)
         return bbox
 
+    # TODO: move to transform => RandScale(scale => tuple : (min, max))
     def _get_border(self, border, size):
         i = 1
         while size - border // i <= border // i:
@@ -69,6 +50,9 @@ class build_cocokp_dataset(data.Dataset):
         num_objs = min(len(anns), self.max_objs)   
         
         img = cv2.imread(img_path)
+
+        # TODO: move to transform => RandScale(scale -> tuple, output_stride -> int)
+        #########
         height, width = img.shape[0], img.shape[1]    
         c = np.array([img.shape[1] / 2., img.shape[0] / 2.], dtype=np.float32)
         s = max(img.shape[0], img.shape[1]) * 1.0
@@ -83,27 +67,43 @@ class build_cocokp_dataset(data.Dataset):
             h_border = self._get_border(64, img.shape[0])
             # location
             c[0] = np.random.randint(low=w_border, high=img.shape[1] - w_border)
-            c[1] = np.random.randint(low=h_border, high=img.shape[0] - h_border)
+            c[1] = np.random.randint(low=h_border, high=img.shape[0] - h_border)            
+        #########
+
+        # TODO: move to transform => kp_flip(num_joints)
+        #########
             # hflip
-            
             if np.random.random() < 0.5:
                 flipped = True
                 img = img[:, ::-1, :]
                 c[0] =  width - c[0] - 1            
+        #########
+
 
         # processing
+        # TODO: move to transform => RandScale(scale -> tuple, output_stride -> int)
+        #########
         trans_input = get_affine_transform(c, s, 0, [input_w, input_h])
         inp = cv2.warpAffine(img, trans_input, (input_w, input_h), flags=cv2.INTER_LINEAR)
+        #########
+
+        # TODO: move to transform => normalize
+        #########
         # rescale image pixel value to [0,1]
         inp = (inp.astype(np.float32) / 255.)
         # image color augmentation       
-        if self.split == 'train' and np.random.random() < 0.5:
-            color_aug(self._data_rng, inp, self._eig_val, self._eig_vec)
+        # if self.split == 'train' and np.random.random() < 0.5:
+        #     color_aug(self._data_rng, inp, self._eig_val, self._eig_vec)
         # image normalize
         inp = (inp - self.mean) / self.std
+        #########
+
+
         # HWC => CHW
         inp = inp.transpose(2, 0, 1)
 
+        # TODO: move to transform => RandScale(scale -> tuple, output_stride -> int)
+        #########
         output_h = input_h // self.output_stride
         output_w = input_w // self.output_stride
 
@@ -111,7 +111,16 @@ class build_cocokp_dataset(data.Dataset):
         num_joints = self.num_joints
         # transform that applying to gt
         trans_output = get_affine_transform(c, s, 0, [output_w, output_h])
+        #########
 
+
+        # TODO: move to be a function
+        # => CenterNet_build_kptarget(max_objs -> int, 
+        #                             num_classes -> int,  
+        #                             num_joints -> int,
+        #                             outsize -> tuple,
+        #                             )
+        #########
         # center, object heatmap
         hm = np.zeros((num_classes, output_h, output_w), dtype=np.float32)
         # center, keypoint heatmap
