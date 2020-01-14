@@ -6,7 +6,7 @@ class build_cifar_dataset(data.Dataset):
         self.transform = transform
     
     def __getitem__(self, index):
-        img, label = self.data[index]
+        img, label = self.data['handle'][index]
 
         if self.transform is not None:
             img = self.transform(img)
@@ -14,4 +14,4 @@ class build_cifar_dataset(data.Dataset):
         return {'inp': img, 'target': label}
     
     def __len__(self):
-        return len(self.data)
+        return self.data['n_samples']

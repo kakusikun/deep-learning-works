@@ -16,9 +16,9 @@ class coco_data(BaseData):
          
         if cfg.DB.USE_TRAIN:
             train_coco, train_images, train_num_samples = self._process_dir(self.train_anno, self.train_dir, split='train')
-            self.handle['train'] = train_coco
-            self.index_map['train'] = train_images
-            self.n_samples['train'] = train_num_samples
+            self.train['handle'] = train_coco
+            self.train['indice'] = train_images
+            self.train['n_samples'] = train_num_samples
             logger.info("=> COCO TRAIN is loaded")
             logger.info("  Dataset statistics:")
             logger.info("  -------------------")
@@ -28,9 +28,9 @@ class coco_data(BaseData):
             logger.info("  -------------------")
         if cfg.DB.USE_TEST:
             val_coco, val_images, val_num_samples = self._process_dir(self.val_anno, self.val_dir, split='val')
-            self.handle['val'] = val_coco        
-            self.index_map['val'] = val_images
-            self.n_samples['val'] = val_num_samples
+            self.val['handle'] = val_coco        
+            self.val['indice'] = val_images
+            self.val['n_samples'] = val_num_samples
             logger.info("=> COCO VAL is loaded")
             logger.info("  Dataset statistics:")
             logger.info("  -------------------")

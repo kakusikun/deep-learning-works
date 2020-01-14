@@ -15,8 +15,8 @@ class ImageNet(BaseData):
         self._check_before_run()
         if cfg.DB.USE_TRAIN:
             train, train_num_images, train_num_classes = self._process_train_dir()
-            self.index_map['train'] = train
-            self.n_samples['train'] = train_num_images
+            self.train['indice'] = train
+            self.train['n_samples'] = train_num_images
             logger.info("=> {} TRAIN loaded".format(cfg.DB.DATA.upper()))
             logger.info("Dataset statistics:")
             logger.info("  ------------------------------")
@@ -26,8 +26,8 @@ class ImageNet(BaseData):
             logger.info("  ------------------------------")
         if cfg.DB.USE_TEST:
             val, val_num_images, val_num_classes = self._process_val_dir()
-            self.index_map['val'] = val
-            self.n_samples['val'] = val_num_images
+            self.val['indice'] = val
+            self.val['n_samples'] = val_num_images
             logger.info("=> {} VAL loaded".format(cfg.DB.DATA.upper()))
             logger.info("Dataset statistics:")
             logger.info("  ------------------------------")

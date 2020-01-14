@@ -98,29 +98,34 @@ class CUHK03(BaseData):
         num_gallery_imgs = split['num_gallery_imgs']
         num_total_imgs = num_train_imgs + num_query_imgs
 
-        logger.info("=> CUHK03 ({}) loaded".format(image_type))
-        logger.info("Dataset statistics:")
-        logger.info("  ------------------------------")
-        logger.info("  subset   | # ids | # images")
-        logger.info("  ------------------------------")
-        logger.info("  train    | {:5d} | {:8d}".format(num_train_pids, num_train_imgs))
-        logger.info("  query    | {:5d} | {:8d}".format(num_query_pids, num_query_imgs))
-        logger.info("  gallery  | {:5d} | {:8d}".format(num_gallery_pids, num_gallery_imgs))
-        logger.info("  ------------------------------")
-        logger.info("  total    | {:5d} | {:8d}".format(num_total_pids, num_total_imgs))
-        logger.info("  ------------------------------")
-
         if cfg.DB.USE_TRAIN:
-            self.index_map['train'] = train
-            self.n_samples['train'] = num_train_pids
+            self.train['indice'] = train
+            self.train['n_samples'] = num_train_pids
+            logger.info("=> {} TRAIN loaded".format(cfg.DB.DATA.upper()))
+            logger.info("Dataset statistics:")
+            logger.info("  ------------------------------")
+            logger.info("  subset   | # ids | # images")
+            logger.info("  ------------------------------")
+            logger.info("  train    | {:5d} | {:8d}".format(num_train_pids, num_train_imgs))
+            logger.info("  ------------------------------")
+
 
         if cfg.DB.USE_TEST:
-            self.index_map['val'] = {}
-            self.n_samples['val'] = {}
-            self.index_map['val']['query'] = query
-            self.index_map['val']['gallery'] = gallery
-            self.n_samples['val']['query'] = num_query_pids
-            self.n_samples['val']['gallery'] = num_gallery_pids   
+            self.val['indice'] = {}
+            self.val['n_samples'] = {}
+            self.val['indice']['query'] = query
+            self.val['indice']['gallery'] = gallery
+            self.val['n_samples']['query'] = num_query_pids
+            self.val['n_samples']['gallery'] = num_gallery_pids   
+            logger.info("=> {} VAL loaded".format(cfg.DB.DATA.upper()))
+            logger.info("Dataset statistics:")
+            logger.info("  ------------------------------")
+            logger.info("  subset   | # ids | # images")
+            logger.info("  ------------------------------")
+            logger.info("  query    | {:5d} | {:8d}".format(num_query_pids, num_query_imgs))
+            logger.info("  gallery  | {:5d} | {:8d}".format(num_gallery_pids, num_gallery_imgs))
+            logger.info("  ------------------------------")
+
 
     def _check_before_run(self):
         """Check if all files are available before going deeper"""

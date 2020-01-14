@@ -29,8 +29,8 @@ class DukeMTMCreID(BaseData):
 
         if cfg.DB.USE_TRAIN:
             train, num_train_pids, num_train_imgs = self._process_dir(self.train_dir, relabel=True)
-            self.index_map['train'] = train
-            self.n_samples['train'] = num_train_pids
+            self.train['indice'] = train
+            self.train['n_samples'] = num_train_pids
             logger.info("=> {} TRAIN loaded".format(cfg.DB.DATA.upper()))
             logger.info("Dataset statistics:")
             logger.info("  ------------------------------")
@@ -42,12 +42,12 @@ class DukeMTMCreID(BaseData):
         if cfg.DB.USE_TEST:
             query, num_query_pids, num_query_imgs = self._process_dir(self.query_dir, relabel=False)
             gallery, num_gallery_pids, num_gallery_imgs = self._process_dir(self.gallery_dir, relabel=False)
-            self.index_map['val'] = {}
-            self.n_samples['val'] = {}
-            self.index_map['val']['query'] = query
-            self.index_map['val']['gallery'] = gallery
-            self.n_samples['val']['query'] = num_query_pids
-            self.n_samples['val']['gallery'] = num_gallery_pids            
+            self.val['indice'] = {}
+            self.val['n_samples'] = {}
+            self.val['indice']['query'] = query
+            self.val['indice']['gallery'] = gallery
+            self.val['n_samples']['query'] = num_query_pids
+            self.val['n_samples']['gallery'] = num_gallery_pids            
             logger.info("=> {} VAL loaded".format(cfg.DB.DATA.upper()))
             logger.info("Dataset statistics:")
             logger.info("  ------------------------------")

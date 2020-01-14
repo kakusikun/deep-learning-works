@@ -7,10 +7,9 @@ logger = logging.getLogger("logger")
 
 
 class BaseData():
-    handle = {}
-    index_map = {}
-    n_samples = {}
-
+    train = {'handle': None, 'indice': None, 'n_samples': None}
+    val = {'handle': None, 'indice': None, 'n_samples': None}
+    
 
 # import os
 # import glob
