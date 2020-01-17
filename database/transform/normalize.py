@@ -9,14 +9,14 @@ class Normalize():
     To normalize the data
 
     Args:
-        mean (list): the value substracted from data, 
+        mean (list): the value substracted from data
         std (list): the value divided from data
 
     Attributes:
         mean (list): arg, mean
         std (list): arg, std
     '''
-
+    
     def __init__(self, mean, std):
         assert max(mean) <= 1.0
         assert max(std) <= 1.0

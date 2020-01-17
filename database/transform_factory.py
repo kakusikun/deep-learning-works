@@ -5,20 +5,17 @@ import numpy as np
 import torchvision.transforms as T
 import torchvision.transforms.functional as F
 
-from database.transform.reid_color_aug import REID_Color_aug
-from database.transform.random_erasing import RandomErasing
+from database.transform import RandAugment, Normalize, RandomHFlip, Tensorize, ResizeKeepAspectRatio, Resize 
 import logging
 logger = logging.getLogger("logger")
 
-transforms = [
-    'reid_color_aug',
+TRANFORMS = [
+    'randaug',
     'resize',
     'hflip',
-    'random_crop',
-    'to_tensor',
+    'resize_keep_ratio',
+    'tensorize',
     'normalize',
-    'random_erase',
-    'center_crop',
 ]
 
 def get_transform(cfg, trans):
@@ -26,32 +23,42 @@ def get_transform(cfg, trans):
     bag_of_transforms = []    
 
     for tran in trans:
-        if tran == 'reid_color_aug':
-            bag_of_transforms.append(REID_Color_aug())
+        if tran not in TRANFORMS:
+            raise KeyError("Invalid transform, got '{}', but expected to be one of {}".format(tran, TRANFORMS))
+        
+        # if tran == 'randaug':
+        #     #TODO: add random augment to config
+        #     bag_of_transforms.append(RandAugment())
 
-        # elif tran == 'resize':
-        #     bag_of_transforms.append(T.Resize(size=cfg.INPUT.RESIZE))
+        if tran == 'resize':
+            bag_of_transforms.append(Resize(size=cfg.INPUT.RESIZE, stride=cfg.MODEL.OUTPUT_STRIDE))
 
-        # elif tran == 'hflip':
-        #     bag_of_transforms.append(T.RandomHorizontalFlip(p=cfg.INPUT.PROB))
+        if tran == 'resize_keep_ratio':
+            bag_of_transforms.append(ResizeKeepAspectRatio(size=cfg.INPUT.RESIZE, stride=cfg.MODEL.OUTPUT_STRIDE))
+
+        if tran == 'hflip':
+            bag_of_transforms.append(RandomHFlip(num_keypoints=cfg.DB.NUM_KEYPOINTS))
             
-        elif tran == 'random_crop':
-            bag_of_transforms.append(T.RandomCrop(size=cfg.INPUT.CROP_SIZE, padding=cfg.INPUT.PAD))   
+        if tran == 'tensorize':
+            bag_of_transforms.append(Tensorize())
 
-        elif tran == 'to_tensor':
-            bag_of_transforms.append(T.ToTensor())
-
-        elif tran == 'normalize':
-            bag_of_transforms.append(T.Normalize(mean=cfg.INPUT.MEAN, std=cfg.INPUT.STD))
-
-        elif tran == 'random_erase':
-            bag_of_transforms.append(RandomErasing())     
+        if tran == 'normalize':
+            bag_of_transforms.append(Normalize(mean=cfg.INPUT.MEAN, std=cfg.INPUT.STD))
                    
-        elif tran == 'center_crop':
-            bag_of_transforms.append(T.CenterCrop(size=cfg.INPUT.CROP_SIZE))
-        else:            
-            raise KeyError("Invalid transform, got '{}', but expected to be one of {}".format(tran, transforms))
-                
-    transform = T.Compose(bag_of_transforms)
+    return Transform(bag_of_transforms)
 
-    return transform
+class Transform():
+    def __init__(self, t_list):
+        self.t_list = t_list
+    
+    def __call__(self, img, bboxes=None, total_pts=None):
+        for t in self.t_list:
+            img, state = t.apply_image(img)
+            if bboxes is not None:
+                for i in range(len(bboxes)):
+                    bboxes[i] = t.apply_bbox(bboxes[i], state)
+            if total_pts is not None:
+                for i in range(len(total_pts)):
+                    cls_id, pts = total_pts[i]
+                    total_pts[i][1] = t.apply_pts(cls_id, pts, state)
+

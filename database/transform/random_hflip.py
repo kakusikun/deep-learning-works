@@ -25,14 +25,14 @@ class RandomHFlip():
     '''
     To flip the image horizontally
     Args:
-        num_joints (int): optional, number of category of keypoints. 
+        num_keypoints (int): optional, number of category of keypoints. 
                           e.g., in COCO dataset, person has 17 types of keypoints.
                           For keypoint detection, not noly the position of 
                           keypoints changes but the category changes
     '''
-    def __init__(self, num_joints=-1):
-        if num_joints > 0:
-            if num_joints == 17:
+    def __init__(self, num_keypoints=0):
+        if num_keypoints > 0:
+            if num_keypoints == 17:
                 self.flip_idx = PERSON_KEYPOINT_INDICE
                 self.flip_idx_offset = PERSON_KEYPOINT_INDICE_OFFSET
             else:
@@ -65,13 +65,21 @@ class RandomHFlip():
         '''
         Flip bbox
         Args:
+<<<<<<< HEAD
             bbox (numpy.ndarray, shape 1x4): bbox to be resized
+=======
+            bbox (numpy array, shape 1x4): bbox to be resized
+>>>>>>> e93d3bef6882492b37dee831975daf57cad341f1
             s (dict):  
                 flipped (bool), whether the image is flipped,
                 w (int), the width of image,
                 recorded in function, apply_image
         Return:
+<<<<<<< HEAD
             bbox (numpy.ndarray, shape 1x4): flipped bbox
+=======
+            bbox (numpy array, shape 1x4): flipped bbox
+>>>>>>> e93d3bef6882492b37dee831975daf57cad341f1
         '''
         assert 'flipped' in s
         assert 'w' in s
@@ -84,13 +92,21 @@ class RandomHFlip():
         Flip keypoints
         Args:
             cid (int): the class for keypoints
+<<<<<<< HEAD
             pts (numpy.ndarray, shape Nx2): keypoints to be resized
+=======
+            pts (numpy array, shape Nx2): keypoints to be resized
+>>>>>>> e93d3bef6882492b37dee831975daf57cad341f1
             s (dict):  
                 flipped (bool), whether the image is flipped,
                 w (int), the width of image,
                 recorded in function, apply_image
         Return:
+<<<<<<< HEAD
             pts (numpy.ndarray, shape Nx2): flipped keypoints
+=======
+            pts (numpy array, shape Nx2): flipped keypoints
+>>>>>>> e93d3bef6882492b37dee831975daf57cad341f1
         '''
         assert 'flipped' in s
         assert 'w' in s

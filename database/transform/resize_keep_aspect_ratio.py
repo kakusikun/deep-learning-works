@@ -12,14 +12,14 @@ class ResizeKeepAspectRatio():
 
     Args:
         size (tuple): the output size
-        stride (int): optional, the output stride of image after neural network forwarding
+        stride (int): the output stride of image after neural network forwarding
 
     Attributes:
         size (tuple): arg, size
         stride (int): arg, stride
     '''
 
-    def __init__(self, size: tuple, stride: int):
+    def __init__(self, size, stride):
         self.size = size
         self.stride = stride
     

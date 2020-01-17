@@ -235,7 +235,7 @@ RANDAUG_OPS_NAME = [
     'ShearY', 'Cutout', 'TranslateX', 'TranslateY'
 ]
 
-class RandAugment:
+class RandAugment():
     '''
     RandAugment is from the paper https://arxiv.org/abs/1909.13719
     Reference:
@@ -251,7 +251,7 @@ class RandAugment:
     def __init__(self, n, m):
         self.n = n
         self.m = m 
-
+    
     def apply_image(self, img):        
         ops = random.choices(RANDAUG_OPS_NAME, k=self.n)
         s = {}
