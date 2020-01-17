@@ -29,11 +29,11 @@ def get_transform(cfg, trans):
         if tran == 'reid_color_aug':
             bag_of_transforms.append(REID_Color_aug())
 
-        elif tran == 'resize':
-            bag_of_transforms.append(T.Resize(size=cfg.INPUT.RESIZE))
+        # elif tran == 'resize':
+        #     bag_of_transforms.append(T.Resize(size=cfg.INPUT.RESIZE))
 
-        elif tran == 'hflip':
-            bag_of_transforms.append(T.RandomHorizontalFlip(p=cfg.INPUT.PROB))
+        # elif tran == 'hflip':
+        #     bag_of_transforms.append(T.RandomHorizontalFlip(p=cfg.INPUT.PROB))
             
         elif tran == 'random_crop':
             bag_of_transforms.append(T.RandomCrop(size=cfg.INPUT.CROP_SIZE, padding=cfg.INPUT.PAD))   
