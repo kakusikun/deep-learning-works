@@ -251,7 +251,7 @@ class RandAugment:
     def __init__(self, n, m):
         self.n = n
         self.m = m 
-
+    
     def apply_image(self, img):        
         ops = random.choices(RANDAUG_OPS_NAME, k=self.n)
         s = {}
