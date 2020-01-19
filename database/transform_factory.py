@@ -31,10 +31,10 @@ def get_transform(cfg, trans):
         #     bag_of_transforms.append(RandAugment())
 
         if tran == 'resize':
-            bag_of_transforms.append(Resize(size=cfg.INPUT.RESIZE, stride=cfg.MODEL.OUTPUT_STRIDE))
+            bag_of_transforms.append(Resize(size=cfg.INPUT.RESIZE, stride=cfg.MODEL.STRIDE))
 
         if tran == 'resize_keep_ratio':
-            bag_of_transforms.append(ResizeKeepAspectRatio(size=cfg.INPUT.RESIZE, stride=cfg.MODEL.OUTPUT_STRIDE))
+            bag_of_transforms.append(ResizeKeepAspectRatio(size=cfg.INPUT.RESIZE, stride=cfg.MODEL.STRIDE))
 
         if tran == 'hflip':
             bag_of_transforms.append(RandomHFlip(num_keypoints=cfg.DB.NUM_KEYPOINTS))

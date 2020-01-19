@@ -61,7 +61,7 @@ _C.MODEL.TASK = "classifier"
 _C.MODEL.POOLING = "AVG"
 _C.MODEL.SAVE_CRITERION = "acc"
 _C.MODEL.NORM = "BN"
-_C.MODEL.OUTPUT_STRIDE = 32
+_C.MODEL.STRIDE = 1
 
 # -----------------------------------------------------------------------------
 # INPUT

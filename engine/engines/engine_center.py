@@ -67,10 +67,10 @@ class CenterEngine(BaseEngine):
                     feat['hm']  = batch['hm']
                     feat['wh']  = torch.from_numpy(gen_oracle_map(batch['wh'].detach().cpu().numpy(), 
                                                                   batch['ind'].detach().cpu().numpy(), 
-                                                                  batch['inp'].shape[3] // self.cfg.MODEL.OUTPUT_STRIDE, batch['inp'].shape[2] // self.cfg.MODEL.OUTPUT_STRIDE)).cuda()
+                                                                  batch['inp'].shape[3] // self.cfg.MODEL.STRIDE, batch['inp'].shape[2] // self.cfg.MODEL.STRIDE)).cuda()
                     feat['reg'] = torch.from_numpy(gen_oracle_map(batch['reg'].detach().cpu().numpy(), 
                                                                   batch['ind'].detach().cpu().numpy(), 
-                                                                  batch['inp'].shape[3] // self.cfg.MODEL.OUTPUT_STRIDE, batch['inp'].shape[2] // self.cfg.MODEL.OUTPUT_STRIDE)).cuda()
+                                                                  batch['inp'].shape[3] // self.cfg.MODEL.STRIDE, batch['inp'].shape[2] // self.cfg.MODEL.STRIDE)).cuda()
                 else:               
                     feat = self.core(batch['inp'])[-1]
                     feat['hm'].sigmoid_()
