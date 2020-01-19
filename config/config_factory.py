@@ -81,7 +81,10 @@ _C.INPUT.PROB = 0.5
 _C.INPUT.MEAN = []
 # Values to be used for image normalization
 _C.INPUT.STD = []
-
+# Number of policies of random augmentation
+_C.INPUT.RAND_AUG_N = 2
+# Magnitude of policies of random augmentation
+_C.INPUT.RAND_AUG_M = 10
 # -----------------------------------------------------------------------------
 # FACEID
 # -----------------------------------------------------------------------------

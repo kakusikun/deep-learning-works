@@ -26,9 +26,8 @@ def get_transform(cfg, trans):
         if tran not in TRANFORMS:
             raise KeyError("Invalid transform, got '{}', but expected to be one of {}".format(tran, TRANFORMS))
         
-        # if tran == 'randaug':
-        #     #TODO: add random augment to config
-        #     bag_of_transforms.append(RandAugment())
+        if tran == 'randaug':
+            bag_of_transforms.append(RandAugment(cfg.INPUT.RAND_AUG_N, cfg.INPUT.RAND_AUG_M)))
 
         if tran == 'resize':
             bag_of_transforms.append(Resize(size=cfg.INPUT.RESIZE, stride=cfg.MODEL.STRIDE))
