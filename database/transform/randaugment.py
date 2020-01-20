@@ -27,7 +27,9 @@ def translate_x_A(level):
 def translate_y_A(level):
     return np.array([1, 0, 0, 0, 1, -level]).reshape(2, 3).astype(np.float)
 
-def rotate_A(level, shape):
+def rotate_A(state):
+    level = state['level']
+    shape = state['shape']
     # copy from https://pillow.readthedocs.io/en/stable/_modules/PIL/Image.html#Image.rotate
     angle = level % 360.0
 
@@ -258,7 +260,10 @@ class RandAugment():
         for op_name in ops:
             level = RANDAUG_LEVELS[op_name](self.m)
             img = RANDAUG_OPS[op_name](img, level)
-            s[op_name] = level
+            if op_name == 'Rotate':
+                s[op_name] = {'level':level, 'shape':img.size}
+            else:
+                s[op_name] = level
 
         return img, s
     
