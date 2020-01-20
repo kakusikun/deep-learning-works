@@ -257,10 +257,10 @@ class RandAugment():
         s = {}
         for op_name in ops:
             level = RANDAUG_LEVELS[op_name](self.m)
-            img = RANDAUG_OPS[op_name](img)
+            img = RANDAUG_OPS[op_name](img, level)
             s[op_name] = level
 
-        return img
+        return img, s
     
     def apply_bbox(self, bbox, s):
         for op_name in s:

@@ -5,7 +5,7 @@ import numpy as np
 import torchvision.transforms as T
 import torchvision.transforms.functional as F
 
-from database.transform import RandAugment, Normalize, RandomHFlip, Tensorize, ResizeKeepAspectRatio, Resize 
+from database.transform import RandAugment, Normalize, RandomHFlip, Tensorize, ResizeKeepAspectRatio, Resize, RandScale
 import logging
 logger = logging.getLogger("logger")
 
@@ -16,6 +16,7 @@ TRANFORMS = [
     'resize_keep_ratio',
     'tensorize',
     'normalize',
+    'rescale',
 ]
 
 def get_transform(cfg, trans):
@@ -27,7 +28,7 @@ def get_transform(cfg, trans):
             raise KeyError("Invalid transform, got '{}', but expected to be one of {}".format(tran, TRANFORMS))
         
         if tran == 'randaug':
-            bag_of_transforms.append(RandAugment(cfg.INPUT.RAND_AUG_N, cfg.INPUT.RAND_AUG_M)))
+            bag_of_transforms.append(RandAugment(cfg.INPUT.RAND_AUG_N, cfg.INPUT.RAND_AUG_M))
 
         if tran == 'resize':
             bag_of_transforms.append(Resize(size=cfg.INPUT.RESIZE, stride=cfg.MODEL.STRIDE))
@@ -43,21 +44,54 @@ def get_transform(cfg, trans):
 
         if tran == 'normalize':
             bag_of_transforms.append(Normalize(mean=cfg.INPUT.MEAN, std=cfg.INPUT.STD))
+        
+        if tran == 'rescale':
+            bag_of_transforms.append(RandScale(size=cfg.INPUT.RESIZE, stride=cfg.MODEL.STRIDE))
                    
     return Transform(bag_of_transforms)
 
 class Transform():
+    '''
+    To compose the transformations that apply on data. 
+    Works like torchvision transform Compose.
+
+    Args:
+        t_list (list): an list of transformations that apply on data in order
+    '''
     def __init__(self, t_list):
         self.t_list = t_list
     
     def __call__(self, img, bboxes=None, total_pts=None):
+        '''
+        Apply transformation on data like call a function
+
+        Args:
+            img (PIL Image): data on which applied transformations
+            bboxes (list): optional, if bboxes is given, apply transformation related to change of position
+            total_pts (list): optional, works like bboxes, but each cell in list is a list with class of keypoints and keypoints.
+                              [[c1, pts1], [c2, pts2], ...]
+        
+        Return:
+            img (PIL Image): transformed data
+            ss (list): states of randomness
+        '''
+        ss = []
         for t in self.t_list:
-            img, state = t.apply_image(img)
-            if bboxes is not None:
+            img, s = t.apply_image(img)
+            ss.append(s)
+
+        if bboxes is not None:
+            for t, s in zip(self.t_list, ss):
                 for i in range(len(bboxes)):
-                    bboxes[i] = t.apply_bbox(bboxes[i], state)
-            if total_pts is not None:
+                    bboxes[i] = t.apply_bbox(bboxes[i], s)
+        else:
+            return img, ss
+
+        if total_pts is not None:
+            for t, s in zip(self.t_list, ss):
                 for i in range(len(total_pts)):
                     cls_id, pts = total_pts[i]
-                    total_pts[i][1] = t.apply_pts(cls_id, pts, state)
-
+                    total_pts[i][1] = t.apply_pts(cls_id, pts, s)
+            return img, bboxes, total_pts, ss
+        else:
+            return img, bboxes, ss

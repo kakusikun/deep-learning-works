@@ -8,3 +8,4 @@ from database.transform.random_hflip import RandomHFlip
 from database.transform.resize import Resize
 from database.transform.resize_keep_aspect_ratio import ResizeKeepAspectRatio
 from database.transform.tensorize import Tensorize
+from database.transform.random_scale import RandScale
