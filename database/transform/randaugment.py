@@ -1,6 +1,7 @@
 import random
 
 import PIL, PIL.ImageOps, PIL.ImageEnhance, PIL.ImageDraw
+from PIL import Image
 import numpy as np
 import math
 
@@ -57,7 +58,7 @@ def rotate_A(state):
     matrix[2] += rotn_center[0]
     matrix[5] += rotn_center[1]
 
-    return matrix
+    return np.array(matrix).reshape(2, 3).astype(np.float)
 
 # img transforms
 def shear_x_op(img, level):  # [-0.3, 0.3]
@@ -67,10 +68,10 @@ def shear_y_op(img, level):  # [-0.3, 0.3]
     return img.transform(img.size, PIL.Image.AFFINE, (1, 0, 0, level, 1, 0))
 
 def translate_x_op(img, level):  # [-150, 150] => percentage: [-0.45, 0.45]
-    return img.transform(img.size, PIL.Image.AFFINE, (1, 0, level * img.size[0], 0, 1, 0))
+    return img.transform(img.size, PIL.Image.AFFINE, (1, 0, level, 0, 1, 0))
 
 def translate_y_op(img, level):  # [-150, 150] => percentage: [-0.45, 0.45]
-    return img.transform(img.size, PIL.Image.AFFINE, (1, 0, 0, 0, 1, level * img.size[1]))
+    return img.transform(img.size, PIL.Image.AFFINE, (1, 0, 0, 0, 1, level))
 
 def rotate_op(img, level):  # [-30, 30]
     return img.rotate(level)

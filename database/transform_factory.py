@@ -63,7 +63,7 @@ class Transform():
     
     def __call__(self, img, bboxes=None, total_pts=None):
         '''
-        Apply transformation on data like call a function
+        Apply transformation on data like call a function, bboxes and keypoints are changed in place
 
         Args:
             img (PIL Image): data on which applied transformations
@@ -84,14 +84,11 @@ class Transform():
             for t, s in zip(self.t_list, ss):
                 for i in range(len(bboxes)):
                     bboxes[i] = t.apply_bbox(bboxes[i], s)
-        else:
-            return img, ss
 
         if total_pts is not None:
             for t, s in zip(self.t_list, ss):
                 for i in range(len(total_pts)):
                     cls_id, pts = total_pts[i]
                     total_pts[i][1] = t.apply_pts(cls_id, pts, s)
-            return img, bboxes, total_pts, ss
-        else:
-            return img, bboxes, ss
+
+        return img, ss
