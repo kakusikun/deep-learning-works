@@ -17,7 +17,8 @@ class Tensorize():
             img (torch.Tensor): tensor
         '''
         img = TF.to_tensor(img)
-        return img
+        s = {'state': None}
+        return img, s
     
     def apply_bbox(self, bbox, s):
         return bbox

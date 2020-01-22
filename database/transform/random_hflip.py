@@ -58,8 +58,8 @@ class RandomHFlip():
         if random.random() > 0.5:
             img = TF.hflip(img)
             flipped = True
-        state = {'flipped': flipped, 'w': img.size[0]}
-        return img, state
+        s = {'flipped': flipped, 'w': img.size[0]}
+        return img, s
     
     def apply_bbox(self, bbox, s):
         '''

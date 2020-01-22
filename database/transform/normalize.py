@@ -35,8 +35,9 @@ class Normalize():
         assert img.max() <= 1.0
 
         img = TF.normalize(img, self.mean, self.std)
-        return img
-    
+        s = {'state': None}
+        return img, s
+        
     def apply_bbox(self, bbox, s):
         return bbox
 

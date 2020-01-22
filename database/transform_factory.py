@@ -90,5 +90,6 @@ class Transform():
                 for i in range(len(total_pts)):
                     cls_id, pts = total_pts[i]
                     total_pts[i][1] = t.apply_pts(cls_id, pts, s)
-
+        if bboxes is None:
+            return img
         return img, ss
