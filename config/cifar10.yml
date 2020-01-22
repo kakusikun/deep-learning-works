@@ -1,4 +1,4 @@
-EXPERIMENT: "OSNet_Novo_LSR_SE_Full"
+EXPERIMENT: "OSNet_SGD"
 
 TASK: "cifar10"
 MANAGER: "imagenet"
@@ -11,13 +11,13 @@ MODEL:
   NAME: 'osnet'
 
 INPUT:
-  PAD: 4
   RESIZE: (32, 32)
-  CROP_SIZE: (32, 32)
   TRAIN_BS: 256
   TEST_BS: 256
   MEAN: [0.4914, 0.4822, 0.4465]
   STD: [0.2470, 0.2435, 0.2616]
+  RAND_AUG_N: 2
+  RAND_AUG_M: 10
 
 DB:
   NUM_CLASSES: 10 #D:702, M:751 MSMT:2012(merge)
@@ -28,8 +28,8 @@ DB:
   USE_TEST: True
   PATH: "/media/allen/mass/DB/"
 
-TRAIN_TRANSFORM: "resize hflip random_crop to_tensor random_erase normalize"
-TEST_TRANSFORM: "resize to_tensor normalize"
+TRAIN_TRANSFORM: "resize hflip randaug tensorize normalize"
+TEST_TRANSFORM: "resize tensorize normalize"
 
 SOLVER:
   OPTIMIZER_NAME: "SGD"

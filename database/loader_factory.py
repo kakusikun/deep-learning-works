@@ -14,6 +14,22 @@ def get_names():
     return list(loader_factory.keys())
 
 def get_loader(name):
+    '''
+    To get the pytorch data loader.
+    First, get the data (database.data.BaseData) having two attributes (dict)
+        1. train
+        2. val
+    each attribute indicates three info (keys)
+        1. handle, the map between index and data
+        2. n_samples, number of data
+        3. indice, if necessary, the map between index and file path
+    
+    Second, use the data to build dataset 
+    Third, use the dataset to build loader
+
+    Args:
+        name (str): the avaidable name for loader. coco, reid, imagenet, cifar10
+    '''
     if name not in loader_factory.keys():
         raise KeyError("Invalid loader, got '{}', but expected to be one of {}".format(name, loader_factory.keys()))   
     return loader_factory[name]
