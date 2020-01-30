@@ -7,7 +7,7 @@ class build_image_dataset(data.Dataset):
         self.transform = transform
     
     def __getitem__(self, index):
-        img_path, label = self.data[index]
+        img_path, label = self.data['handle'][index]
 
         img = Image.open(img_path)        
         img = img.convert('RGB')
@@ -18,4 +18,4 @@ class build_image_dataset(data.Dataset):
         return {'inp': img, 'target': label}
     
     def __len__(self):
-        return len(self.data)
+        return self.data['n_samples']

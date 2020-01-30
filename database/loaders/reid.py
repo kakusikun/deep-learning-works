@@ -17,27 +17,30 @@ def build_reid_loader(cfg, return_indice=False, use_sampler=True):
             for name in data_names[:-1]:
                 cfg.DB.DATA = name
                 data = get_data(name)(cfg)
-                cfg.DB.NUM_CLASSES += data.n_samples['train']
-                for path, pid, cam in data.index_map['train']: 
+                cfg.DB.NUM_CLASSES += data.train['n_samples']
+                for path, pid, cam in data.train['indice']: 
                     _data.append([path, pid+offset, cam])
-                offset += data.n_samples['train']
-            train_dataset = get_dataset(cfg.DB.DATASET)(_data, train_trans)
+                offset += data.train['n_samples']
+            data.train['indice'] = _data
+            data.train['n_samples'] = offset
+            
+            train_dataset = get_dataset(cfg.DB.DATASET)(data.train, train_trans)
             if use_sampler:
-                sampler = IdBasedSampler(_data, batch_size=cfg.INPUT.TRAIN_BS, num_instances=cfg.REID.SIZE_PERSON)
+                sampler = IdBasedSampler(data.train['indice'], batch_size=cfg.INPUT.TRAIN_BS, num_instances=cfg.REID.SIZE_PERSON)
         if cfg.DB.USE_TEST:
             data = get_data(data_names[-1])(cfg)            
-            query_dataset = get_dataset(cfg.DB.DATASET)(data.index_map['val']['query'], val_trans)
-            gallery_dataset = get_dataset(cfg.DB.DATASET)(data.index_map['val']['gallery'], val_trans)
+            query_dataset = get_dataset(cfg.DB.DATASET)(data.query, val_trans)
+            gallery_dataset = get_dataset(cfg.DB.DATASET)(data.gallery, val_trans)
     else:
         data = get_data(cfg.DB.DATA)(cfg)
         if cfg.DB.USE_TRAIN:
-            train_dataset = get_dataset(cfg.DB.DATASET)(data.index_map['train'], train_trans)
+            train_dataset = get_dataset(cfg.DB.DATASET)(data.train, train_trans)
             cfg.DB.NUM_CLASSES = data.n_samples['train']
             if use_sampler:
-                sampler = IdBasedSampler(data.index_map['train'], batch_size=cfg.INPUT.TRAIN_BS, num_instances=cfg.REID.SIZE_PERSON)
+                sampler = IdBasedSampler(data.train['indice'], batch_size=cfg.INPUT.TRAIN_BS, num_instances=cfg.REID.SIZE_PERSON)
         if cfg.DB.USE_TEST: 
-            query_dataset = get_dataset(cfg.DB.DATASET)(data.index_map['val']['query'], val_trans)
-            gallery_dataset = get_dataset(cfg.DB.DATASET)(data.index_map['val']['gallery'], val_trans)
+            query_dataset = get_dataset(cfg.DB.DATASET)(data.query, val_trans)
+            gallery_dataset = get_dataset(cfg.DB.DATASET)(data.gallery, val_trans)
 
     if cfg.DB.USE_TRAIN: 
         if use_sampler:           

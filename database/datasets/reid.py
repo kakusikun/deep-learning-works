@@ -8,7 +8,7 @@ class build_reid_dataset(data.Dataset):
         self.return_indice = return_indice
            
     def __getitem__(self, index):
-        img_path, pid, camid = self.data[index]
+        img_path, pid, camid = self.data['indice'][index]
 
         img = Image.open(img_path)
 
@@ -22,4 +22,4 @@ class build_reid_dataset(data.Dataset):
         return img, pid, camid
 
     def __len__(self):
-        return len(self.data)
+        return self.data['n_samples']
