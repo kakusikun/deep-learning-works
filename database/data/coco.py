@@ -19,6 +19,9 @@ class coco_data(BaseData):
             self.train['handle'] = train_coco
             self.train['indice'] = train_images
             self.train['n_samples'] = train_num_samples
+            self.train['num_keypoints'] = cfg.DB.NUM_KEYPOINTS
+            self.train['num_classes'] = cfg.DB.NUM_CLASSES
+            self.train['stride'] = cfg.MODEL.STRIDE                    
             logger.info("=> COCO TRAIN is loaded")
             logger.info("  Dataset statistics:")
             logger.info("  -------------------")
@@ -31,6 +34,8 @@ class coco_data(BaseData):
             self.val['handle'] = val_coco        
             self.val['indice'] = val_images
             self.val['n_samples'] = val_num_samples
+            self.val['num_keypoints'] = cfg.DB.NUM_KEYPOINTS
+            self.val['num_classes'] = cfg.DB.NUM_CLASSES            
             logger.info("=> COCO VAL is loaded")
             logger.info("  Dataset statistics:")
             logger.info("  -------------------")
