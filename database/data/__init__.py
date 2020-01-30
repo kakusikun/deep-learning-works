@@ -9,6 +9,8 @@ logger = logging.getLogger("logger")
 class BaseData():
     train = {'handle': None, 'indice': None, 'n_samples': None}
     val = {'handle': None, 'indice': None, 'n_samples': None}
+    query = {'handle': None, 'indice': None, 'n_samples': None}
+    gallery = {'handle': None, 'indice': None, 'n_samples': None}
     
 
 # import os
