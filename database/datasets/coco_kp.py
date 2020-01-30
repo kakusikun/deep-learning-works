@@ -1,7 +1,7 @@
 from database.datasets import *
 import numpy as np
 from PIL import Image
-
+from tools.create_centernet_target import keypoints_target
 
 class build_cocokp_dataset(data.Dataset):
     def __init__(self, data, trans=None):
@@ -42,10 +42,15 @@ class build_cocokp_dataset(data.Dataset):
 
         # rescale => hflip => tensorize => normalize
         if self.trans is not None:
-            img, _ = self.trans(img, bboxes, ptss)
+            img, ss = self.trans(img, bboxes, ptss)
 
         outsize = (img.size[0] // self.stride, img.size[1] // self.stride)
       
+        ret = keypoints_target(bboxes, ptss, valid_ptss, self.max_objs, self.num_classes, self.num_joints, outsize)
+        ret['inp'] = img
+        ret['c'] = ss['rescale']['c']
+        ret['s'] = ss['rescale']['s']
+        ret['img_id'] = img_id
         # TODO: move to be a function
         # => CenterNet_build_kptarget(max_objs -> int, 
         #                             num_classes -> int,  

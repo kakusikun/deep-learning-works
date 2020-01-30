@@ -2,7 +2,29 @@ import numpy as np
 from tools.image import get_affine_transform, affine_transform, draw_umich_gaussian, gaussian_radius, color_aug
 import math
 
-def keypoints_target(bboxes, ptss, valid_ptss, max_objs -> int, num_classes -> int, num_joints -> int, outsize -> tuple):
+def keypoints_target(bboxes, ptss, valid_ptss, max_objs, num_classes, num_joints, outsize):
+    '''
+    According to CenterNet ( Objects as Points, https://arxiv.org/abs/1904.07850 ), create the target for keypoints detection.
+
+    Args:
+        bboxes (list): list of 1x4 numpy arrays, the ground truth bounding box.
+        ptss (list): list of a list with class of keypoints (int) and keypoints (Nx2 numpy array),
+                     [[c1, pts1], [c2, pts2], ...].
+        valid_ptss (list): list of 1xN numpy arrays where the N is equal to the N of pts in ptss, indicating the visibility of each pt in pts.
+                    2 is visible, 1 is occlusion and 0 is not labeled.
+        max_objs (int): the maximum number of objects in a image.
+        num_classes (int): number of classes in dataset.
+        num_joints (int): number of categories of keypoints in dataset.
+        outsize (tuple): tuple of width and height of feature map of model output
+    
+    Returns:
+        ret (dict): 
+            inp (torch.Tensor): shape C x H x W, the input data
+            hm (numpy.ndarray): shape Class x outsize H, outsize W, heat map of objects in input data
+            wh (numpy.ndarray): shape Object x 2, width and height of objects in input data
+            reg (numpy.ndarray): shape Object x 2, offset of width and height of objects in input data
+
+    '''
     output_w, output_h = outsize
 
     # center, object heatmap
@@ -56,11 +78,11 @@ def keypoints_target(bboxes, ptss, valid_ptss, max_objs -> int, num_classes -> i
                         draw_gaussian(hm_hp[j], pt_int, hp_radius)
             draw_gaussian(hm[cls_id], ct_int, radius)
             
-    ret = {'inp': inp,
+    ret = {
             'hm': hm, 'wh':wh, 'reg':reg,
             'reg_mask': reg_mask, 'ind': ind,
             'hm_hp': hm_hp, 'hps': kps, 'hps_mask': kps_mask, 'hp_reg': hp_offset,
             'hp_ind': hp_ind, 'hp_mask': hp_mask,
-            'img_id': img_id, 'c': c, 's': s}
+            'img_id': img_id}
     return ret
 

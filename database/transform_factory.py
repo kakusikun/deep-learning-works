@@ -77,6 +77,7 @@ class Transform():
         '''
         ss = []
         for t in self.t_list:
+            # TODO: add __repr__ for all transformaion to let the random state be accessed by string
             img, s = t.apply_image(img)
             ss.append(s)
 
