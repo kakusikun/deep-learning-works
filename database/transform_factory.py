@@ -37,7 +37,7 @@ def get_transform(cfg, trans):
             bag_of_transforms.append(ResizeKeepAspectRatio(size=cfg.INPUT.RESIZE, stride=cfg.MODEL.STRIDE))
 
         if tran == 'RandomHFlip':
-            bag_of_transforms.append(RandomHFlip(num_keypoints=cfg.DB.NUM_KEYPOINTS))
+            bag_of_transforms.append(RandomHFlip(stride=cfg.MODEL.STRIDE, num_keypoints=cfg.DB.NUM_KEYPOINTS))
             
         if tran == 'Tensorize':
             bag_of_transforms.append(Tensorize())
