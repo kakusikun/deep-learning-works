@@ -302,10 +302,10 @@ def get_large_hourglass_net(cfg):
     elif cfg.TASK == 'keypoint':
         heads = {'hm': cfg.DB.NUM_CLASSES, 
                  'wh': 2, 
-                 'hps': cfg.DB.NUM_KEYPOINTS*2,
+                 'kps': cfg.DB.NUM_KEYPOINTS*2,
                  'reg': 2,
-                 'hm_hp': cfg.DB.NUM_KEYPOINTS,
-                 'hp_reg': 2}
+                 'hm_kp': cfg.DB.NUM_KEYPOINTS,
+                 'kp_reg': 2}
     if cfg.MODEL.NORM == 'ABN':
         Norm = ABN
     else:

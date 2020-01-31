@@ -431,9 +431,9 @@ class OSNet(nn.Module):
         out['wh']  = self.size_reg(seg1)
 
         if self.task == 'keypoint':
-            out['hm_hp']  = self.kp_hm(seg1)
-            out['hps']    = self.kp_loc_reg(seg1)
-            out['hp_reg'] = self.kp_offset_reg(seg1)
+            out['hm_kp']  = self.kp_hm(seg1)
+            out['kps']    = self.kp_loc_reg(seg1)
+            out['kp_reg'] = self.kp_offset_reg(seg1)
 
         return [out]
         

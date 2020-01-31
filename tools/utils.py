@@ -78,7 +78,7 @@ def _topk_channel(scores, K=40):
     topk_xs   = (topk_inds % width).int().float()
     return topk_scores, topk_inds, topk_ys, topk_xs
 
-def multi_pose_decode(heat, wh, kps, reg=None, hm_hp=None, hp_offset=None, K=100):
+def multi_pose_decode(heat, wh, kps, reg=None, hm_kp=None, kp_reg=None, K=100):
     batch, cat, height, width = heat.size()
     num_joints = kps.shape[1] // 2
     # heat = torch.sigmoid(heat)
@@ -107,19 +107,19 @@ def multi_pose_decode(heat, wh, kps, reg=None, hm_hp=None, hp_offset=None, K=100
                         ys - wh[..., 1:2] / 2,
                         xs + wh[..., 0:1] / 2, 
                         ys + wh[..., 1:2] / 2], dim=2)
-    if hm_hp is not None:
-        hm_hp = _nms(hm_hp)
+    if hm_kp is not None:
+        hm_kp = _nms(hm_kp)
         thresh = 0.1
         kps = kps.view(batch, K, num_joints, 2).permute(
             0, 2, 1, 3).contiguous() # b x J x K x 2
         reg_kps = kps.unsqueeze(3).expand(batch, num_joints, K, K, 2)
-        hm_score, hm_inds, hm_ys, hm_xs = _topk_channel(hm_hp, K=K) # b x J x K
-        if hp_offset is not None:
-            hp_offset = _tranpose_and_gather_feat(
-                hp_offset, hm_inds.view(batch, -1))
-            hp_offset = hp_offset.view(batch, num_joints, K, 2)
-            hm_xs = hm_xs + hp_offset[:, :, :, 0]
-            hm_ys = hm_ys + hp_offset[:, :, :, 1]
+        hm_score, hm_inds, hm_ys, hm_xs = _topk_channel(hm_kp, K=K) # b x J x K
+        if kp_reg is not None:
+            kp_reg = _tranpose_and_gather_feat(
+                kp_reg, hm_inds.view(batch, -1))
+            kp_reg = kp_reg.view(batch, num_joints, K, 2)
+            hm_xs = hm_xs + kp_reg[:, :, :, 0]
+            hm_ys = hm_ys + kp_reg[:, :, :, 1]
         else:
             hm_xs = hm_xs + 0.5
             hm_ys = hm_ys + 0.5

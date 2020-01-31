@@ -32,15 +32,15 @@ class CenterKPManager(BaseManager):
         self.crit['hm'] = FocalLoss()  
         self.crit['wh'] = RegL1Loss()
         self.crit['reg'] = RegL1Loss()
-        self.crit['hm_hp'] = FocalLoss()  
-        self.crit['hps'] = RegWeightedL1Loss()
-        self.crit['hp_reg'] = RegL1Loss()        
+        self.crit['hm_kp'] = FocalLoss()  
+        self.crit['kps'] = RegWeightedL1Loss()
+        self.crit['kp_reg'] = RegL1Loss()        
 
         def loss_func(feats, batch):
             hm_loss    = 0.0
             wh_loss    = 0.0
             off_loss   = 0.0
-            hm_hp_loss = 0.0
+            hm_kp_loss = 0.0
             hp_loss    = 0.0
             hp_off_loss = 0.0
             
@@ -54,17 +54,17 @@ class CenterKPManager(BaseManager):
                         wh_loss += self.crit[head](output, batch['reg_mask'], batch['ind'], batch['wh'])
                     elif head == 'reg':
                         off_loss += self.crit[head](output, batch['reg_mask'], batch['ind'], batch['reg'])
-                    elif head == 'hm_hp':
+                    elif head == 'hm_kp':
                         output = _sigmoid(output)
-                        hm_hp_loss += self.crit[head](output, batch['hm_hp'])  
-                    elif head == 'hp_reg':
-                        hp_off_loss += self.crit[head](output, batch['hp_mask'], batch['hp_ind'], batch['hp_reg'])
-                    elif head == 'hps':
-                        hp_loss += self.crit[head](output, batch['hps_mask'], batch['ind'], batch['hps'])
+                        hm_kp_loss += self.crit[head](output, batch['hm_kp'])  
+                    elif head == 'kp_reg':
+                        hp_off_loss += self.crit[head](output, batch['kp_mask'], batch['kp_ind'], batch['kp_reg'])
+                    elif head == 'kps':
+                        hp_loss += self.crit[head](output, batch['kps_mask'], batch['ind'], batch['kps'])
                     else:
                         sys.exit(1)
-            each_loss = {'hm':hm_loss, 'wh':wh_loss, 'reg':off_loss, 'hm_hp':hm_hp_loss, 'hps':hp_loss, 'hp_reg':hp_off_loss}
-            loss = each_loss['hm'] + 0.1 * each_loss['wh'] + each_loss['reg'] + each_loss['hm_hp'] + each_loss['hps'] + each_loss['hp_reg']
+            each_loss = {'hm':hm_loss, 'wh':wh_loss, 'reg':off_loss, 'hm_kp':hm_kp_loss, 'kps':hp_loss, 'kp_reg':hp_off_loss}
+            loss = each_loss['hm'] + 0.1 * each_loss['wh'] + each_loss['reg'] + each_loss['hm_kp'] + each_loss['kps'] + each_loss['kp_reg']
             return loss, each_loss
 
         self.loss_func = loss_func

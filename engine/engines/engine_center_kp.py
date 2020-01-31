@@ -59,21 +59,21 @@ class CenterKPEngine(BaseEngine):
                     feat['reg'] = torch.from_numpy(gen_oracle_map(batch['reg'].detach().cpu().numpy(), 
                                                                   batch['ind'].detach().cpu().numpy(), 
                                                                   batch['inp'].shape[3] // self.cfg.MODEL.STRIDE, batch['inp'].shape[2] // self.cfg.MODEL.STRIDE)).cuda()
-                    feat['hm_hp'] = batch['hm_hp']
-                    feat['hps'] = torch.from_numpy(gen_oracle_map(batch['hps'].detach().cpu().numpy(), 
+                    feat['hm_kp'] = batch['hm_kp']
+                    feat['kps'] = torch.from_numpy(gen_oracle_map(batch['kps'].detach().cpu().numpy(), 
                                                                   batch['ind'].detach().cpu().numpy(), 
                                                                   batch['inp'].shape[3] // self.cfg.MODEL.STRIDE, batch['inp'].shape[2] // self.cfg.MODEL.STRIDE)).cuda()
-                    feat['hp_reg'] = torch.from_numpy(gen_oracle_map(batch['hp_reg'].detach().cpu().numpy(), 
-                                                                     batch['hp_ind'].detach().cpu().numpy(), 
+                    feat['kp_reg'] = torch.from_numpy(gen_oracle_map(batch['kp_reg'].detach().cpu().numpy(), 
+                                                                     batch['kp_ind'].detach().cpu().numpy(), 
                                                                      batch['inp'].shape[3] // self.cfg.MODEL.STRIDE, batch['inp'].shape[2] // self.cfg.MODEL.STRIDE)).cuda()
 
                 else:               
                     feat = self.core(batch['inp'])[-1]
                     feat['hm'] = _sigmoid(feat['hm'])
-                    feat['hm_hp'] = _sigmoid(feat['hm_hp'])
+                    feat['hm_kp'] = _sigmoid(feat['hm_kp'])
 
-                dets = multi_pose_decode(feat['hm'], feat['wh'], feat['hps'], 
-                                         reg=feat['reg'], hm_hp=feat['hm_hp'], hp_offset=feat['hp_reg'], K=100)
+                dets = multi_pose_decode(feat['hm'], feat['wh'], feat['kps'], 
+                                         reg=feat['reg'], hm_kp=feat['hm_kp'], kp_reg=feat['kp_reg'], K=100)
                 dets = dets.detach().cpu().numpy().reshape(1, -1, dets.shape[2])                    
                 dets_out = multi_pose_post_process(dets.copy(), batch['c'].cpu().numpy(), batch['s'].cpu().numpy(),
                                                    feat['hm'].shape[2], feat['hm'].shape[3], feat['hm'].shape[1])
