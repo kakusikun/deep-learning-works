@@ -2,6 +2,7 @@ import numpy as np
 import torchvision.transforms.functional as TF
 import random
 from PIL import Image
+from database.transform.base_transform import BaseTransform
 
 PERSON_KEYPOINT_INDICE = {0:[[1, 2], [3, 4], [5, 6], [7, 8], [9, 10], [11, 12], [13, 14], [15, 16]]}
 PERSON_KEYPOINT_INDICE_OFFSET = [0]
@@ -21,7 +22,7 @@ CLOTHE_KEYPOINT_INDICE = {0:[[1,5],[2,4],[6,24],[7,23],[8,22],[9,21],[10,20],[11
                           12:[[1,5],[2,4],[6,18],[7,17],[8,16],[9,15],[10,14],[11,13]]}
 CLOTHE_KEYPOINT_INDICE_OFFSET = [0,25,58,89,128,143,158,168,182,190,219,256,275]
 
-class RandomHFlip():
+class RandomHFlip(BaseTransform):
     '''
     To flip the image horizontally
     Args:

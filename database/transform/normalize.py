@@ -3,8 +3,9 @@ import numpy as np
 import torchvision.transforms.functional as TF
 import random
 from PIL import Image
+from database.transform.base_transform import BaseTransform
 
-class Normalize():
+class Normalize(BaseTransform):
     '''
     To normalize the data
 
@@ -37,9 +38,3 @@ class Normalize():
         img = TF.normalize(img, self.mean, self.std)
         s = {'state': None}
         return img, s
-        
-    def apply_bbox(self, bbox, s):
-        return bbox
-
-    def apply_pts(self, cid, pts, s):
-        return pts

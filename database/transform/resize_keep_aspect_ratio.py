@@ -4,9 +4,9 @@ import torchvision.transforms.functional as TF
 import random
 from PIL import Image
 from tools.image import get_affine_transform, affine_transform
+from database.transform.base_transform import BaseTransform
 
-
-class ResizeKeepAspectRatio():
+class ResizeKeepAspectRatio(BaseTransform):
     '''
     To resize the PIL image without distortion
 

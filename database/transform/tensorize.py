@@ -3,8 +3,9 @@ import numpy as np
 import torchvision.transforms.functional as TF
 import random
 from PIL import Image
+from database.transform.base_transform import BaseTransform
 
-class Tensorize():
+class Tensorize(BaseTransform):
     '''
     To transform the data to tensor with scale [0, 1]
     '''    
@@ -19,9 +20,3 @@ class Tensorize():
         img = TF.to_tensor(img)
         s = {'state': None}
         return img, s
-    
-    def apply_bbox(self, bbox, s):
-        return bbox
-
-    def apply_pts(self, cid, pts, s):
-        return pts

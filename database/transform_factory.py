@@ -10,13 +10,13 @@ import logging
 logger = logging.getLogger("logger")
 
 TRANFORMS = [
-    'randaug',
-    'resize',
-    'hflip',
-    'resize_keep_ratio',
-    'tensorize',
-    'normalize',
-    'rescale',
+    'RandAugment',
+    'Resize',
+    'RandomHFlip',
+    'ResizeKeepAspectRatio',
+    'Tensorize',
+    'Normalize',
+    'RandScale',
 ]
 
 def get_transform(cfg, trans):
@@ -27,25 +27,25 @@ def get_transform(cfg, trans):
         if tran not in TRANFORMS:
             raise KeyError("Invalid transform, got '{}', but expected to be one of {}".format(tran, TRANFORMS))
         
-        if tran == 'randaug':
+        if tran == 'RandAugment':
             bag_of_transforms.append(RandAugment(cfg.INPUT.RAND_AUG_N, cfg.INPUT.RAND_AUG_M))
 
-        if tran == 'resize':
+        if tran == 'Resize':
             bag_of_transforms.append(Resize(size=cfg.INPUT.RESIZE, stride=cfg.MODEL.STRIDE))
 
-        if tran == 'resize_keep_ratio':
+        if tran == 'ResizeKeepAspectRatio':
             bag_of_transforms.append(ResizeKeepAspectRatio(size=cfg.INPUT.RESIZE, stride=cfg.MODEL.STRIDE))
 
-        if tran == 'hflip':
+        if tran == 'RandomHFlip':
             bag_of_transforms.append(RandomHFlip(num_keypoints=cfg.DB.NUM_KEYPOINTS))
             
-        if tran == 'tensorize':
+        if tran == 'Tensorize':
             bag_of_transforms.append(Tensorize())
 
-        if tran == 'normalize':
+        if tran == 'Normalize':
             bag_of_transforms.append(Normalize(mean=cfg.INPUT.MEAN, std=cfg.INPUT.STD))
         
-        if tran == 'rescale':
+        if tran == 'RandScale':
             bag_of_transforms.append(RandScale(size=cfg.INPUT.RESIZE, stride=cfg.MODEL.STRIDE))
                    
     return Transform(bag_of_transforms)
@@ -75,22 +75,21 @@ class Transform():
             img (PIL Image): transformed data
             ss (list): states of randomness
         '''
-        ss = []
+        ss = {}
         for t in self.t_list:
-            # TODO: add __repr__ for all transformaion to let the random state be accessed by string
             img, s = t.apply_image(img)
-            ss.append(s)
+            ss[t] = s
 
         if bboxes is not None:
-            for t, s in zip(self.t_list, ss):
+            for t in self.t_list:
                 for i in range(len(bboxes)):
-                    bboxes[i] = t.apply_bbox(bboxes[i], s)
+                    bboxes[i] = t.apply_bbox(bboxes[i], ss[t])
 
         if total_pts is not None:
-            for t, s in zip(self.t_list, ss):
+            for t in self.t_list:
                 for i in range(len(total_pts)):
                     cls_id, pts = total_pts[i]
-                    total_pts[i][1] = t.apply_pts(cls_id, pts, s)
+                    total_pts[i][1] = t.apply_pts(cls_id, pts, ss[t])
         if bboxes is None:
             return img
         return img, ss

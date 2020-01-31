@@ -4,6 +4,7 @@ import PIL, PIL.ImageOps, PIL.ImageEnhance, PIL.ImageDraw
 from PIL import Image
 import numpy as np
 import math
+from database.transform.base_transform import BaseTransform
 
 _MAX_LEVEL = 30
 
@@ -238,7 +239,7 @@ RANDAUG_OPS_NAME = [
     'ShearY', 'Cutout', 'TranslateX', 'TranslateY'
 ]
 
-class RandAugment():
+class RandAugment(BaseTransform):
     '''
     RandAugment is from the paper https://arxiv.org/abs/1909.13719
     Reference:

@@ -2,8 +2,9 @@ import numpy as np
 import torchvision.transforms.functional as TF
 import random
 from PIL import Image
+from database.transform.base_transform import BaseTransform
 
-class Resize():
+class Resize(BaseTransform):
     '''
     To resize the image but with aspect ratio distorted
 
