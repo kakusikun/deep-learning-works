@@ -5,7 +5,7 @@ import numpy as np
 import torchvision.transforms as T
 import torchvision.transforms.functional as F
 
-from database.transform import RandAugment, Normalize, RandomHFlip, Tensorize, ResizeKeepAspectRatio, Resize, RandScale
+from database.transform import RandAugment, Normalize, RandomHFlip, Tensorize, ResizeKeepAspectRatio, Resize, RandScale, AugMix
 import logging
 logger = logging.getLogger("logger")
 
@@ -17,6 +17,7 @@ TRANFORMS = [
     'Tensorize',
     'Normalize',
     'RandScale',
+    'AugMix',
 ]
 
 def get_transform(cfg, trans):
@@ -47,7 +48,10 @@ def get_transform(cfg, trans):
         
         if tran == 'RandScale':
             bag_of_transforms.append(RandScale(size=cfg.INPUT.RESIZE, stride=cfg.MODEL.STRIDE))
-                   
+
+        if tran == 'AugMix':
+            bag_of_transforms.append(AugMix())
+
     return Transform(bag_of_transforms)
 
 class Transform():

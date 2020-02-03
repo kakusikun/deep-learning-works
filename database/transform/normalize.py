@@ -28,13 +28,20 @@ class Normalize(BaseTransform):
         '''
         Normalize image
         Args:
-            img (PIL image): image to be normalized
+            img (torch.Tensor): data to be normalized
         Return:
-            img (PIL image): normalized image
+            img (torch.Tensor): normalized data
         '''
         assert isinstance(img, torch.Tensor)
-        assert img.max() <= 1.0
 
+        # If the dtype of img is float before tensorizing, 
+        # the img is transformed to tensor with scale [0, 255].
+        if not img.max() <= 1.0:
+            if not isinstance(img, torch.ByteTensor):
+                img.div_(255.0)
+            else:
+                raise ValueError
+        
         img = TF.normalize(img, self.mean, self.std)
         s = {'state': None}
         return img, s
