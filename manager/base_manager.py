@@ -113,17 +113,25 @@ class BaseManager():
     def check_size(self, insize):
         def check_size_hooker(m, inp, out):
             if isinstance(out, torch.Tensor):
-                logger.info("{:<60}".format(m.name))
+                logger.info(f"{m.name:<60}")
                 if isinstance(inp, tuple):            
                     for i in inp:
-                        n,c,h,w = i.size()
-                        logger.info("{:>20}{:>3} x {:>3} x {:>3} x {:>3}".format("input, ", n,c,h,w))
+                        size = i.size()
+                        msg = f"{'input':>20}, "
+                        for s in size:
+                            msg += f"{s:>3} "
+                        logger.info(msg)
                 else:
-                    n,c,h,w = inp.size()
-                    logger.info("{:>20}{:>3} x {:>3} x {:>3} x {:>3}".format("input, ", n,c,h,w))
-                n,c,h,w = out.size()
-                logger.info("{:>20}{:>3} x {:>3} x {:>3} x {:>3}".format("output, ", n,c,h,w))
-
+                    size = inp.size()
+                    msg = f"{'input':>20}, "
+                    for s in size:
+                        msg += f"{s:>3} "
+                    logger.info(msg)
+                size = out.size()
+                msg = f"{'output':>20}, "
+                for s in size:
+                    msg += f"{s:>3} "
+                logger.info(msg)
         hooks = []
         for n, m in self.model.named_modules():
             m.name = n

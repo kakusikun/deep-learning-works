@@ -14,7 +14,7 @@ import torch.nn as nn
 class BaseTrainer():
     def __init__(self, cfg):
         # TODO: check config after building the loader
-        # TODO: set seed
+        self.cfg = cfg
         self.loader = get_loader(cfg.DB.LOADER)(cfg)
         self.manager = get_manager(cfg.MANAGER)(cfg)
         self.manager.use_multigpu()
