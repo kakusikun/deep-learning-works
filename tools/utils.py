@@ -8,6 +8,7 @@ import os.path as osp
 from PIL import Image
 # import matplotlib.pyplot as plt
 import cv2
+import random
 import numpy as np
 from numpy import array,argmin
 
@@ -317,7 +318,12 @@ def print_config(cfg, cfg_file):
         logger.info("="*50)
 
 def deploy_macro(cfg):
-    cudnn.benchmark = True
+    torch.manual_seed(cfg.SEED)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False  
+    np.random.seed(cfg.SEED)
+    random.seed(cfg.SEED)
+    
     gpu = ""
     for _gpu in cfg.MODEL.GPU:
         gpu += "{},".format(_gpu)

@@ -35,6 +35,8 @@ _A.DATABASE = ""
 
 _C = CN()
 
+_C.SEED = 42
+
 _C.EXPERIMENT = ""
 
 _C.TASK = ""
