@@ -212,7 +212,7 @@ class OSNet(nn.Module):
         self.feature_dim = feature_dim
        
         # convolutional backbone
-        self.conv1 = ConvLayer(3, channels[0], 7, stride=2, padding=3)
+        self.conv1 = ConvLayer(3, channels[0], 3, stride=1, padding=1)
         self.maxpool = nn.MaxPool2d(3, stride=2, padding=1)
         self.conv2 = self._make_layer(blocks[0], layers[0], channels[0], channels[1], reduce_spatial_size=True)
         self.conv3 = self._make_layer(blocks[1], layers[1], channels[1], channels[2], reduce_spatial_size=True)

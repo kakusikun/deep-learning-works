@@ -85,6 +85,5 @@ class ResNet(nn.Module):
         out = self.layer4(out)
         return out
 
-
 def ResNet18(*args):
     return ResNet(BasicBlock, [2,2,2,2])
