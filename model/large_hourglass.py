@@ -15,7 +15,11 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from inplace_abn import InPlaceABN as IABN
+try:
+    from inplace_abn import InPlaceABN as IABN
+except:
+    print('inplace_abn is not imported')
+    from torch.nn import BatchNorm2d as IABN
 
 def BN(in_channel, only_activation=False, activation='relu'):
     if only_activation:

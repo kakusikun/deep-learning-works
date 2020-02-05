@@ -6,7 +6,11 @@ import sys
 import math
 import torch
 import torch.nn as nn
-from inplace_abn import InPlaceABN as IABN
+try:
+    from inplace_abn import InPlaceABN as IABN
+except:
+    print('inplace_abn is not imported')
+    from torch.nn import BatchNorm2d as IABN
 
 try:
     sys.path.insert(0, "/home/allen/Documents/caffe/python")

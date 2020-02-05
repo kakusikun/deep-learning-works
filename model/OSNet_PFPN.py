@@ -12,8 +12,11 @@ from manager.utility import ConvFC
 import torchvision
 from manager.t2c import *
 
-from inplace_abn import InPlaceABN as IABN
-
+try:
+    from inplace_abn import InPlaceABN as IABN
+except:
+    print('inplace_abn is not imported')
+    from torch.nn import BatchNorm2d as IABN
 
 ##########:
 # Basic layers
