@@ -10,3 +10,4 @@ from database.transform.resize_keep_aspect_ratio import ResizeKeepAspectRatio
 from database.transform.tensorize import Tensorize
 from database.transform.random_scale import RandScale
 from database.transform.augmix import AugMix
+from database.transform.random_crop import RandCrop
