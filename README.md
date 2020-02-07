@@ -2,9 +2,13 @@
 Work in deep learning via Pytorch.
 
 ## Installation
-* [CUDA 9.0](https://developer.nvidia.com/cuda-toolkit-archive)
+* [CUDA 9.2](https://developer.nvidia.com/cuda-toolkit-archive)
 * [cudnn 7.3.1](https://developer.nvidia.com/rdp/cudnn-archive)
 * [inplace-abn](https://github.com/mapillary/inplace_abn)
+* Pytorch 1.4.0, torchvision 0.5.0
+    ```
+    pip install torch==1.4.0+cu92 torchvision==0.5.0+cu92 -f https://download.pytorch.org/whl/torch_stable.html
+    ```
 * python packages in requirement.txt
 
 ## Overview
