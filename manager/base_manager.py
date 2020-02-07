@@ -11,7 +11,7 @@ from copy import deepcopy
 class BaseManager():
     def __init__(self, cfg):
         self.save_path = os.path.join(cfg.OUTPUT_DIR, "weights")
-        if not os.path.exists(self.save_path):
+        if cfg.IO and not os.path.exists(self.save_path):
             os.mkdir(self.save_path)
 
         self.cfg = cfg
@@ -21,22 +21,12 @@ class BaseManager():
         self.loss_func = None
         self.submodels = {}
 
-    def _check_model(self):
-        if self.cfg.EVALUATE:
-            logger.info("Evaluating model from {}".format(self.cfg.EVALUATE))
-            self.loadPath = self.cfg.EVALUATE
-            self.load_model()
-        elif self.cfg.RESUME:
-            logger.info("Resuming model from {}".format(self.cfg.RESUME))
-            self.loadPath = self.cfg.RESUME
-            self.load_model()     
         
-    def save_model(self, epoch, solvers, acc):
+    def save(self, epoch, solvers, acc):
         state = {}
         for solver in solvers:
-            opt_name = "opt_{}".format(solver)
             opt_state = solvers[solver].opt.state_dict()
-            state[opt_name] = opt_state
+            state[f"opt_{solver}"] = opt_state
 
         if isinstance(self.model, torch.nn.DataParallel): 
             model_state = self.model.module.state_dict()
@@ -46,40 +36,30 @@ class BaseManager():
         state['model'] = model_state 
         if len(self.submodels) > 0:
             for submodel in enumerate(self.submodels):
-                submodel_name = "submodel_{}".format(submodel)
                 submodel_state = self.submodels[submodel].state_dict()
-                state[submodel_name] = submodel_state
+                state[f"submodel_{submodel}"] = submodel_state
 
         torch.save(state, os.path.join(self.save_path,'model_{:03}_{:.4f}.pth'.format(epoch, acc)))
 
-    def load_model(self): 
-        state = torch.load(self.loadPath, map_location = torch.device('cpu'))
+    def load(self, path): 
+        state = torch.load(path, map_location = torch.device('cpu'))
         model_state = self.model.state_dict()
-        loaded_params = set()
+        
         if 'model' in state:
             ckpt = state['model']
         else:
             ckpt = state
 
-        for layer, weight in ckpt.items():
-            if layer not in model_state:
-                logger.info("{}ckpt {:55} ...... {}?{}".format(bcolors.RESET, layer, bcolors.WARNING, bcolors.RESET))
-            else:
-                ckpt_w_shape = weight.size()
-                model_w_shape = model_state[layer].size()
-                if torch.isnan(weight).sum() == 0 and ckpt_w_shape == model_w_shape:
-                    loaded_params.add(layer)
-                    model_state[layer] = weight
-                    # logger.info("{}model {:55} ...... {}O{}".format(bcolors.RESET, layer, bcolors.OKGREEN, bcolors.RESET))
-                else:
-                    logger.info("{}model {:55} ...... {}X{}".format(bcolors.RESET, layer, bcolors.WARNING, bcolors.RESET))
-                    logger.info(" => Shape (ckpt != model) {} != {}".format(ckpt_w_shape, model_w_shape))
-        params = set(model_state.keys())
-        not_loaded_params = list(params.difference(loaded_params))
-        for layer in not_loaded_params:
-            logger.info("{}model {:55} ...... {}!{}".format(bcolors.RESET, layer, bcolors.WARNING, bcolors.RESET))    
-            
+        self._load(ckpt, model_state)            
         self.model.load_state_dict(model_state)
+
+        if len(self.submodels) > 0:
+            for submodel in enumerate(self.submodels):
+                submodel_state = self.submodels[submodel].state_dict()
+                if f"submodel_{submodel}" in state:
+                    ckpt = state[f"submodel_{submodel}"]
+                    self._load(ckpt, submodel_state)
+                    self.submodels[submodel].load_state_dict(submodel_state)
 
     def _initialize_weights(self):
         raise NotImplementedError
@@ -150,3 +130,25 @@ class BaseManager():
 
         for hook in hooks:
             hook.remove()
+
+    @staticmethod
+    def _load(src_state, trt_state):
+        loaded_params = set()
+        for layer, weight in src_state.items():
+            if layer not in trt_state:
+                logger.info("{}src_state {:55} ...... {}?{}".format(bcolors.RESET, layer, bcolors.WARNING, bcolors.RESET))
+            else:
+                src_w_shape = weight.size()
+                trt_w_shape = trt_state[layer].size()
+                if torch.isnan(weight).sum() == 0 and src_w_shape == trt_w_shape:
+                    loaded_params.add(layer)
+                    trt_state[layer] = weight
+                    # logger.info("{}model {:55} ...... {}O{}".format(bcolors.RESET, layer, bcolors.OKGREEN, bcolors.RESET))
+                else:
+                    logger.info("{}model {:55} ...... {}X{}".format(bcolors.RESET, layer, bcolors.WARNING, bcolors.RESET))
+                    logger.info(" => Shape (ckpt != model) {} != {}".format(src_w_shape, trt_w_shape))
+        params = set(trt_state.keys())
+        not_loaded_params = list(params.difference(loaded_params))
+        for layer in not_loaded_params:
+            logger.info("{}model {:55} ...... {}!{}".format(bcolors.RESET, layer, bcolors.WARNING, bcolors.RESET))  
+        return trt_state

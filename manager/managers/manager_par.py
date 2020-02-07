@@ -33,7 +33,7 @@ class PARManager(BaseManager):
             logger.info("Task {} is not supported".format(cfg.TASK))  
             sys.exit(1)
 
-        self._check_model()       
+                
                         
     def _make_model(self):
         self.model = Model(self.cfg)
@@ -77,7 +77,7 @@ class SinglePARManager(BaseManager):
             logger.info("Task {} is not supported".format(cfg.TASK))  
             sys.exit(1)
 
-        self._check_model()          
+                   
                         
     def _make_model(self):
         self.model = Model(self.cfg)

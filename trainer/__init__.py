@@ -8,6 +8,8 @@ from manager.manager_factory import get_manager
 
 from solver.optimizer import Solver
 from visualizer.visualizer import Visualizer
+import logging
+logger = logging.getLogger("logger")
 
 import torch.nn as nn
 
@@ -18,19 +20,35 @@ class BaseTrainer():
         self.loader = get_loader(cfg.DB.LOADER)(cfg)
         self.manager = get_manager(cfg.MANAGER)(cfg)
         self.manager.use_multigpu()
+        self.acc = 0.0
 
         self.solvers = {}  
         self.solvers['model'] = Solver(cfg, self.manager.model.named_parameters())
-        self.visualizer = Visualizer(cfg)
+
+        self.visualizer = None
+        if cfg.IO:
+            self.visualizer = Visualizer(cfg)
 
     def activate(self, cfg):
-        self.engine = get_engine(cfg.ENGINE)(cfg, self.solvers, self.loader, self.visualizer, self.manager)  
+        self.resume()
+        self.engine = get_engine(cfg.ENGINE)(cfg, self.solvers, self.loader, self.visualizer, self.manager)
     
     def train(self):
         self.engine.Train()
 
     def test(self):
         self.engine.Evaluate()
+        self.acc = self.engine.accu
+
+    def resume(self):
+        if self.cfg.RESUME:
+            logger.info("Resuming from {}".format(self.cfg.RESUME))
+            self.manager.load(self.cfg.RESUME)
+            for solver in self.solvers:
+                self.solvers[solver].load(self.cfg.RESUME, solver)            
+        else:
+            logger.info("Training model from scratch")
+
 
 
 class CenterKPTrainer(BaseTrainer):

@@ -2,8 +2,8 @@ import sys
 import torch
 import math
 import numpy as np 
-from solver.solvers import *
-from solver.lr_schedulers import *
+import solver.solvers as solvers
+import solver.lr_schedulers as lr_schedulers
 import logging
 logger = logging.getLogger("logger")
 
@@ -21,7 +21,6 @@ class Solver():
         self.lr_steps = cfg.SOLVER.LR_STEPS
         self.opt_name = cfg.SOLVER.OPTIMIZER_NAME if _name is None else _name
 
-        self.max_epoch = cfg.SOLVER.MAX_EPOCHS
         self.bias_lr_factor = cfg.SOLVER.BIAS_LR_FACTOR
         self.wd_factor = cfg.SOLVER.WEIGHT_DECAY_BIAS_FACTOR
 
@@ -34,15 +33,19 @@ class Solver():
         self._model_analysis(params, custom=cfg.SOLVER.CUSTOM)
 
         if self.opt_name == 'SGD':
-            self.opt = torch.optim.SGD(self.params, momentum=self.momentum)
+            self.opt = torch.optim.SGD(self.params, momentum=self.momentum, nesterov=cfg.SOLVER.NESTEROV)
         elif self.opt_name == 'Adam':
             self.opt = torch.optim.Adam(self.params)
+        elif self.opt_name == 'AdamW':
+            self.opt = torch.optim.AdamW(self.params)
+        elif self.opt_name == 'SGDW':
+            self.opt = solvers.SGDW(self.params, momentum=self.momentum, nesterov=cfg.SOLVER.NESTEROV)
 
         if not self.warmup:
             self.warmup_iters = 0
 
         if self.lr_policy == "plateau":
-            self.scheduler = WarmupReduceLROnPlateau(optimizer=self.opt, 
+            self.scheduler = lr_schedulers.WarmupReduceLROnPlateau(optimizer=self.opt, 
                                                             mode="min",
                                                             gamma=self.gamma,
                                                             patience=self.patience,
@@ -50,7 +53,7 @@ class Solver():
                                                             warmup_iters=self.warmup_iters,
                                                             )
         elif self.lr_policy == "cosine":
-            self.scheduler = WarmupCosineLR(optimizer=self.opt,
+            self.scheduler = lr_schedulers.WarmupCosineLR(optimizer=self.opt,
                                             num_iter_per_epoch=self.num_iter_per_epoch,
                                             warmup_factor=1.0/3,
                                             warmup_iters=self.warmup_iters,
@@ -107,6 +110,13 @@ class Solver():
 
     def step(self):
         self.opt.step()
+
+    def load(self, path, name):
+        state = torch.load(path, map_location = torch.device('cpu'))
+        self.opt.load_state_dict(state[f'opt_{name}'])
+
+
+
 
 
 
