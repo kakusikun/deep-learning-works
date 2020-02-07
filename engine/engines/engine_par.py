@@ -26,12 +26,12 @@ class PAREngine(BaseEngine):
         for opt in self.opts:
             opt.step()
  
-        self.show.add_scalar('train/total_loss', self.total_loss, self.iter)              
+        self.visualizer.add_scalar('train/total_loss', self.total_loss, self.iter)              
         for i in range(len(self.each_loss)):
-            self.show.add_scalar('train/loss/{}'.format(self.manager.loss_name[i]), self.each_loss[i], self.iter)
-        self.show.add_scalar('train/accuracy', self.train_accu, self.iter)   
+            self.visualizer.add_scalar('train/loss/{}'.format(self.manager.loss_name[i]), self.each_loss[i], self.iter)
+        self.visualizer.add_scalar('train/accuracy', self.train_accu, self.iter)   
         for i in range(len(self.opts)):
-            self.show.add_scalar('train/opt/{}/lr'.format(i), self.opts[i].monitor_lr, self.iter)
+            self.visualizer.add_scalar('train/opt/{}/lr'.format(i), self.opts[i].monitor_lr, self.iter)
 
     def _train_once(self):
         prefetcher = data_prefetcher(self.tdata)

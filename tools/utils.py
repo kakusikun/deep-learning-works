@@ -309,12 +309,12 @@ def print_config(cfg, cfg_file):
             logger.info("    {}".format("-"*46))
             for _k, _v in list(v.items()):
                 if _k in used_config:
-                    logger.info("{}    {:<30} ---> {}{}".format(bcolors.OKGREEN, _k, _v, bcolors.RESET))
+                    logger.info("{}    {:<30}      {}{}".format(bcolors.OKGREEN, _k, _v, bcolors.RESET))
                 else:
-                    logger.info("    {:<30} ---> {}".format(_k, _v))
+                    logger.info("    {:<30}      {}".format(_k, _v))
                 logger.info("    {}".format("-"*46))
         else:
-            logger.info("{:<30} ---> {}".format(k, v))
+            logger.info("{:<30}      {}".format(k, v))
         logger.info("="*50)
 
 def deploy_macro(cfg):

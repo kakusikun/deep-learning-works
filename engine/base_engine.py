@@ -10,7 +10,7 @@ import logging
 logger = logging.getLogger("logger")
 
 class BaseEngine():
-    def __init__(self, cfg, solvers, loader, show, manager):
+    def __init__(self, cfg, solvers, loader, visualizer, manager):
         self.cfg = cfg
         self.core = manager.model       
         self.loss_func = manager.loss_func
@@ -19,7 +19,7 @@ class BaseEngine():
         self.vdata = loader['val'] if 'val' in loader else None
         self.qdata = loader['val']['query'] if 'val' in loader and isinstance(loader['val'], dict) and 'query' in loader['val'] else None
         self.gdata = loader['val']['gallery'] if 'val' in loader and isinstance(loader['val'], dict) and 'gallery' in loader['val'] else None
-        self.show = show
+        self.visualizer = visualizer
         self.manager = manager
 
         self.iter = 0
@@ -57,13 +57,13 @@ class BaseEngine():
     def _train_iter_end(self):                
         for solver in self.solvers:
             self.solvers[solver].step()
-
-        self.show.add_scalar('train/total_loss', self.total_loss, self.iter)              
-        for loss in self.manager.crit:
-            self.show.add_scalar('train/loss/{}'.format(loss), self.each_loss[loss], self.iter)
-        self.show.add_scalar('train/accuracy', self.train_accu, self.iter)   
-        for solver in self.solvers:
-            self.show.add_scalar('train/solver/{}/lr'.format(solver), self.solvers[solver].monitor_lr, self.iter)
+        if self.cfg.IO:
+            self.visualizer.add_scalar('train/total_loss', self.total_loss, self.iter)              
+            for loss in self.manager.crit:
+                self.visualizer.add_scalar('train/loss/{}'.format(loss), self.each_loss[loss], self.iter)
+            self.visualizer.add_scalar('train/accuracy', self.train_accu, self.iter)   
+            for solver in self.solvers:
+                self.visualizer.add_scalar('train/solver/{}/lr'.format(solver), self.solvers[solver].monitor_lr, self.iter)
 
     def _train_epoch_end(self):
         raise NotImplementedError
