@@ -3,11 +3,11 @@ from torch.optim.optimizer import Optimizer, required
 
 
 
-class MySGD(Optimizer):  
+class SGDW(Optimizer):  
     def __init__(self, params, lr=required, momentum=0, dampening=0,
                  weight_decay=0, nesterov=False):
         if lr is not required and lr < 0.0:
-            raise ValueError("Invalid learning rate: {}".format(lr))    
+            raise ValueError("Invalid learning rate: {}".format(lr))
         if momentum < 0.0:
             raise ValueError("Invalid momentum value: {}".format(momentum))
         if weight_decay < 0.0:
@@ -17,10 +17,10 @@ class MySGD(Optimizer):
                         weight_decay=weight_decay, nesterov=nesterov)
         if nesterov and (momentum <= 0 or dampening != 0):
             raise ValueError("Nesterov momentum requires a momentum and zero dampening")
-        super(MySGD, self).__init__(params, defaults)
+        super(SGDW, self).__init__(params, defaults)
 
     def __setstate__(self, state):
-        super(MySGD, self).__setstate__(state)
+        super(SGDW, self).__setstate__(state)
         for group in self.param_groups:
             group.setdefault('nesterov', False)
 
@@ -45,34 +45,24 @@ class MySGD(Optimizer):
             for p in group['params']:
                 if p.grad is None:
                     continue
+
+                # Perform stepweight decay
+                p.data.mul_(1 - lr * weight_decay)
+
                 d_p = p.grad.data
-                
                 if momentum != 0:
                     param_state = self.state[p]
                     if 'momentum_buffer' not in param_state:
-                        buf = param_state['momentum_buffer'] = torch.zeros_like(p.data)
-                        buf.mul_(momentum).add_(lr, d_p)
+                        buf = param_state['momentum_buffer'] = torch.clone(d_p).detach()
                     else:
                         buf = param_state['momentum_buffer']
-                        buf.mul_(momentum).add_(lr, d_p)
-
+                        buf.mul_(momentum).add_(1 - dampening, d_p)
                     if nesterov:
-                        if 'nesterov_buffer' not in param_state:
-                            nbuf = param_state['nesterov_buffer'] = torch.zeros_like(p.data)
-                            nbuf.add_(d_p)
-                            buf.add_(lr * momentum, d_p)
-                        else:
-                            nbuf = param_state['nesterov_buffer']
-                            buf.add_(lr * momentum, d_p).add_(-lr * momentum, nbuf)
-                            nbuf.mul_(0).add_(d_p)
-                    d_p = buf
-                else:
-                    d_p.mul_(lr)
+                        d_p = d_p.add(momentum, buf)
+                    else:
+                        d_p = buf
 
-                if weight_decay != 0:
-                    p.data.add_(-weight_decay, p.data).add_(-d_p)
-                else:
-                    p.data.add_(-d_p)                
+                p.data.add_(-lr, d_p)
 
         return loss
 
