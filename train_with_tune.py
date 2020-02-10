@@ -8,6 +8,7 @@ from config.config_factory import _C as cfg
 from config.config_factory import build_output
 from trainer.trainer_factory import get_trainer
 
+from tools.logger import setup_logger
 from tools.utils import deploy_macro, print_config
 
 from ray import tune
@@ -39,20 +40,21 @@ def main():
 
     if args.config != "":
         cfg.merge_from_file(args.config)
-
     cfg.merge_from_list(args.opts)
-
-    build_output(cfg, args.config)
-
     deploy_macro(cfg)    
 
+    def trial_str_creator(trial):
+        return f"{trial.trainable_name}_{trial.trial_id}"
+
     def train_with_tune(config):
+        build_output(cfg, args.config)
+        logger = setup_logger(cfg.OUTPUT_DIR)
+        logger.info(cfg.OUTPUT_DIR)
         cfg.SOLVER.MOMENTUM = config['momentum']
         cfg.SOLVER.BASE_LR = config['lr']
         cfg.SOLVER.WARMRESTART_PERIOD = config['restart_period']
         trainer = get_trainer(cfg.TRAINER)(cfg)
         trainer.train()
-        trainer.test()
         acc = trainer.acc
         track.log(mean_accuracy=acc)
 
@@ -66,7 +68,8 @@ def main():
 
     analysis = tune.run(
         train_with_tune,
-        name="exp",
+        trial_name_creator=trial_str_creator,
+        name=cfg.EXPERIMENT,
         scheduler=sched,
         stop={
             "mean_accuracy": 0.90},
