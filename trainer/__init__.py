@@ -18,8 +18,8 @@ class BaseTrainer():
         # TODO: check config after building the loader
         self.cfg = cfg
         if self.cfg.SOLVER.LR_POLICY == 'cosine':
-            adjusted_epochs = self.calc_epochs(self.cfg.SOLVER.WARMRESTART_MULTIPLIER, self.cfg.SOLVER.WARMRESTART_PERIOD, self.cfg.SOLVER.NUM_RESTART)
-            logger.info(f"Max epochs is adjusted : {self.cfg.SOLVER.MAX_EPOCHS} => {adjusted_epochs}")
+            adjusted_epochs, num_restart = self.calc_restart_maxepochs(self.cfg.SOLVER.WARMRESTART_MULTIPLIER, self.cfg.SOLVER.WARMRESTART_PERIOD, self.cfg.SOLVER.MAX_EPOCHS)
+            logger.info(f"Max epochs is adjusted : {self.cfg.SOLVER.MAX_EPOCHS} => {adjusted_epochs} with {num_restart} restarts")
             self.cfg.SOLVER.MAX_EPOCHS = adjusted_epochs
         self.loader = get_loader(cfg.DB.LOADER)(cfg)
         self.manager = get_manager(cfg.MANAGER)(cfg)
@@ -39,6 +39,7 @@ class BaseTrainer():
     
     def train(self):
         self.engine.Train()
+        self.acc = self.engine.best_accu
 
     def test(self):
         self.engine.Evaluate()
@@ -54,11 +55,16 @@ class BaseTrainer():
             logger.info("Training model from scratch")
 
     @staticmethod
-    def calc_epochs(base, period, num_restart):
-        epochs = 0
-        for i in range(num_restart):
-            epochs += period * base ** i
-        return epochs
+    def calc_restart_maxepochs(base, period, epochs):
+        adjusted_epoch = 0
+        i = 0
+        while True:    
+            gap = period * base ** i
+            if adjusted_epoch + gap > epochs:
+                break
+            adjusted_epoch += gap
+            i += 1
+        return adjusted_epoch, i-1
 
 
 
