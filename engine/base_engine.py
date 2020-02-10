@@ -57,10 +57,10 @@ class BaseEngine():
         if self.cfg.IO:
             self.visualizer.add_scalar('train/total_loss', self.total_loss, self.iter)              
             for loss in self.manager.crit:
-                self.visualizer.add_scalar('train/loss/{}'.format(loss), self.each_loss[loss], self.iter)
+                self.visualizer.add_scalar(f'train/loss/{loss}', self.each_loss[loss], self.iter)
             self.visualizer.add_scalar('train/accuracy', self.train_accu, self.iter)   
             for solver in self.solvers:
-                self.visualizer.add_scalar('train/solver/{}/lr'.format(solver), self.solvers[solver].monitor_lr, self.iter)
+                self.visualizer.add_scalar(f'train/solver/{solver}/lr', self.solvers[solver].monitor_lr, self.iter)
 
     def _train_epoch_end(self):
         self.epoch += 1
@@ -77,16 +77,16 @@ class BaseEngine():
     def _eval_epoch_end(self):
         if self.cfg.IO and self.cfg.SOLVER.EVALUATE_FREQ > 0:
             if self.save_criterion == 'loss':
-                logger.info("Epoch {} evaluation ends, loss {:.4f}".format(self.epoch, self.test_loss))
+                logger.info(f"Epoch {self.epoch} evaluation ends, loss {self.test_loss:.4f}")
                 if self.min_loss > self.test_loss:
-                    logger.info("Save checkpoint, with {:.4f} improvement".format(self.min_loss - self.test_loss))
+                    logger.info(f"Save checkpoint, with {self.min_loss - self.test_loss:.4f} improvement")
                     self.manager.save(self.epoch, self.solvers, self.test_loss)
                     self.min_loss = self.test_loss
                 self.visualizer.add_scalar('val/loss', self.min_loss, self.epoch)
             else:
-                logger.info("Epoch {} evaluation ends, accuracy {:.4f}".format(self.epoch, self.accu))
+                logger.info(f"Epoch {self.epoch} evaluation ends, accuracy {self.accu:.4f}")
                 if self.accu > self.best_accu:
-                    logger.info("Save checkpoint, with {:.4f} improvement".format(self.accu - self.best_accu))
+                    logger.info(f"Save checkpoint, with {self.accu - self.best_accu:.4f} improvement")
                     self.manager.save(self.epoch, self.solvers, self.accu)
                     self.best_accu = self.accu
                 self.visualizer.add_scalar('val/accuracy', self.best_accu, self.epoch)
