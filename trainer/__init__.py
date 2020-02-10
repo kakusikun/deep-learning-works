@@ -17,6 +17,10 @@ class BaseTrainer():
     def __init__(self, cfg):
         # TODO: check config after building the loader
         self.cfg = cfg
+        if self.cfg.SOLVER.LR_POLICY == 'cosine':
+            adjusted_epochs = self.calc_epochs(self.cfg.SOLVER.WARMRESTART_MULTIPLIER, self.cfg.SOLVER.WARMRESTART_PERIOD, self.cfg.SOLVER.NUM_RESTART)
+            logger.info(f"Max epochs is adjusted : {self.cfg.SOLVER.MAX_EPOCHS} => {adjusted_epochs}")
+            self.cfg.SOLVER.MAX_EPOCHS = adjusted_epochs
         self.loader = get_loader(cfg.DB.LOADER)(cfg)
         self.manager = get_manager(cfg.MANAGER)(cfg)
         self.manager.use_multigpu()
@@ -48,6 +52,13 @@ class BaseTrainer():
                 self.solvers[solver].load(self.cfg.RESUME, solver)            
         else:
             logger.info("Training model from scratch")
+
+    @staticmethod
+    def calc_epochs(base, period, num_restart):
+        epochs = 0
+        for i in range(num_restart):
+            epochs += period * base ** i
+        return epochs
 
 
 
