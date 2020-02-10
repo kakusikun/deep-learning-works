@@ -18,7 +18,6 @@ class Solver():
         self.num_iter_per_epoch = cfg.SOLVER.ITERATIONS_PER_EPOCH
         self.annealing_mult = 1.0
         self.lr_policy = cfg.SOLVER.LR_POLICY if _lr_policy is None else _lr_policy
-        self.lr_steps = cfg.SOLVER.LR_STEPS
         self.opt_name = cfg.SOLVER.OPTIMIZER_NAME if _name is None else _name
 
         self.bias_lr_factor = cfg.SOLVER.BIAS_LR_FACTOR

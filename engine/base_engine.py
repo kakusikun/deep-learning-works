@@ -75,19 +75,21 @@ class BaseEngine():
         raise NotImplementedError
 
     def _eval_epoch_end(self):
-        if self.cfg.IO and self.cfg.SOLVER.EVALUATE_FREQ > 0:
+        if self.cfg.IO:
             if self.save_criterion == 'loss':
                 logger.info(f"Epoch {self.epoch} evaluation ends, loss {self.test_loss:.4f}")
                 if self.min_loss > self.test_loss:
-                    logger.info(f"Save checkpoint, with {self.min_loss - self.test_loss:.4f} improvement")
-                    self.manager.save(self.epoch, self.solvers, self.test_loss)
+                    if self.cfg.SAVE:
+                        logger.info(f"Save checkpoint, with {self.min_loss - self.test_loss:.4f} improvement")
+                        self.manager.save(self.epoch, self.solvers, self.test_loss)
                     self.min_loss = self.test_loss
                 self.visualizer.add_scalar('val/loss', self.min_loss, self.epoch)
             else:
                 logger.info(f"Epoch {self.epoch} evaluation ends, accuracy {self.accu:.4f}")
                 if self.accu > self.best_accu:
-                    logger.info(f"Save checkpoint, with {self.accu - self.best_accu:.4f} improvement")
-                    self.manager.save(self.epoch, self.solvers, self.accu)
+                    if self.cfg.SAVE:
+                        logger.info(f"Save checkpoint, with {self.accu - self.best_accu:.4f} improvement")
+                        self.manager.save(self.epoch, self.solvers, self.accu)
                     self.best_accu = self.accu
                 self.visualizer.add_scalar('val/accuracy', self.best_accu, self.epoch)
 
@@ -99,11 +101,8 @@ class BaseEngine():
         while self.epoch <= self.max_epoch:
             self._train_epoch_start()
             self._train_once()
-            if self.cfg.SOLVER.EVALUATE_FREQ > 0:
-                if self.epoch % self.cfg.SOLVER.EVALUATE_FREQ == 0:
-                    self._evaluate()
-            else:
-                self.manager.save(self.epoch, self.solvers, 0.0)
+            if self.epoch % self.cfg.SOLVER.EVALUATE_FREQ == 0:
+                self._evaluate()
             if self.cfg.SOLVER.LR_POLICY == 'plateau' and self.cfg.SOLVER.MIN_LR >= self.solvers['model'].monitor_lr:
                 logger.info(f"LR {self.solvers['model'].monitor_lr} is less than {self.cfg.SOLVER.MIN_LR}")
                 break

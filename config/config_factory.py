@@ -1,4 +1,5 @@
 import os
+import os.path as osp
 import sys
 import datetime
 import shutil
@@ -142,7 +143,7 @@ _C.DB.PATH = ""
 # ---------------------------------------------------------------------------- #
 _C.SOLVER = CN()
 _C.SOLVER.OPTIMIZER_NAME = "SGD"
-_C.SOLVER.START_EPOCH = 0
+_C.SOLVER.START_EPOCH = 1
 _C.SOLVER.MAX_EPOCHS = 50
 _C.SOLVER.BASE_LR = 0.001
 _C.SOLVER.BIAS_LR_FACTOR = 1.0
@@ -158,25 +159,23 @@ _C.SOLVER.LR_POLICY = ""
 
 # for plateau
 _C.SOLVER.MIN_LR = 0.0
+_C.SOLVER.PLATEAU_SIZE = 10.0
+_C.SOLVER.GAMMA = 0.1
 
 # for cosine
+_C.SOLVER.NUM_RESTART = 4
 _C.SOLVER.WARMRESTART_MULTIPLIER = 2
 _C.SOLVER.WARMRESTART_PERIOD = 10
 _C.SOLVER.WD_NORMALIZED = False
 _C.SOLVER.ITERATIONS_PER_EPOCH = -1
 
-_C.SOLVER.CYCLIC_MAX_LR = 1.0
-
-_C.SOLVER.NUM_LOSSES = 0
 _C.SOLVER.EVALUATE_FREQ = 1
 _C.SOLVER.LOG_FREQ = 1
 
-_C.SOLVER.LR_STEPS = []
+# for warmup
 _C.SOLVER.WARMUP = False 
-_C.SOLVER.GAMMA = 0.1
 _C.SOLVER.WARMUP_FACTOR = 1.0 / 3
 _C.SOLVER.WARMUP_SIZE = 10.0
-_C.SOLVER.PLATEAU_SIZE = 10.0
 
 _C.SOLVER.MODEL_FREEZE_PEROID = 0
 
@@ -186,14 +185,15 @@ _C.SOLVER.MODEL_FREEZE_PEROID = 0
 _C.OUTPUT_DIR = ""
 _C.RESUME = ""
 _C.EVALUATE = ""
+_C.SAVE = True
 
 def build_output(cfg, config_file=""):
     time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     if cfg.EVALUATE:
-        cfg.OUTPUT_DIR = os.path.join("evaluation", cfg.TASK, cfg.EXPERIMENT, time)
+        cfg.OUTPUT_DIR = osp.join("evaluation", cfg.TASK, cfg.EXPERIMENT, time)
     else:
-        cfg.OUTPUT_DIR = os.path.join("result", cfg.TASK, cfg.EXPERIMENT, time)
-    if cfg.OUTPUT_DIR and not os.path.exists(cfg.OUTPUT_DIR):
+        cfg.OUTPUT_DIR = osp.join(os.getcwd(), "result", cfg.TASK, cfg.EXPERIMENT, time)
+    if cfg.OUTPUT_DIR and not osp.exists(cfg.OUTPUT_DIR):
         os.makedirs(cfg.OUTPUT_DIR)
         if config_file != "":
-            shutil.copy(config_file, os.path.join(cfg.OUTPUT_DIR, config_file.split("/")[-1]))
+            shutil.copy(config_file, osp.join(cfg.OUTPUT_DIR, config_file.split("/")[-1]))
