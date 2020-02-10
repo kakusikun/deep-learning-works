@@ -142,7 +142,7 @@ _C.DB.PATH = ""
 # ---------------------------------------------------------------------------- #
 _C.SOLVER = CN()
 _C.SOLVER.OPTIMIZER_NAME = "SGD"
-_C.SOLVER.START_EPOCH = 0
+_C.SOLVER.START_EPOCH = 1
 _C.SOLVER.MAX_EPOCHS = 50
 _C.SOLVER.BASE_LR = 0.001
 _C.SOLVER.BIAS_LR_FACTOR = 1.0
