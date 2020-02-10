@@ -82,7 +82,7 @@ class BaseEngine():
             if self.save_criterion == 'loss':
                 logger.info("Epoch {} evaluation ends, loss {:.4f}".format(self.epoch, self.test_loss))
                 if self.min_loss > self.test_loss:
-                    if self.cfg.SOLVER.EVALUATE_FREQ > 0:
+                    if self.cfg.SAVE:
                         logger.info("Save checkpoint, with {:.4f} improvement".format(self.min_loss - self.test_loss))
                         self.manager.save(self.epoch, self.solvers, self.test_loss)
                     self.min_loss = self.test_loss
@@ -90,7 +90,7 @@ class BaseEngine():
             else:
                 logger.info("Epoch {} evaluation ends, accuracy {:.4f}".format(self.epoch, self.accu))
                 if self.accu > self.best_accu:
-                    if self.cfg.SOLVER.EVALUATE_FREQ > 0:
+                    if self.cfg.SAVE:
                         logger.info("Save checkpoint, with {:.4f} improvement".format(self.accu - self.best_accu))
                         self.manager.save(self.epoch, self.solvers, self.accu)
                     self.best_accu = self.accu
@@ -104,11 +104,8 @@ class BaseEngine():
         for i in range(self.max_epoch):
             self._train_epoch_start()
             self._train_once()
-            if self.cfg.SOLVER.EVALUATE_FREQ > 0:
-                if self.epoch % self.cfg.SOLVER.EVALUATE_FREQ == 0:
-                    self._evaluate()
-            else:
-                self.manager.save(self.epoch, self.solvers, 0.0)
+            if self.epoch % self.cfg.SOLVER.EVALUATE_FREQ == 0:
+                self._evaluate()
             if self.cfg.SOLVER.LR_POLICY == 'plateau' and self.cfg.SOLVER.MIN_LR >= self.solvers['model'].monitor_lr:
                 logger.info("LR {} is less than the min LR {}".format(self.solvers['model'].monitor_lr, self.cfg.SOLVER.MIN_LR))
                 break

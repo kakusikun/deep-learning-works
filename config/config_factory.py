@@ -177,7 +177,6 @@ _C.SOLVER.WARMUP = False
 _C.SOLVER.WARMUP_FACTOR = 1.0 / 3
 _C.SOLVER.WARMUP_SIZE = 10.0
 
-
 _C.SOLVER.MODEL_FREEZE_PEROID = 0
 
 # ---------------------------------------------------------------------------- #
@@ -186,6 +185,7 @@ _C.SOLVER.MODEL_FREEZE_PEROID = 0
 _C.OUTPUT_DIR = ""
 _C.RESUME = ""
 _C.EVALUATE = ""
+_C.SAVE = True
 
 def build_output(cfg, config_file=""):
     time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
