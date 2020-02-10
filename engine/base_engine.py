@@ -78,19 +78,21 @@ class BaseEngine():
         raise NotImplementedError
 
     def _eval_epoch_end(self):
-        if self.cfg.IO and self.cfg.SOLVER.EVALUATE_FREQ > 0:
+        if self.cfg.IO:
             if self.save_criterion == 'loss':
                 logger.info("Epoch {} evaluation ends, loss {:.4f}".format(self.epoch, self.test_loss))
                 if self.min_loss > self.test_loss:
-                    logger.info("Save checkpoint, with {:.4f} improvement".format(self.min_loss - self.test_loss))
-                    self.manager.save(self.epoch, self.solvers, self.test_loss)
+                    if self.cfg.SOLVER.EVALUATE_FREQ > 0:
+                        logger.info("Save checkpoint, with {:.4f} improvement".format(self.min_loss - self.test_loss))
+                        self.manager.save(self.epoch, self.solvers, self.test_loss)
                     self.min_loss = self.test_loss
                 self.visualizer.add_scalar('val/loss', self.min_loss, self.epoch)
             else:
                 logger.info("Epoch {} evaluation ends, accuracy {:.4f}".format(self.epoch, self.accu))
                 if self.accu > self.best_accu:
-                    logger.info("Save checkpoint, with {:.4f} improvement".format(self.accu - self.best_accu))
-                    self.manager.save(self.epoch, self.solvers, self.accu)
+                    if self.cfg.SOLVER.EVALUATE_FREQ > 0:
+                        logger.info("Save checkpoint, with {:.4f} improvement".format(self.accu - self.best_accu))
+                        self.manager.save(self.epoch, self.solvers, self.accu)
                     self.best_accu = self.accu
                 self.visualizer.add_scalar('val/accuracy', self.best_accu, self.epoch)
 
