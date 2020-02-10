@@ -30,9 +30,9 @@ class ImageNetEngine(BaseEngine):
             self.total_loss = self.tensor_to_scalar(self.total_loss)
             self.each_loss = self.tensor_to_scalar(self.each_loss)
 
-            self.train_accu = (outputs.max(1)[1] == batch['target']).float().mean() 
+            self.train_accu = self.tensor_to_scalar((outputs.max(1)[1] == batch['target']).float().mean())
             if i % 10 == 0:
-                logger.info(f"Epoch[{self.epoch:03}/{self.max_epoch:03}] Step[{i:04}/{self.cfg.SOLVER.ITERATIONS_PER_EPOCH:04}] loss {self.total_loss:3.3f} accu {self.train_accu:3.3f}")
+                logger.info(f"Epoch [{self.epoch:03}/{self.max_epoch:03}]   Step [{i:04}/{self.cfg.SOLVER.ITERATIONS_PER_EPOCH:04}]   loss {self.total_loss:3.3f}   accu {self.train_accu:3.3f}")
            
 
     def _evaluate(self, eval=False):
@@ -50,7 +50,7 @@ class ImageNetEngine(BaseEngine):
 
                 accus.append((outputs.max(1)[1] == batch['target']).float().mean())
           
-        self.accu = torch.stack(accus).mean()      
+        self.accu = self.tensor_to_scalar(torch.stack(accus).mean())    
 
         if not eval:
             self._eval_epoch_end()        
