@@ -1,4 +1,5 @@
 import os
+import os.path as osp
 import sys
 import datetime
 import shutil
@@ -189,10 +190,10 @@ _C.EVALUATE = ""
 def build_output(cfg, config_file=""):
     time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     if cfg.EVALUATE:
-        cfg.OUTPUT_DIR = os.path.join("evaluation", cfg.TASK, cfg.EXPERIMENT, time)
+        cfg.OUTPUT_DIR = osp.join("evaluation", cfg.TASK, cfg.EXPERIMENT, time)
     else:
-        cfg.OUTPUT_DIR = os.path.join("result", cfg.TASK, cfg.EXPERIMENT, time)
-    if cfg.OUTPUT_DIR and not os.path.exists(cfg.OUTPUT_DIR):
+        cfg.OUTPUT_DIR = osp.join(os.getcwd(), "result", cfg.TASK, cfg.EXPERIMENT, time)
+    if cfg.OUTPUT_DIR and not osp.exists(cfg.OUTPUT_DIR):
         os.makedirs(cfg.OUTPUT_DIR)
         if config_file != "":
-            shutil.copy(config_file, os.path.join(cfg.OUTPUT_DIR, config_file.split("/")[-1]))
+            shutil.copy(config_file, osp.join(cfg.OUTPUT_DIR, config_file.split("/")[-1]))
