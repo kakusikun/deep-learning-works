@@ -1,4 +1,4 @@
-EXPERIMENT: "[OSNet]_[cifar10]_[augmix_ce]_[SGDW_nesterov]_[cosine_0.02_noRestart]_[scratch]"
+EXPERIMENT: "[OSNet]_[cifar10]_[augmix_ce]_[SGDW_nesterov]_[cosine_tune_result]_[scratch]"
 # [modelname]_[task]_[loss]_[opt]_[lr]_[trick]_[pretrain]
 IO: True
 SAVE: True
@@ -28,23 +28,22 @@ DB:
   USE_TRAIN: True
   USE_TEST: True
   PATH: "/media/allen/mass/DB/"
-TRAIN_TRANSFORM: "AugMix Tensorize Normalize"
+TRAIN_TRANSFORM: "RandCrop RandomHFlip AugMix Tensorize Normalize"
 TEST_TRANSFORM: "Tensorize Normalize"
 SOLVER:
   OPTIMIZER_NAME: "SGDW"
   START_EPOCH: 1
-  MAX_EPOCHS: 300
-  BASE_LR: 0.02
+  MAX_EPOCHS: 165
+  BASE_LR: 0.3727344602443372
   BIAS_LR_FACTOR: 1.0
   WEIGHT_DECAY: 0.0005
-  MOMENTUM: 0.9
+  MOMENTUM: 0.6207107783590823
   WEIGHT_DECAY_BIAS_FACTOR: 1.0
   NESTEROV: True
   EVALUATE_FREQ: 1
   LR_POLICY: "cosine"
-  WARMRESTART_PERIOD: 300
+  WARMRESTART_PERIOD: 11
   NUM_RESTART: 2
-  CUSTOM: [['bn', 'wd', 0.0]]
   # MIN_LR: 1e-5
   # WARMUP: True
   # GAMMA: 0.1

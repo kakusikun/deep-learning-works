@@ -147,7 +147,7 @@ _C.SOLVER.START_EPOCH = 1
 _C.SOLVER.MAX_EPOCHS = 50
 _C.SOLVER.BASE_LR = 0.001
 _C.SOLVER.BIAS_LR_FACTOR = 1.0
-_C.SOLVER.CUSTOM = []
+_C.SOLVER.CUSTOM = [] 
 _C.SOLVER.CENTER_LOSS_LR = 0.5
 _C.SOLVER.CENTER_LOSS_WEIGHT = 0.0005
 _C.SOLVER.MOMENTUM = 0.9
@@ -184,7 +184,7 @@ _C.SOLVER.MODEL_FREEZE_PEROID = 0
 # ---------------------------------------------------------------------------- #
 _C.OUTPUT_DIR = ""
 _C.RESUME = ""
-_C.EVALUATE = ""
+_C.EVALUATE = False
 _C.SAVE = True
 
 def build_output(cfg, config_file=""):

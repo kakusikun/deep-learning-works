@@ -36,6 +36,7 @@ class coco_data(BaseData):
             self.val['n_samples'] = val_num_samples
             self.val['num_keypoints'] = cfg.DB.NUM_KEYPOINTS
             self.val['num_classes'] = cfg.DB.NUM_CLASSES            
+            self.val['stride'] = cfg.MODEL.STRIDE                    
             logger.info("=> COCO VAL is loaded")
             logger.info("  Dataset statistics:")
             logger.info("  -------------------")

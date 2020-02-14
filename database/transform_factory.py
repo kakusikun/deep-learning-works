@@ -5,7 +5,18 @@ import numpy as np
 import torchvision.transforms as T
 import torchvision.transforms.functional as F
 
-from database.transform import RandAugment, Normalize, RandomHFlip, Tensorize, ResizeKeepAspectRatio, Resize, RandScale, AugMix, RandCrop
+from database.transform import (
+    RandAugment, 
+    Normalize, 
+    RandomHFlip, 
+    Tensorize, 
+    ResizeKeepAspectRatio, 
+    Resize, 
+    RandScale, 
+    AugMix, 
+    RandCrop
+)
+
 import logging
 logger = logging.getLogger("logger")
 
