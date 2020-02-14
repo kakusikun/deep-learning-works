@@ -39,9 +39,10 @@ class BaseEngine():
     def _start(self):
         logger.info("Training start")
         self.iter = (self.cfg.SOLVER.START_EPOCH - 1) * len(self.tdata)
-        self.epoch = self.cfg.SOLVER.START_EPOCH
+        self.epoch = self.cfg.SOLVER.START_EPOCH - 1
 
     def _train_epoch_start(self):
+        self.epoch += 1
         logger.info(f"Epoch {self.epoch} start")
         self.core.train() 
   
@@ -62,8 +63,8 @@ class BaseEngine():
             for solver in self.solvers:
                 self.visualizer.add_scalar(f'train/solver/{solver}/lr', self.solvers[solver].monitor_lr, self.iter)
 
-    def _train_epoch_end(self):
-        self.epoch += 1
+    def _train_epoch_end(self):        
+        logger.info(f"Epoch {self.epoch} training ends, accuracy {self.train_accu:.4f}")
 
     def _eval_epoch_start(self): 
         self.core.eval() 
@@ -101,12 +102,14 @@ class BaseEngine():
         while self.epoch <= self.max_epoch:
             self._train_epoch_start()
             self._train_once()
+            self._train_epoch_end()
+            
             if self.epoch % self.cfg.SOLVER.EVALUATE_FREQ == 0:
                 self._evaluate()
             if self.cfg.SOLVER.LR_POLICY == 'plateau' and self.cfg.SOLVER.MIN_LR >= self.solvers['model'].monitor_lr:
                 logger.info(f"LR {self.solvers['model'].monitor_lr} is less than {self.cfg.SOLVER.MIN_LR}")
                 break
-            self._train_epoch_end()
+            
 
     def Inference(self):
         raise NotImplementedError
