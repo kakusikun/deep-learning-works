@@ -35,6 +35,7 @@ class AugMix(BaseTransform):
 
         ws = np.random.dirichlet([1] * self.width).astype(np.float32)
         m = np.random.beta(1, 1)
+        s = {} 
 
         mix = np.zeros_like(np.array(img), dtype=np.float32)
         for i in range(self.width):
@@ -45,11 +46,25 @@ class AugMix(BaseTransform):
                 mag = np.random.uniform(low=0.1, high=self.mag)
                 level = aug.AUG_LEVELS[op_name](mag, size = img.size)
                 img_aug = aug.AUG_OPS[op_name](img_aug, level)
+                s[op_name] = {'level':level, 'shape':img.size}
             # Preprocessing commutes since all coefficients are convex
             mix += ws[i] * np.array(img_aug).astype(np.float32)
 
         mixed = (1 - m) * np.array(img).astype(np.float32) + m * mix
-        s = {'state': None}        
+               
         return mixed, s
 
+    def apply_bbox(self, bbox, s):
+        for op_name in s:
+            A = aug.AUG_AS[op_name](**s[op_name])
+            bbox[:2] = aug.apply_A(bbox[:2], A)
+            bbox[2:] = aug.apply_A(bbox[2:], A)
+        return bbox
+    
+    def apply_pts(self, cid, pts, s):
+        for op_name in s:
+            A = aug.AUG_AS[op_name](**s[op_name])
+            for i in range(pts.shape[0]):
+                pts[i] = aug.apply_A(pts[i], A)
+        return pts
 
