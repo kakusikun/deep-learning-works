@@ -33,8 +33,9 @@ class BaseTrainer():
         if cfg.IO:
             self.visualizer = Visualizer(cfg)
 
-    def activate(self, cfg):
         self.resume()
+        
+    def activate(self, cfg):
         self.engine = get_engine(cfg.ENGINE)(cfg, self.solvers, self.loader, self.visualizer, self.manager)
     
     def train(self):
@@ -64,6 +65,10 @@ class BaseTrainer():
                 break
             adjusted_epoch += gap
             i += 1
+        if adjusted_epoch == 0:
+            adjusted_epoch = 1
+        if i == 0:
+            i = 1
         return adjusted_epoch, i-1
 
 
