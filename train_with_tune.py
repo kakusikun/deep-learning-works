@@ -14,6 +14,7 @@ from tools.utils import deploy_macro, print_config
 from ray import tune
 from ray.tune import track
 from ray.tune.schedulers import AsyncHyperBandScheduler
+from ray.tune.suggest.bayesopt import BayesOptSearch
 
 def main():    
     parser = argparse.ArgumentParser(description="PyTorch Deep Learning")
@@ -46,38 +47,53 @@ def main():
     def trial_str_creator(trial):
         return f"{trial.trainable_name}_{trial.trial_id}"
 
-    def train_with_tune(config):
+    def train_with_tune(config, reporter):
         build_output(cfg, args.config)
         logger = setup_logger(cfg.OUTPUT_DIR)
         logger.info(cfg.OUTPUT_DIR)
-        cfg.SOLVER.MOMENTUM = config['momentum']
-        cfg.SOLVER.BASE_LR = config['lr']
-        cfg.SOLVER.WARMRESTART_PERIOD = config['restart_period']
+        cfg.SOLVER.MOMENTUM = np.asscalar(config['momentum'])
+        cfg.SOLVER.BASE_LR = np.asscalar(config['lr'])
+        cfg.SOLVER.WARMRESTART_PERIOD = int(np.asscalar(config['restart_period']))
         trainer = get_trainer(cfg.TRAINER)(cfg)
         trainer.train()
         acc = trainer.acc
-        track.log(mean_accuracy=acc)
+        reporter(mean_accuracy=acc)
 
     sched = AsyncHyperBandScheduler(
         time_attr="training_iteration", metric="mean_accuracy")  
 
-    config = {
-        "lr": tune.sample_from(lambda spec: 10**(-3 * np.random.rand())),
-        "momentum": tune.uniform(0.1, 0.9),
-        "restart_period": tune.randint(10,30)}
+    # config = {
+    #     "lr": tune.sample_from(lambda spec: 10**(-3 * np.random.rand())),
+    #     "momentum": tune.uniform(0.1, 0.9),
+    #     "restart_period": tune.randint(10,30)}
+
+    space = {
+        'lr': (10**-3, 1.0),
+        'momentum': (0.1, 0.9),
+        'restart_period': (10, 30),
+    }
+
+    algo = BayesOptSearch(
+        space,
+        max_concurrent=4,
+        metric="mean_accuracy",
+        mode="max",
+        utility_kwargs={
+            "kind": "ucb",
+            "kappa": 2.5,
+            "xi": 0.0
+        })
 
     analysis = tune.run(
         train_with_tune,
         trial_name_creator=trial_str_creator,
         name=cfg.EXPERIMENT,
         scheduler=sched,
-        stop={
-            "mean_accuracy": 0.90},
+        search_alg=algo,
         resources_per_trial={
             "cpu": 2,
             "gpu": 1},
-        num_samples=4,
-        config=config)
+        num_samples=2)
 
     print(f'Best config is: {analysis.get_best_config(metric="mean_accuracy")}')
 
