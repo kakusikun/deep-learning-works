@@ -14,6 +14,7 @@ class ImageNetEngine(BaseEngine):
         super(ImageNetEngine, self).__init__(cfg, solvers, loader, show, manager)
         
     def _train_once(self):
+        accus = []   
         # for batch in tqdm(self.tdata, desc="Epoch[{}/{}]".format(self.epoch, self.max_epoch), position=0, leave=True):
         for i, batch in enumerate(self.tdata):
             self._train_iter_start()
@@ -29,11 +30,12 @@ class ImageNetEngine(BaseEngine):
 
             self.total_loss = self.tensor_to_scalar(self.total_loss)
             self.each_loss = self.tensor_to_scalar(self.each_loss)
-
-            self.train_accu = self.tensor_to_scalar((outputs.max(1)[1] == batch['target']).float().mean())
+            accus.append((outputs.max(1)[1] == batch['target']).float().mean())
             if i % 10 == 0:
-                logger.info(f"Epoch [{self.epoch:03}/{self.max_epoch:03}]   Step [{i:04}/{self.cfg.SOLVER.ITERATIONS_PER_EPOCH:04}]   loss {self.total_loss:3.3f}   accu {self.train_accu:3.3f}")
-           
+                logger.info(f"Epoch [{self.epoch:03}/{self.max_epoch:03}]   Step [{i:04}/{self.cfg.SOLVER.ITERATIONS_PER_EPOCH:04}]   loss {self.total_loss:3.3f}")
+
+        self.train_accu = self.tensor_to_scalar(torch.stack(accus).mean())
+            
 
     def _evaluate(self, eval=False):
         logger.info("Epoch {} evaluation start".format(self.epoch))
