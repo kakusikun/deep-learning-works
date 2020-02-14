@@ -68,12 +68,14 @@ class Model(nn.Module):
         super(Model, self).__init__()
         self.backbone = get_model(cfg.MODEL.NAME)()
         self.gap = nn.AdaptiveAvgPool2d(1)        
-        self.classifier = nn.Linear(self.backbone.feature_dim, cfg.DB.NUM_CLASSES, bias=False)        
+        self.dropout = nn.Dropout(0.2)
+        self.classifier = nn.Linear(self.backbone.feature_dim, cfg.DB.NUM_CLASSES)        
         self.classifier.apply(weights_init_classifier)    
 
     def forward(self, x):
         x = self.backbone(x)
         x = self.gap(x)
         x = x.view(x.size(0), -1)
+        x = self.dropout(x)
         x = self.classifier(x)
         return x
