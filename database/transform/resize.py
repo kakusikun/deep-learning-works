@@ -69,6 +69,8 @@ class Resize(BaseTransform):
         '''
         assert 'ratio' in s
         r_w, r_h = s['ratio']
+        r_w /= self.stride
+        r_h /= self.stride
         pts[:, 0] *= r_w
         pts[:, 1] *= r_h
         return pts
