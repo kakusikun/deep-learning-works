@@ -14,7 +14,8 @@ from database.transform import (
     Resize, 
     RandScale, 
     AugMix, 
-    RandCrop
+    RandCrop,
+    Cutout
 )
 
 import logging
@@ -30,6 +31,7 @@ TRANFORMS = [
     'RandScale',
     'AugMix',
     'RandCrop',
+    'Cutout'
 ]
 
 def get_transform(cfg, trans):
@@ -66,6 +68,9 @@ def get_transform(cfg, trans):
 
         if tran == 'RandCrop':
             bag_of_transforms.append(RandCrop(size=cfg.INPUT.RESIZE, pad=cfg.INPUT.PAD))
+
+        if tran == 'Cutout':
+            bag_of_transforms.append(Cutout(length=16))
 
     return Transform(bag_of_transforms)
 

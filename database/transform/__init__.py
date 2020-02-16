@@ -11,3 +11,4 @@ from database.transform.tensorize import Tensorize
 from database.transform.random_scale import RandScale
 from database.transform.augmix import AugMix
 from database.transform.random_crop import RandCrop
+from database.transform.cutout import Cutout
