@@ -1,7 +1,7 @@
 from database.datasets import *
 import numpy as np
 from PIL import Image
-from tools.create_centernet_target import CenterNet_keypoints_target
+from tools.centernet_utils import CenterNet_keypoints_target
 
 class build_cocokp_dataset(data.Dataset):
     def __init__(self, data, trans=None):

@@ -10,8 +10,8 @@ def CenterNet_keypoints_target(bboxes, ptss, valid_ptss, max_objs, num_classes, 
         bboxes (list): list of 1x4 numpy arrays, the ground truth bounding box.
         ptss (list): list of a list with class of keypoints (int) and keypoints (Nx2 numpy array),
                      [[c1, pts1], [c2, pts2], ...].
-        valid_ptss (list): list of 1xN numpy arrays where the N is equal to the N of pts in ptss, indicating the visibility of each pt in pts.
-                    2 is visible, 1 is occlusion and 0 is not labeled.
+        valid_ptss (list): list of 1xN numpy arrays where the N is equal to the N of pts in ptss, 
+                    indicating the visibility of each pt in pts. 2 is visible, 1 is occlusion and 0 is not labeled.
         max_objs (int): the maximum number of objects in a image.
         num_classes (int): number of classes in dataset.
         num_joints (int): number of categories of keypoints in dataset.
