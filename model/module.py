@@ -154,5 +154,27 @@ class Res2NetStem(nn.Module):
     def forward(self, x):
         return self.stem(x)
 
+class biFPNLayer(nn.Module):
+    def __init__(self, feat_size, level=3):
+        super().__init__()
+        self.p_tds = nn.ModuleList()
+        for i in range(level):
+            
+
 class biFPN(nn.Module):
-    def __init__(self, )
+    def __init__(self, in_feat_sizes, out_feat_size, level=3, num_layers=2, eps=1e-4):
+        super().__init__()
+        assert len(in_feat_sizes) == level
+        self.p_lats = nn.ModuleList()
+        for i, in_feat_size in zip(range(level), in_feat_sizes):
+            if i <= 2:
+                self.p_lats.append(nn.Conv2d(in_feat_size, out_feat_size, 1, stride=1, padding=0))
+            elif i == 3:
+                self.p_lats.append(nn.Conv2d(in_feat_sizes[-1], out_feat_size, 1, stride=1, padding=0))
+            elif i > 3:
+                self.p_lats.append(nn.Conv2d(out_feat_size, out_feat_size, 1, stride=1, padding=0))
+        
+        biFPNLayers = []
+        for _ in range(num_layers):
+            biFPNLayers.append(biFPNLayer(out_feat_size, level))
+        self.biFPNLayers = nn.Sequential()
