@@ -17,10 +17,8 @@ class BaseManager():
         self.cfg = cfg
         self.model = None
         self.use_gpu = False
-
         self.loss_func = None
         self.submodels = {}
-
         
     def save(self, epoch, solvers, acc):
         state = {}

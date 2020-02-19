@@ -14,30 +14,19 @@ class ImageNetManager(BaseManager):
     def __init__(self, cfg):
         super(ImageNetManager, self).__init__(cfg)        
 
-        if cfg.TASK == "imagenet" or cfg.TASK == "cifar10":
-            self._make_model()
-            self._make_loss()
+        if self.cfg.TASK == "imagenet" or self.cfg.TASK == "cifar10":
+            self.model = Model(self.cfg)
+            self.crit = {}
+            self.crit['ce'] = nn.CrossEntropyLoss()
+
+            def loss_func(feat, batch):
+                each_loss = {'ce':self.crit['ce'](feat, batch['target'])}
+                loss = each_loss['ce']
+                return loss, each_loss
+            self.loss_func = loss_func
         else:
-            logger.info("Task {} is not supported".format(cfg.TASK))  
+            logger.info("Task {} is not supported".format(self.cfg.TASK))  
             sys.exit(1)
-
-             
-                        
-    def _make_model(self):
-        self.model = Model(self.cfg)
-
-    def _make_loss(self):
-        self.crit = {}
-        #  ce_ls = CrossEntropyLossLS(self.cfg.DB.NUM_CLASSES)
-        self.crit['ce'] = nn.CrossEntropyLoss()
-
-        def loss_func(feat, batch):
-            #  each_loss = [ce_ls(g_feat, target)]            
-            each_loss = {'ce':self.crit['ce'](feat, batch['target'])}
-            loss = each_loss['ce']
-            return loss, each_loss
-
-        self.loss_func = loss_func
 
     def _initialize_weights(self):
         pass
@@ -66,14 +55,14 @@ def weights_init_classifier(module):
 class Model(nn.Module):
     def __init__(self, cfg):
         super(Model, self).__init__()
-        self.backbone = get_model(cfg.MODEL.NAME)()
+        self.backbone = get_model(cfg.MODEL.NAME)(cfg)
         self.gap = nn.AdaptiveAvgPool2d(1)        
         self.dropout = nn.Dropout(0.2)
         self.classifier = nn.Linear(self.backbone.feature_dim, cfg.DB.NUM_CLASSES)        
         self.classifier.apply(weights_init_classifier)    
 
     def forward(self, x):
-        x = self.backbone(x)
+        x = self.backbone(x)[-1]
         x = self.gap(x)
         x = x.view(x.size(0), -1)
         x = self.dropout(x)

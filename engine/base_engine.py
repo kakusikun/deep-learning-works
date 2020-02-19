@@ -109,7 +109,7 @@ class BaseEngine():
             if self.cfg.SOLVER.LR_POLICY == 'plateau' and self.cfg.SOLVER.MIN_LR >= self.solvers['model'].monitor_lr:
                 logger.info(f"LR {self.solvers['model'].monitor_lr} is less than {self.cfg.SOLVER.MIN_LR}")
                 break
-            
+        logger.info(f"Best accuracy {self.best_accu:.2f}")
 
     def Inference(self):
         raise NotImplementedError
