@@ -202,13 +202,43 @@ class DropChannel(nn.Module):
             return x / keep_prob * mask
             
         return x
+
+class Identity(nn.Module):
+    def __init__(self):
+        super().__init__()
+    def forward(self, x):
+        return x
+
+class FusedNormalization(nn.Module):
+    def __init__(self, size, level):
+        super().__init__()
         
 class biFPNLayer(nn.Module):
     def __init__(self, feat_size, level=3):
         super().__init__()
-        self.p_tds = nn.ModuleList()
+        self.p_lat1s = nn.ModuleList()
+        self.p_lat2s = nn.ModuleList()
+        self.p_ups = nn.ModuleList()
+        self.p_downs = nn.ModuleList()
+        self.p_w_td_adds = nn.ModuleList()
+        self.p_w_bu_adds = nn.ModuleList()
+
         for i in range(level):
-            
+            if i == 0:
+                self.p_lat1s.append(Identity())
+                self.p_lat2s.append(Identity())
+                self.p_ups.append(Identity())
+                self.p_w_td_adds.append(Identity())
+                self.p_downs.append(Identity())
+                self.p_w_bu_adds.append(Identity())
+            else:
+                self.p_lat1s.append(DepthwiseSeparable(feat_size, feat_size, 1))
+                self.p_lat2s.append(DepthwiseSeparable(feat_size, feat_size, 1))
+                self.p_ups.append(nn.Upsample(scale_factor=2))
+                self.p_w_td_adds.append(FusedNormalization(2, level-1))
+                self.p_downs.append(nn.Upsample(scale_factor=0.5))
+                self.p_w_bu_adds.append(FusedNormalization(3, level-1))
+        
 
 class biFPN(nn.Module):
     def __init__(self, in_feat_sizes, out_feat_size, level=3, num_layers=2, eps=1e-4):
