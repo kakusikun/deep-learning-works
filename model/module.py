@@ -35,7 +35,7 @@ class ConvModule(nn.Module):
 class InversedDepthwiseSeparable(nn.Module):
     """
     Inversed Depthwise Separable
-    Conv 1x1 => Conv 3x3 => BN => ReLU
+    Conv 1x1 => dwConv => BN => ReLU
     """    
     def __init__(self, in_channels, out_channels, kernel_size):
         super(InversedDepthwiseSeparable, self).__init__()
@@ -45,14 +45,16 @@ class InversedDepthwiseSeparable(nn.Module):
             1, 
             stride=1, 
             padding=0, 
-            bias=False)
+            bias=False
+        )
         self.conv2 = ConvModule(
             out_channels, 
             out_channels, 
             kernel_size, 
             stride=1, 
             padding=1, 
-            groups=out_channels)
+            groups=out_channels
+        )
 
     def forward(self, x):
         x = self.conv1(x)
@@ -62,24 +64,26 @@ class InversedDepthwiseSeparable(nn.Module):
 class DepthwiseSeparable(nn.Module):
     """
     Inversed Depthwise Separable
-     dwConv 3x3 => Conv 1x1 => BN => ReLU
+     dwConv => Conv 1x1 => BN => ReLU
     """    
     def __init__(self, in_channels, out_channels, kernel_size):
-        super(InversedDepthwiseSeparable, self).__init__()
+        super(DepthwiseSeparable, self).__init__()
         self.conv1 = nn.Conv2d(
+            in_channels, 
+            in_channels, 
+            kernel_size, 
+            stride=1, 
+            padding=0, 
+            bias=False,
+            groups=in_channels
+        )
+        self.conv2 = ConvModule(
             in_channels, 
             out_channels, 
             1, 
             stride=1, 
-            padding=0, 
-            bias=False)
-        self.conv2 = ConvModule(
-            out_channels, 
-            out_channels, 
-            kernel_size, 
-            stride=1, 
-            padding=1, 
-            groups=out_channels)
+            padding=1
+        )
 
     def forward(self, x):
         x = self.conv1(x)
@@ -96,7 +100,7 @@ class SEModule(nn.Module):
         => Sigmoid * input
     """
     def __init__(self, in_channels, reduction=16):
-        super(ChannelGate, self).__init__()
+        super(SEModule, self).__init__()
         self.global_avgpool = nn.AdaptiveAvgPool2d(1)
         self.fc1 = nn.Linear(
             in_channels,
@@ -112,7 +116,7 @@ class SEModule(nn.Module):
     def forward(self, x):
         n, c, _, _ = x.shape
         y = self.global_avgpool(x)
-        y = self.fc1(x.view(n, c))
+        y = self.fc1(y.view(n, c))
         y = self.relu(y)
         y = self.fc2(y)
         y = self.sigmoid(y).view(n, c, 1, 1)
@@ -123,6 +127,7 @@ class Res2NetStem(nn.Module):
     Conv 3x3xs2 => Conv 3x3 => Conv 3x3 => MAX 3x3xs2
     """
     def __init__(self, in_channels, out_channels):
+        super(Res2NetStem, self).__init__()
         self.stem = nn.Sequential(
             nn.Conv2d(
                 in_channels,
@@ -154,5 +159,5 @@ class Res2NetStem(nn.Module):
     def forward(self, x):
         return self.stem(x)
 
-class biFPN(nn.Module):
-    def __init__(self, )
+# class biFPN(nn.Module):
+#     def __init__(self, )

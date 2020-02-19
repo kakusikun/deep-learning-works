@@ -6,7 +6,7 @@ from torch import nn
 from torch.nn import functional as F
 from manager.utility import ConvFC, AttentionIncorporation
 import torchvision
-from model.module import ConvModule, Res2NetStem, InversedDepthwiseSeparable
+from model.module import ConvModule, Res2NetStem, InversedDepthwiseSeparable, SEModule
 
 ##########
 # Basic layers
@@ -145,6 +145,7 @@ class OSNet(nn.Module):
             self.stages.append(self._make_layer(blocks[0], layers[0], channels[0], channels[1], reduce_spatial_size=True))
             self.stages.append(self._make_layer(blocks[1], layers[1], channels[1], channels[2], reduce_spatial_size=False))
             self.stages.append(ConvModule(channels[2], channels[2], 1))
+            self.feature_dim = 384
         else:
             self.stages.append(self._make_layer(blocks[0], layers[0], channels[0], channels[1], reduce_spatial_size=True))
             self.stages.append(self._make_layer(blocks[1], layers[1], channels[1], channels[2], reduce_spatial_size=True))
