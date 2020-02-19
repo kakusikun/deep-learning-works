@@ -6,7 +6,7 @@ from torch import nn
 from torch.nn import functional as F
 from manager.utility import ConvFC, AttentionIncorporation
 import torchvision
-from model.module import ConvModule, Res2NetStem, InversedDepthwiseSeparable, SEModule
+from model.module import ConvModule, Res2NetStem, InversedDepthwiseSeparable, SEModule, DropChannel
 
 ##########
 # Basic layers
@@ -45,6 +45,7 @@ class OSBlock(nn.Module):
                 mid_channels,
                 3
             ),
+            DropChannel(),
             InversedDepthwiseSeparable(
                 mid_channels, 
                 mid_channels,
@@ -57,11 +58,13 @@ class OSBlock(nn.Module):
                 mid_channels,
                 3
             ),
+            DropChannel(),
             InversedDepthwiseSeparable(
                 mid_channels, 
                 mid_channels,
                 3
             ),
+            DropChannel(),
             InversedDepthwiseSeparable(
                 mid_channels, 
                 mid_channels,
@@ -74,16 +77,19 @@ class OSBlock(nn.Module):
                 mid_channels,
                 3
             ),
+            DropChannel(),
             InversedDepthwiseSeparable(
                 mid_channels, 
                 mid_channels,
                 3
             ),
+            DropChannel(),
             InversedDepthwiseSeparable(
                 mid_channels, 
                 mid_channels,
                 3
             ),
+            DropChannel(),
             InversedDepthwiseSeparable(
                 mid_channels, 
                 mid_channels,

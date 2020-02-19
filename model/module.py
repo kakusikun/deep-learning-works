@@ -159,5 +159,50 @@ class Res2NetStem(nn.Module):
     def forward(self, x):
         return self.stem(x)
 
+class DropPath(nn.Module):
+    def __init__(self, p=0.2):
+        """
+        Drop path with probability.
+
+        Parameters
+        ----------
+        p : float
+            Probability of an path to be zeroed.
+        """
+        super().__init__()
+        self.p = p
+
+    def forward(self, x):
+        if self.training and self.p > 0.:
+            keep_prob = 1. - self.p
+            # per data point mask
+            mask = torch.zeros((x.size(0), x.size(1), 1, 1), device=x.device).bernoulli_(keep_prob)
+            return x / keep_prob * mask
+            
+        return x
+
+class DropChannel(nn.Module):
+    def __init__(self, p=0.2):
+        """
+        Drop path with probability.
+
+        Parameters
+        ----------
+        p : float
+            Probability of an path to be zeroed.
+        """
+        super().__init__()
+        self.p = p
+
+    def forward(self, x):
+        if self.training and self.p > 0.:
+            keep_prob = 1. - self.p
+            # per data point mask
+            mask = torch.zeros((x.size(0), x.size(1), 1, 1), device=x.device).bernoulli_(keep_prob)
+            return x / keep_prob * mask
+            
+        return x
+
+        mask = torch.zeros((x.size(0), x.size(1), 1, 1)).bernoulli_(0.8)
 # class biFPN(nn.Module):
 #     def __init__(self, )
