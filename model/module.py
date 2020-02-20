@@ -210,8 +210,18 @@ class Identity(nn.Module):
         return x
 
 class FusedNormalization(nn.Module):
-    def __init__(self, size, level):
+    def __init__(self, size, eps=1e-4):
         super().__init__()
+        self.w = nn.Parameter(torch.rand(size))
+        self.relu = nn.ReLU()
+        self.eps = eps
+    def forward(self, p):
+        w = self.relu(self.w)
+        w.div_(w.sum() + self.eps)
+        fused = 0.0
+        for wi, pi in zip(w, p):
+            fused += wi*pi
+        return fused
         
 class biFPNLayer(nn.Module):
     def __init__(self, feat_size, level=3):
@@ -223,30 +233,45 @@ class biFPNLayer(nn.Module):
         self.p_w_td_adds = nn.ModuleList()
         self.p_w_bu_adds = nn.ModuleList()
 
-        for i in range(level):
-            if i == 0:
-                self.p_lat1s.append(Identity())
-                self.p_lat2s.append(Identity())
-                self.p_ups.append(Identity())
-                self.p_w_td_adds.append(Identity())
-                self.p_downs.append(Identity())
-                self.p_w_bu_adds.append(Identity())
-            else:
-                self.p_lat1s.append(DepthwiseSeparable(feat_size, feat_size, 1))
-                self.p_lat2s.append(DepthwiseSeparable(feat_size, feat_size, 1))
-                self.p_ups.append(nn.Upsample(scale_factor=2))
-                self.p_w_td_adds.append(FusedNormalization(2, level-1))
-                self.p_downs.append(nn.Upsample(scale_factor=0.5))
-                self.p_w_bu_adds.append(FusedNormalization(3, level-1))
+        for _ in range(level-1):
+            self.p_lat1s.append(DepthwiseSeparable(feat_size, feat_size, 1))
+            self.p_lat2s.append(DepthwiseSeparable(feat_size, feat_size, 1))
+            self.p_ups.append(nn.Upsample(scale_factor=2))
+            self.p_w_td_adds.append(FusedNormalization(2))
+            self.p_downs.append(nn.Upsample(scale_factor=0.5))
+            self.p_w_bu_adds.append(FusedNormalization(3))
+    
+    def forward(self, ps): # high to low level, e.g., P7 -> P6 -> P5 ...
+        level = len(ps)
+        p_tds = [ps[0]]
+        for i in range(level-1):
+            p_tds.append(
+                self.p_lat1s[i](
+                    self.p_w_td_adds[i](
+                        [ps[i+1], self.p_ups[i](p_tds[i])]
+                    )
+                )
+            )
+        p_os = [p_tds[-1]]
+        for i in range(level-1):
+            p_os.append(
+                self.p_lat2s[i](
+                    self.p_w_bu_adds[i](
+                        [ps[level-i]], p_tds[level-i], self.p_downs[i](p_os[i])
+                    )
+                )
+            )
+        return p_os
         
 
 class biFPN(nn.Module):
-    def __init__(self, in_feat_sizes, out_feat_size, level=3, num_layers=2, eps=1e-4):
+    def __init__(self, in_feat_sizes, out_feat_size, level=3, num_layers=2):
         super().__init__()
         assert len(in_feat_sizes) == level
+        self.level = level
         self.p_lats = nn.ModuleList()
         for i, in_feat_size in zip(range(level), in_feat_sizes):
-            if i <= 2:
+            if i <= 2: 
                 self.p_lats.append(nn.Conv2d(in_feat_size, out_feat_size, 1, stride=1, padding=0))
             elif i == 3:
                 self.p_lats.append(nn.Conv2d(in_feat_sizes[-1], out_feat_size, 1, stride=1, padding=0))
@@ -256,6 +281,19 @@ class biFPN(nn.Module):
         biFPNLayers = []
         for _ in range(num_layers):
             biFPNLayers.append(biFPNLayer(out_feat_size, level))
-        self.biFPNLayers = nn.Sequential()
+        self.biFPNLayers = nn.Sequential(*biFPNLayers)
+
+    def forward(self, inputs): # low to high level, e.g., P3 -> P4 -> P5 ...
+        ps = [] # high to low level, e.g., P7 -> P6 -> P5 ...
+        for i in range(self.level):
+            if i <= 2:
+                ps.insert(0, self.p_lats[i](inputs[i]))               
+            elif i == 3:
+                ps.insert(0, self.p_lats[i](inputs[i-1]))
+            else:
+                ps.insert(0, self.p_lats[i](ps[i-1]))
+        
+        return self.biFPNLayers(ps)
+
 
 
