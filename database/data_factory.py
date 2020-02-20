@@ -19,6 +19,7 @@ data_factory ={
     'msmt': MSMT17,
     'imagenet': ImageNet,
     'cifar10': Cifar10,
+    'widerface': coco_data,
 }
 
 def get_names():
