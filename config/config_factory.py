@@ -61,6 +61,7 @@ _C.MODEL = CN()
 _C.MODEL.GPU = []
 
 _C.MODEL.NAME = ""
+_C.MODEL.HEAD = ""
 _C.MODEL.PRETRAIN = "own"
 _C.MODEL.TASK = "classifier"
 _C.MODEL.POOLING = "AVG"
