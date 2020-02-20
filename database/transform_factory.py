@@ -85,14 +85,14 @@ class Transform():
     def __init__(self, t_list):
         self.t_list = t_list
     
-    def __call__(self, img, bboxes=None, total_pts=None):
+    def __call__(self, img, bboxes=None, ptss=None):
         '''
         Apply transformation on data like call a function, bboxes and keypoints are changed in place
 
         Args:
             img (PIL Image): data on which applied transformations
             bboxes (list): optional, if bboxes is given, apply transformation related to change of position
-            total_pts (list): optional, works like bboxes, but each cell in list is a list with class of keypoints and keypoints.
+            ptss (list): optional, works like bboxes, but each cell in list is a list with class of keypoints and keypoints.
                               [[c1, pts1], [c2, pts2], ...]
         
         Return:
@@ -109,11 +109,11 @@ class Transform():
                 for i in range(len(bboxes)):
                     bboxes[i] = t.apply_bbox(bboxes[i], ss[t])
 
-        if total_pts is not None:
+        if ptss is not None:
             for t in self.t_list:
-                for i in range(len(total_pts)):
-                    cls_id, pts = total_pts[i]
-                    total_pts[i][1] = t.apply_pts(cls_id, pts, ss[t])
+                for i in range(len(ptss)):
+                    cls_id, pts = ptss[i]
+                    ptss[i][1] = t.apply_pts(cls_id, pts, ss[t])
         if bboxes is None:
             return img
         return img, ss
