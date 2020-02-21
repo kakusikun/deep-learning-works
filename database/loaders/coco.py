@@ -1,13 +1,13 @@
 from database.loaders import *
-from tools.centerface_utils import *
-from tools.centernet_utils import *
+from tools.centerface_utils import centerface_facial_target
+from tools.centernet_utils import centernet_keypoints_target
 
 def build_coco_loader(cfg):
     data = get_data(cfg.DB.DATA)(cfg)
     if cfg.MODEL.HEAD == 'center_kp':
-        build_func = CenterNet_keypoints_target
+        build_func = centernet_keypoints_target
     elif cfg.MODEL.HEAD == 'centerface':
-        build_func = CenterFace_facial_target
+        build_func = centerface_facial_target
     else:
         build_func = None
     loader = {}

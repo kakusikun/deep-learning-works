@@ -7,7 +7,7 @@ import torchvision.transforms as T
 import torchvision
 from engine.base_engine import BaseEngine, data_prefetcher
 from tools.oracle_utils import gen_oracle_map
-from tools.utils import ctdet_decode, ctdet_post_process
+from tools.centernet_utils import centernet_det_decode, centernet_det_post_process
 from pycocotools.cocoeval import COCOeval
 import json
 import numpy as np
@@ -75,9 +75,9 @@ class CenterEngine(BaseEngine):
                     feat = self.core(batch['inp'])[-1]
                     feat['hm'].sigmoid_()
 
-                dets = ctdet_decode(feat['hm'], feat['wh'], reg=feat['reg'], K=100)
+                dets = centernet_det_decode(feat['hm'], feat['wh'], reg=feat['reg'], K=100)
                 dets = dets.detach().cpu().numpy().reshape(1, -1, dets.shape[1])
-                dets_out = ctdet_post_process(dets.copy(), batch['c'].cpu().numpy(), batch['s'].cpu().numpy(), 
+                dets_out = centernet_det_post_process(dets.copy(), batch['c'].cpu().numpy(), batch['s'].cpu().numpy(), 
                                                feat['hm'].shape[2], feat['hm'].shape[3], feat['hm'].shape[1])
                 results[batch['img_id'][0]] = dets_out[0]
         cce = coco_eval(self.vdata.dataset.coco, results, self.cfg.OUTPUT_DIR)  

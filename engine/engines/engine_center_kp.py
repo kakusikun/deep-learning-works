@@ -7,7 +7,8 @@ import torchvision.transforms as T
 import torchvision
 from engine.base_engine import BaseEngine, data_prefetcher
 from tools.oracle_utils import gen_oracle_map
-from tools.utils import multi_pose_decode, multi_pose_post_process, _sigmoid
+from tools.utils import _sigmoid
+from tools.centernet_utils import centernet_pose_decode, centernet_pose_post_process
 from tools.deepfashiontools.cocoeval import COCOeval as Clothingeval
 from pycocotools.cocoeval import COCOeval as Personeval
 import json
@@ -72,10 +73,10 @@ class CenterKPEngine(BaseEngine):
                     feat['hm'] = _sigmoid(feat['hm'])
                     feat['hm_kp'] = _sigmoid(feat['hm_kp'])
 
-                dets = multi_pose_decode(feat['hm'], feat['wh'], feat['kps'], 
+                dets = centernet_pose_decode(feat['hm'], feat['wh'], feat['kps'], 
                                          reg=feat['reg'], hm_kp=feat['hm_kp'], kp_reg=feat['kp_reg'], K=100)
                 dets = dets.detach().cpu().numpy().reshape(1, -1, dets.shape[2])                    
-                dets_out = multi_pose_post_process(dets.copy(), batch['c'].cpu().numpy(), batch['s'].cpu().numpy(),
+                dets_out = centernet_pose_post_process(dets.copy(), batch['c'].cpu().numpy(), batch['s'].cpu().numpy(),
                                                    feat['hm'].shape[2], feat['hm'].shape[3], feat['hm'].shape[1])
                 results[batch['img_id'][0]] = dets_out[0]
 
