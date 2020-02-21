@@ -37,7 +37,7 @@ class InversedDepthwiseSeparable(nn.Module):
     Inversed Depthwise Separable
     Conv 1x1 => dwConv => BN => ReLU
     """    
-    def __init__(self, in_channels, out_channels, kernel_size):
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1):
         super(InversedDepthwiseSeparable, self).__init__()
         self.conv1 = nn.Conv2d(
             in_channels, 
@@ -51,8 +51,8 @@ class InversedDepthwiseSeparable(nn.Module):
             out_channels, 
             out_channels, 
             kernel_size, 
-            stride=1, 
-            padding=1, 
+            stride=stride, 
+            padding=kernel_size // 2, 
             groups=out_channels
         )
 
@@ -66,14 +66,14 @@ class DepthwiseSeparable(nn.Module):
     Inversed Depthwise Separable
      dwConv => Conv 1x1 => BN => ReLU
     """    
-    def __init__(self, in_channels, out_channels, kernel_size):
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1):
         super(DepthwiseSeparable, self).__init__()
         self.conv1 = nn.Conv2d(
             in_channels, 
             in_channels, 
             kernel_size, 
-            stride=1, 
-            padding=0, 
+            stride=stride, 
+            padding=kernel_size // 2, 
             bias=False,
             groups=in_channels
         )
@@ -82,7 +82,7 @@ class DepthwiseSeparable(nn.Module):
             out_channels, 
             1, 
             stride=1, 
-            padding=1
+            padding=0
         )
 
     def forward(self, x):
@@ -243,7 +243,7 @@ class biFPNLayer(nn.Module):
     
     def forward(self, ps): # high to low level, e.g., P7 -> P6 -> P5 ...
         level = len(ps)
-        p_tds = [ps[0]]
+        p_tds = [ps[0]] # high to low level
         for i in range(level-1):
             p_tds.append(
                 self.p_lat1s[i](
@@ -252,12 +252,12 @@ class biFPNLayer(nn.Module):
                     )
                 )
             )
-        p_os = [p_tds[-1]]
+        p_os = [p_tds[-1]] # high to low level
         for i in range(level-1):
-            p_os.append(
+            p_os.insert(0,
                 self.p_lat2s[i](
                     self.p_w_bu_adds[i](
-                        [ps[level-i]], p_tds[level-i], self.p_downs[i](p_os[i])
+                        [ps[level-i-2], p_tds[level-i-2], self.p_downs[i](p_os[0])]
                     )
                 )
             )
@@ -295,5 +295,11 @@ class biFPN(nn.Module):
         
         return self.biFPNLayers(ps)
 
+if __name__ == '__main__':
+    a = torch.rand([1,2,16,16])
+    b = torch.rand([1,3,8,8])
+    c = torch.rand([1,4,4,4])
 
+    model = biFPN([2,3,4], 5, num_layers=2)
+    model([a,b,c])
 
