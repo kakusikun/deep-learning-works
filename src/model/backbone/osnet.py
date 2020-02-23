@@ -1,12 +1,8 @@
-from __future__ import absolute_import
-from __future__ import division
-
 import torch
-from torch import nn
-from torch.nn import functional as F
-from manager.utility import ConvFC, AttentionIncorporation
-import torchvision
-from model.base_module import ConvModule, Res2NetStem, InversedDepthwiseSeparable, SEModule, DropChannel
+import torch.nn as nn
+import torch.nn.functional as F
+
+from src.model.module import ConvModule, Res2NetStem, InversedDepthwiseSeparable, SEModule, DropChannel
 
 ##########
 # Basic layers
@@ -207,7 +203,7 @@ class OSNet(nn.Module):
 ##########
 # Instantiation
 ##########
-def osnet(cfg):
+def osnet(cfg, **kwargs):
     # standard size (width x1.0)
     return OSNet(blocks=[OSBlock, OSBlock, OSBlock], 
                  layers=[2, 2, 2],
