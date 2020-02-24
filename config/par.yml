@@ -38,7 +38,7 @@ TRANSFORM:
   RESIZE: True 
 
 SOLVER:
-  OPTIMIZER_NAME: "SGD"
+  OPTIMIZER: "SGD"
   START_EPOCH: 0
   MAX_EPOCHS: 160
   BASE_LR: 0.01
@@ -56,8 +56,8 @@ SOLVER:
   # WARMUP_FACTOR: 0.01
   WARMUP_SIZE: 10.0
   PLATEAU_SIZE: 10.0
-  # WARMRESTART_MULTIPLIER: 2
-  # WARMRESTART_PERIOD: 10
+  # T_MULT: 2
+  # T_0: 10
 
 RESUME: "/home/allen.jc.lin/osnet_x1_0_imagenet.pth"
 # EVALUATE: "/home/allen/OSNet_market_cels_triplet_center_Adam_lr_0.00035_warmup_10_0.01_plateau_10_flip_crop_erase_imagenet_0.9495.pth"

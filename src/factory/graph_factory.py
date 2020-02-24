@@ -1,7 +1,7 @@
 from src.base_factory import BaseFactory
-from src.graph.classifier import Classifier
+from src.graph.simple_classifier import SimpleClassifier
 
 class GraphFactory(BaseFactory):
     products = {
-        'classifier': Classifier,
+        'simple_classifier': SimpleClassifier,
     }

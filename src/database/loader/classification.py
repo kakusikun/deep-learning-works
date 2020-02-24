@@ -21,7 +21,7 @@ def build_classification_loader(
             batch_size=train_batch_size, 
             shuffle=True, 
             num_workers=num_workers, 
-            pin_memory=True,
+            pin_memory=False,
             drop_last=True
         )
         #TODO: move to config checking
@@ -34,7 +34,7 @@ def build_classification_loader(
             batch_size=test_batch_size, 
             shuffle=False, 
             num_workers=num_workers, 
-            pin_memory=True,
+            pin_memory=False,
             drop_last=False
         )
 

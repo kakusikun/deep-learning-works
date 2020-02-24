@@ -135,8 +135,6 @@ class OSNet(nn.Module):
 
     def __init__(self, first_channel, stage_repeat, arch):
         super(OSNet, self).__init__()
-       
-        # convolutional backbone
         self.stem = Res2NetStem(3, first_channel) # output stride 4
         self.stages = nn.ModuleList()
         a_idx = 0
@@ -147,7 +145,7 @@ class OSNet(nn.Module):
                 a_idx += 1
                 stage.append(self._make_layer(block, inc, ouc, s))
             self.stages.append(nn.Sequential(*stage))
-
+        self.last_channel = ouc
         self._init_params()
 
     def _make_layer(self, block, inc, ouc, s):

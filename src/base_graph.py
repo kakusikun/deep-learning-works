@@ -24,6 +24,7 @@ class BaseGraph:
         self.use_gpu = False
         self.sub_models = {}
         
+        self.set_save_path()
         self.build()
 
     def build(self):        
@@ -115,8 +116,8 @@ class BaseGraph:
             else:
                 logger.info("GPU is not used")
 
-    def set_save_path(self, path):
-        self.save_path = os.path.join(self.cfg.OUTPUT_DIR, path)
+    def set_save_path(self):
+        self.save_path = os.path.join(self.cfg.OUTPUT_DIR, 'weights')
         if not os.path.exists(self.save_path):
             os.mkdir(self.save_path)
 

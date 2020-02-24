@@ -15,6 +15,4 @@ class BackboneFactory(BaseFactory):
         if cfg.MODEL.BACKBONE not in cls.products:
             raise KeyError
         else:
-            return cls.products[cfg.MODEL.BACKBONE](
-                        task=cfg.TASK
-                    )
+            return cls.products[cfg.MODEL.BACKBONE]()

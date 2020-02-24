@@ -60,7 +60,7 @@ _C.ORACLE = False
 _C.MODEL = CN()
 _C.MODEL.GPU = []
 
-_C.MODEL.NAME = ""
+_C.MODEL.BACKBONE = ""
 _C.MODEL.HEAD = ""
 _C.MODEL.PRETRAIN = "own"
 _C.MODEL.TASK = "classifier"
@@ -143,7 +143,7 @@ _C.DB.PATH = ""
 # Solver
 # ---------------------------------------------------------------------------- #
 _C.SOLVER = CN()
-_C.SOLVER.OPTIMIZER_NAME = "SGD"
+_C.SOLVER.OPTIMIZER = "SGD"
 _C.SOLVER.START_EPOCH = 1
 _C.SOLVER.MAX_EPOCHS = 50
 _C.SOLVER.BASE_LR = 0.001
@@ -165,8 +165,8 @@ _C.SOLVER.GAMMA = 0.1
 
 # for cosine
 _C.SOLVER.NUM_RESTART = 4
-_C.SOLVER.WARMRESTART_MULTIPLIER = 2
-_C.SOLVER.WARMRESTART_PERIOD = 10
+_C.SOLVER.T_MULT = 2
+_C.SOLVER.T_0 = 10
 _C.SOLVER.WD_NORMALIZED = False
 _C.SOLVER.ITERATIONS_PER_EPOCH = -1
 

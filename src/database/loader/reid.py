@@ -47,7 +47,7 @@ def build_reid_loader(
                 batch_size=train_batch_size, 
                 sampler=sampler, 
                 num_workers=num_workers, 
-                pin_memory=True, 
+                pin_memory=False, 
                 drop_last=True
             )
         else:
@@ -56,7 +56,7 @@ def build_reid_loader(
                 batch_size=train_batch_size, 
                 shuffle=True, 
                 num_workers=num_workers, 
-                pin_memory=True, 
+                pin_memory=False, 
                 drop_last=True
             )
         #TODO: move to config checking
@@ -72,13 +72,13 @@ def build_reid_loader(
                                     batch_size=test_batch_size, 
                                     shuffle=False, 
                                     num_workers=num_workers, 
-                                    pin_memory=True, 
+                                    pin_memory=False, 
                                     drop_last=False)
         loader['gallery'] = DataLoader(gallery_dataset, 
                                     batch_size=test_batch_size, 
                                     shuffle=False, 
                                     num_workers=num_workers, 
-                                    pin_memory=True, 
+                                    pin_memory=False, 
                                     drop_last=False)
 
     return loader
