@@ -1,4 +1,4 @@
-from src.database.dataset import *
+from src.database.data_format import *
 from PIL import Image
 
 class build_reid_dataset(Dataset):

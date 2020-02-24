@@ -133,44 +133,34 @@ class OSNet(nn.Module):
           https://arxiv.org/abs/1905.00953
     """
 
-    def __init__(self, blocks, layers, channels, feature_dim=512, task='reid'):
+    def __init__(self, first_channel, stage_repeat, arch):
         super(OSNet, self).__init__()
-        num_blocks = len(blocks)
-        assert num_blocks == len(layers)
-        assert num_blocks == len(channels) - 1 
-        self.feature_dim = feature_dim
        
         # convolutional backbone
-        self.stem = Res2NetStem(3, channels[0]) # output stride 4
+        self.stem = Res2NetStem(3, first_channel) # output stride 4
         self.stages = nn.ModuleList()
-        if task == 'cifar10':
-            self.stages.append(self._make_layer(blocks[0], layers[0], channels[0], channels[1], reduce_spatial_size=True))
-            self.stages.append(self._make_layer(blocks[1], layers[1], channels[1], channels[2], reduce_spatial_size=False))
-            self.stages.append(ConvModule(channels[2], channels[2], 1))
-            self.feature_dim = 384
-        else:
-            self.stages.append(self._make_layer(blocks[0], layers[0], channels[0], channels[1], reduce_spatial_size=True))
-            self.stages.append(self._make_layer(blocks[1], layers[1], channels[1], channels[2], reduce_spatial_size=True))
-            self.stages.append(self._make_layer(blocks[2], layers[2], channels[2], channels[3], reduce_spatial_size=False))
-            self.stages.append(ConvModule(channels[3], channels[3], 1))
-            self._init_params()
+        a_idx = 0
+        for s_idx in range(len(stage_repeat)):
+            stage = []
+            for _ in range(stage_repeat[s_idx]):
+                block, inc, ouc, s = arch[a_idx]
+                a_idx += 1
+                stage.append(self._make_layer(block, inc, ouc, s))
+            self.stages.append(nn.Sequential(*stage))
 
-    def _make_layer(self, block, layer, in_channels, out_channels, reduce_spatial_size):
-        layers = []
-        
-        layers.append(block(in_channels, out_channels))
-        for _ in range(1, layer):
-            layers.append(block(out_channels, out_channels))
-        
-        if reduce_spatial_size:
-            layers.append(
-                nn.Sequential(
-                    ConvModule(out_channels, out_channels, 1),
+        self._init_params()
+
+    def _make_layer(self, block, inc, ouc, s):
+        if isinstance(block, OSBlock):
+            if s == 1:
+                return nn.Sequential(block(inc, ouc))
+            else:
+                return nn.Sequential(
+                    ConvModule(inc, ouc, 1),
                     nn.AvgPool2d(2, stride=2)
                 )
-            )
-        
-        return nn.Sequential(*layers)
+        if isinstance(block, ConvModule):
+            return nn.Sequential(block(inc, ouc, 1))
     
     def _init_params(self):
         for m in self.modules():
@@ -203,9 +193,20 @@ class OSNet(nn.Module):
 ##########
 # Instantiation
 ##########
-def osnet(cfg, **kwargs):
-    # standard size (width x1.0)
-    return OSNet(blocks=[OSBlock, OSBlock, OSBlock], 
-                 layers=[2, 2, 2],
-                 channels=[64, 256, 384, 512],
-                 task=cfg.TASK)
+def osnet(task='reid', **kwargs):
+    return OSNet(
+        first_channel=64,
+        stage_repeat=[3, 3, 4],
+        arch=[
+            (OSBlock, 64, 256, 1),
+            (OSBlock, 256, 256, 1),
+            (OSBlock, 256, 256, 2),
+            (OSBlock, 256, 384, 1),
+            (OSBlock, 384, 384, 1),
+            (OSBlock, 384, 384, 2),
+            (OSBlock, 384, 512, 1),
+            (OSBlock, 512, 512, 1),
+            (OSBlock, 512, 512, 1),
+            (ConvModule, 512, 512, 1)
+        ]
+    )

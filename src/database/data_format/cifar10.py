@@ -1,16 +1,12 @@
-from src.database.dataset import *
-from PIL import Image
+from src.database.data_format import *
 
-class build_image_dataset(Dataset):
+class build_cifar_dataset(Dataset):
     def __init__(self, data, transform=None, **kwargs):
         self.data = data
         self.transform = transform
     
     def __getitem__(self, index):
-        img_path, label = self.data['handle'][index]
-
-        img = Image.open(img_path)        
-        img = img.convert('RGB')
+        img, label = self.data['handle'][index]
 
         if self.transform is not None:
             img = self.transform(img)

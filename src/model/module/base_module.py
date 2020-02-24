@@ -90,37 +90,49 @@ class DepthwiseSeparable(nn.Module):
         x = self.conv2(x)
         return x
 
+
 class SEModule(nn.Module):
     """
-    input 
+    input, N x C x H x W
         => GAP 
-        => FC channel discounted 
+        => Conv channel discounted 
         => ReLU 
         => FC channel restored 
-        => Sigmoid * input
-    """
-    def __init__(self, in_channels, reduction=16):
-        super(SEModule, self).__init__()
-        self.global_avgpool = nn.AdaptiveAvgPool2d(1)
-        self.fc1 = nn.Linear(
-            in_channels,
-            in_channels//reduction, 
-            bias=False)
-        self.relu = nn.ReLU(inplace=True)
-        self.fc2 = nn.Linear(
-            in_channels//reduction, 
-            in_channels, 
-            bias=False)
-        self.sigmoid = nn.Sigmoid()
+        => hswish * input
 
-    def forward(self, x):
-        n, c, _, _ = x.shape
-        y = self.global_avgpool(x)
-        y = self.fc1(y.view(n, c))
-        y = self.relu(y)
-        y = self.fc2(y)
-        y = self.sigmoid(y).view(n, c, 1, 1)
-        return x * y.expand_as(x)
+    input, N x C
+        => GAP 
+        => Conv channel discounted 
+        => ReLU 
+        => FC channel restored 
+        => hswish * input
+    
+    """
+	def __init__(self, inplanes, isTensor=True):
+		super(SEModule, self).__init__()
+		if isTensor:
+			# if the input is (N, C, H, W)
+			self.se = nn.Sequential(
+				nn.AdaptiveAvgPool2d(1),
+				nn.Conv2d(inplanes, inplanes // 4, kernel_size=1, stride=1, bias=False),
+				nn.BatchNorm2d(inplanes // 4),
+				nn.ReLU(inplace=True),
+				nn.Conv2d(inplanes // 4, inplanes, kernel_size=1, stride=1, bias=False),
+			)
+		else:
+			# if the input is (N, C)
+			self.se = nn.Sequential(
+				nn.AdaptiveAvgPool2d(1),
+				nn.Linear(inplanes, inplanes // 4, bias=False),
+				nn.BatchNorm1d(inplanes // 4),
+				nn.ReLU(inplace=True),
+				nn.Linear(inplanes // 4, inplanes, bias=False),
+			)
+
+	def forward(self, x):
+		atten = self.se(x)
+		atten = torch.clamp(atten + 3, 0, 6) / 6
+		return x * atten
 
 class Res2NetStem(nn.Module):
     """

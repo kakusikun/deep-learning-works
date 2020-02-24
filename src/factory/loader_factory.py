@@ -1,6 +1,6 @@
 from src.database.loader.coco import build_coco_loader
 from src.database.loader.reid import build_reid_loader
-from src.database.loader.imagenet import build_imagenet_loader
+from src.database.loader.classification import build_classification_loader
 from src.database.loader.cifar10 import build_cifar10_loader
 
 class LoaderFactory:
@@ -26,8 +26,7 @@ class LoaderFactory:
     products = {
         'coco': build_coco_loader,
         'reid': build_reid_loader,
-        'imagenet': build_imagenet_loader,
-        'cifar10': build_cifar10_loader,
+        'classification': build_classification_loader,
     }
 
     @classmethod
@@ -35,14 +34,19 @@ class LoaderFactory:
         return list(cls.products.keys())
 
     @classmethod
-    def produce(cls, cfg, data=None, transform=None, build_func=None,
-                return_indice=False):
-        if cfg.DB.DATA not in cls.products:
+    def produce(cls, cfg, loader_name=None):
+        if cfg.DB.LOADER not in cls.products:
             raise KeyError
         else:
-            return cls.products[cfg.DB.LOADER](
-                        data=data,
-                        transform=transform,
-                        build_func=build_func,
-                        return_indice=return_indice
+            return cls.products[cfg.DB.LOADER if loader_name is None else loader_name](
+                        cfg, 
+                        head=cfg.MODEL.HEAD,
+                        use_train=cfg.DB.USE_TRAIN, 
+                        use_test=cfg.DB.USE_TEST,
+                        train_transformation=cfg.TRAIN_TRANSFORM, 
+                        test_transformation=cfg.TEST_TRANSFORM,
+                        train_batch_size=cfg.INPUT.TRAIN_BS, 
+                        test_batch_size=cfg.INPUT.TEST_BS,
+                        num_workers=cfg.NUM_WORKERS,
+                        num_people_per_batch=cfg.REID.SIZE_PERSON,
                     )

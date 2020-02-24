@@ -7,7 +7,7 @@ class _Model(nn.Module):
     def __init__(self, cfg):
         super().__init__()
         #TODO: migrate MODEl to GRAPH
-        self.backbone = BackboneFactory.produce(cfg.MODEL.BACKBONE)(cfg)
+        self.backbone = BackboneFactory.produce(cfg)
         self.head = ClassificationHead(self.backbone.feat_dim, cfg.DB.NUM_CLASSES)
     def forward(self, x):
         x = self.backbone(x)[-1]
