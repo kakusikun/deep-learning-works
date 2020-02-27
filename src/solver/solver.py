@@ -2,8 +2,8 @@ import sys
 import torch
 import math
 import numpy as np 
-import solver.solvers as solvers
-import solver.lr_schedulers as lr_schedulers
+import src.solver.optimizers as opts
+import src.solver.lr_schedulers as lr_schedulers
 import logging
 logger = logging.getLogger("logger")
 
@@ -41,7 +41,7 @@ class Solver():
         elif self.opt_name == 'AdamW':
             self.opt = torch.optim.AdamW(self.params)
         elif self.opt_name == 'SGDW':
-            self.opt = solvers.SGDW(self.params, momentum=self.momentum, nesterov=cfg.SOLVER.NESTEROV)
+            self.opt = opts.SGDW(self.params, momentum=self.momentum, nesterov=cfg.SOLVER.NESTEROV)
 
         if not self.warmup:
             self.warmup_iters = 0

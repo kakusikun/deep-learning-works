@@ -1,7 +1,6 @@
 from src.database.loader.coco import build_coco_loader
 from src.database.loader.reid import build_reid_loader
 from src.database.loader.classification import build_classification_loader
-from src.database.loader.cifar10 import build_cifar10_loader
 
 class LoaderFactory:
     '''
