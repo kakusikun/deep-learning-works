@@ -1,6 +1,7 @@
 from src.base_factory import BaseFactory
 from src.model.backbone import osnet
 
+#TODO: remove BaseFactory
 class BackboneFactory(BaseFactory):
     products = {
         'osnet': osnet
