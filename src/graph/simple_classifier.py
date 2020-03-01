@@ -1,7 +1,5 @@
 from src.graph import *
-from collections import OrderedDict
 from src.model.module import ClassificationHead
-
 
 class _Model(nn.Module):
     def __init__(self, cfg):

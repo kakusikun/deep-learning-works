@@ -35,20 +35,20 @@ def centernet_keypoints_target(bboxes, ptss, valid_ptss, max_objs, num_classes, 
     
     Returns:
         ret (dict): 
-            hm (numpy.ndarray): shape Class x outsize H, outsize W, heat map which acts as the weight of object for training, 
+            hm (numpy.ndarray): Class x outsize H x outsize W, heat map which acts as the weight of object for training, 
                                 the weight is a gaussian distribution with mean locate at the center of bounding box of objects in input data
-            wh (numpy.ndarray): shape Object x 2(= width + height), width and height of objects in input data
-            reg (numpy.ndarray): shape Object x 2(= width + height), offset of width and height of objects in input data, 
+            wh (numpy.ndarray): Object x 2(= width + height), width and height of objects in input data
+            reg (numpy.ndarray): Object x 2(= width + height), offset of width and height of objects in input data, 
                                  since the width and height are integers
-            reg_mask, ind (numpy.ndarray): shape Object, to reduce memory of data usage for training
-            hm_kp (numpy.ndarray): shape (Keypoint Category) x outsize H, outsize W, heat map which acts as the weight of object for training, 
+            reg_mask, ind (numpy.ndarray): Object, to reduce memory of data usage for training
+            hm_kp (numpy.ndarray): Keypoint x outsize H, outsize W, heat map which acts as the weight of object for training, 
                                 the weight is a gaussian distribution with mean locate at the keyponits in input data
-            kps (numpy.ndarray): shape Object x (Keypoint Category x 2(= x_coord + y_coord)), the vector of keypoints with start from center 
+            kps (numpy.ndarray): Object x (Keypoint x 2(= x_coord + y_coord)), the vector of keypoints with start from center 
                                  of the object and end to the keypoints
-            kp_reg (numpy.ndarray): shape (Object x Keypoint Category) x 2(= width + height), offset of width and height of keypoints in input data, 
+            kp_reg (numpy.ndarray): (Object x Keypoint) x 2(= width + height), offset of width and height of keypoints in input data, 
                                  since the width and height are integers
-            kp_mask, kp_ind (numpy.ndarray): shape (Object x Keypoint Category), to reduce memory of data usage for training
-            kps_mask (numpy.ndarray): shape (Object x Keypoint Category) x 2, to reduce memory of data usage for training
+            kp_mask, kp_ind (numpy.ndarray): (Object x Keypoint), to reduce memory of data usage for training
+            kps_mask (numpy.ndarray): (Object x Keypoint) x 2, to reduce memory of data usage for training
     '''
     output_w, output_h = outsize
 

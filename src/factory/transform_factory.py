@@ -47,10 +47,10 @@ class TransformFactory(BaseFactory):
                 bag_of_transforms.append(RandAugment(cfg.INPUT.RAND_AUG_N, cfg.INPUT.RAND_AUG_M))
 
             if tran == 'Resize':
-                bag_of_transforms.append(Resize(size=cfg.INPUT.RESIZE, stride=cfg.MODEL.STRIDE))
+                bag_of_transforms.append(Resize(size=cfg.INPUT.SIZE, stride=cfg.MODEL.STRIDE))
 
             if tran == 'ResizeKeepAspectRatio':
-                bag_of_transforms.append(ResizeKeepAspectRatio(size=cfg.INPUT.RESIZE, stride=cfg.MODEL.STRIDE))
+                bag_of_transforms.append(ResizeKeepAspectRatio(size=cfg.INPUT.SIZE, stride=cfg.MODEL.STRIDE))
 
             if tran == 'RandomHFlip':
                 bag_of_transforms.append(RandomHFlip(stride=cfg.MODEL.STRIDE, num_keypoints=cfg.DB.NUM_KEYPOINTS))
@@ -62,13 +62,13 @@ class TransformFactory(BaseFactory):
                 bag_of_transforms.append(Normalize(mean=cfg.INPUT.MEAN, std=cfg.INPUT.STD))
             
             if tran == 'RandScale':
-                bag_of_transforms.append(RandScale(size=cfg.INPUT.RESIZE, stride=cfg.MODEL.STRIDE))
+                bag_of_transforms.append(RandScale(size=cfg.INPUT.SIZE, stride=cfg.MODEL.STRIDE))
 
             if tran == 'AugMix':
                 bag_of_transforms.append(AugMix())
 
             if tran == 'RandCrop':
-                bag_of_transforms.append(RandCrop(size=cfg.INPUT.RESIZE, pad=cfg.INPUT.PAD))
+                bag_of_transforms.append(RandCrop(size=cfg.INPUT.SIZE, pad=cfg.INPUT.PAD))
 
             if tran == 'Cutout':
                 bag_of_transforms.append(Cutout(length=16))

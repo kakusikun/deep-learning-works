@@ -2,7 +2,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from src.model.module import ConvModule, Res2NetStem, InversedDepthwiseSeparable, SEModule, DropChannel
+from src.model.module import (
+    ConvModule, 
+    Res2NetStem, 
+    InversedDepthwiseSeparable, 
+    SEModule, 
+    DropChannel
+)
 
 ##########
 # Basic layers
@@ -191,7 +197,7 @@ class OSNet(nn.Module):
 ##########
 # Instantiation
 ##########
-def osnet(task='reid', **kwargs):
+def osnet():
     return OSNet(
         first_channel=64,
         stage_repeat=[3, 3, 4],
