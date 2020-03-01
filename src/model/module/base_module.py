@@ -4,11 +4,13 @@ import torch.nn.functional as F
 
 class ConvModule(nn.Module):
     """
-    (standard) Conv => BN => ReLU
+    (#activation)
+    (relu) Conv => BN => ReLU
+    (hs)   Conv => BN => HSwish
     (linear)   Conv => BN
     """
     
-    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, groups=1, linear=False):
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, groups=1, activation='relu'):
         super(ConvModule, self).__init__()
         self.conv = nn.Conv2d(
             in_channels, 
@@ -20,16 +22,21 @@ class ConvModule(nn.Module):
             groups=groups)
         
         self.bn = nn.BatchNorm2d(out_channels)
-        if not linear:
-            self.relu = nn.ReLU(inplace=True)
+        if activation == 'linear':
+            self.activation = None
         else:
-            self.relu = None
+            if activation == 'relu':
+                self.activation = nn.ReLU(inplace=True)
+            elif activation == 'hs':
+                self.activation = HSwish()
+            else:
+                raise TypeError            
 
     def forward(self, x):
         x = self.conv(x)
         x = self.bn(x)
-        if self.relu:
-            x = self.relu(x)
+        if self.activation:
+            x = self.activation(x)
         return x
 
 class InversedDepthwiseSeparable(nn.Module):
@@ -90,7 +97,6 @@ class DepthwiseSeparable(nn.Module):
         x = self.conv2(x)
         return x
 
-
 class SEModule(nn.Module):
     """
     input, N x C x H x W
@@ -108,31 +114,31 @@ class SEModule(nn.Module):
         => hswish * input
     
     """
-	def __init__(self, inplanes, isTensor=True):
-		super(SEModule, self).__init__()
-		if isTensor:
-			# if the input is (N, C, H, W)
-			self.se = nn.Sequential(
-				nn.AdaptiveAvgPool2d(1),
-				nn.Conv2d(inplanes, inplanes // 4, kernel_size=1, stride=1, bias=False),
-				nn.BatchNorm2d(inplanes // 4),
-				nn.ReLU(inplace=True),
-				nn.Conv2d(inplanes // 4, inplanes, kernel_size=1, stride=1, bias=False),
-			)
-		else:
-			# if the input is (N, C)
-			self.se = nn.Sequential(
-				nn.AdaptiveAvgPool2d(1),
-				nn.Linear(inplanes, inplanes // 4, bias=False),
-				nn.BatchNorm1d(inplanes // 4),
-				nn.ReLU(inplace=True),
-				nn.Linear(inplanes // 4, inplanes, bias=False),
-			)
+    def __init__(self, inplanes, isTensor=True):
+        super(SEModule, self).__init__()
+        if isTensor:
+            # if the input is (N, C, H, W)
+            self.se = nn.Sequential(
+                nn.AdaptiveAvgPool2d(1),
+                nn.Conv2d(inplanes, inplanes // 4, kernel_size=1, stride=1, bias=False),
+                nn.BatchNorm2d(inplanes // 4),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(inplanes // 4, inplanes, kernel_size=1, stride=1, bias=False),
+            )
+        else:
+            # if the input is (N, C)
+            self.se = nn.Sequential(
+                nn.AdaptiveAvgPool2d(1),
+                nn.Linear(inplanes, inplanes // 4, bias=False),
+                nn.BatchNorm1d(inplanes // 4),
+                nn.ReLU(inplace=True),
+                nn.Linear(inplanes // 4, inplanes, bias=False),
+            )
 
-	def forward(self, x):
-		atten = self.se(x)
-		atten = torch.clamp(atten + 3, 0, 6) / 6
-		return x * atten
+    def forward(self, x):
+        atten = self.se(x)
+        atten = torch.clamp(atten + 3, 0, 6) / 6
+        return x * atten
 
 class Res2NetStem(nn.Module):
     """
@@ -236,8 +242,19 @@ class FusedNormalization(nn.Module):
         return fused
         
 class biFPNLayer(nn.Module):
-    def __init__(self, feat_size, level=3):
+    '''
+            ps                                         p_tds                                                                         p_os
+            ---------------------------------------------------------------------------------------------------------------------------------------
+    high    p_level ---------------------------------> p_tds_level -------> w+(p_level, p_tds_level, d(p_tds_(level-1)))  --- f ---> - p_os_level
+            .
+            .
+            .
+            p_1     ------> w+(p_1, u(p_2)) --- f ---> p_tds_1     -------> w+(p_1, p_tds_1, d(p_0)))                     --- f ---> p_os_1            
+    low     p_0     ------> w+(p_0, u(p_1)) --- f ---> p_tds_0     ----------------------------------------------------------------> p_os_0
+    '''
+    def __init__(self, feat_size, level=3, fpn_tail=False):
         super().__init__()
+        self.fpn_tail = fpn_tail
         self.p_lat1s = nn.ModuleList()
         self.p_lat2s = nn.ModuleList()
         self.p_ups = nn.ModuleList()
@@ -273,11 +290,17 @@ class biFPNLayer(nn.Module):
                     )
                 )
             )
+
+        if self.fpn_tail:
+            fpn_feat = p_os[0]
+            for i in range(level-1):
+                fpn_feat = torch.cat((p_os[i+1], self.p_ups[i](fpn_feat)), dim=1)
+            return fpn_feat
         return p_os
-        
 
 class biFPN(nn.Module):
-    def __init__(self, in_feat_sizes, out_feat_size, level=3, num_layers=2):
+
+    def __init__(self, in_feat_sizes, out_feat_size, level=3, num_layers=2, fpn_tail=False):
         super().__init__()
         assert len(in_feat_sizes) == level
         self.level = level
@@ -291,8 +314,9 @@ class biFPN(nn.Module):
                 self.p_lats.append(nn.Conv2d(out_feat_size, out_feat_size, 1, stride=1, padding=0))
         
         biFPNLayers = []
-        for _ in range(num_layers):
+        for _ in range(num_layers-1):
             biFPNLayers.append(biFPNLayer(out_feat_size, level))
+        biFPNLayers.append(biFPNLayer(out_feat_size, level, fpn_tail))
         self.biFPNLayers = nn.Sequential(*biFPNLayers)
 
     def forward(self, inputs): # low to high level, e.g., P3 -> P4 -> P5 ...
@@ -307,11 +331,25 @@ class biFPN(nn.Module):
         
         return self.biFPNLayers(ps)
 
+class HSwish(nn.Module):
+	def __init__(self):
+		super(HSwish, self).__init__()
+
+	def forward(self, inputs):
+		clip = torch.clamp(inputs + 3, 0, 6) / 6
+		return inputs * clip
+
 if __name__ == '__main__':
-    a = torch.rand([1,2,16,16])
-    b = torch.rand([1,3,8,8])
+    # a = torch.rand([1,2,16,16])
+    # b = torch.rand([1,3,8,8])
+    # c = torch.rand([1,4,4,4])
+    # model = biFPN([2,3,4], 5, num_layers=4)
+    # model([a,b,c])
+
+    a = torch.rand([1,4,16,16])
+    b = torch.rand([1,4,8,8])
     c = torch.rand([1,4,4,4])
 
-    model = biFPN([2,3,4], 5, num_layers=2)
-    model([a,b,c])
+    model = biFPNLayer(4, fpn_tail=True)
+    model([c,b,a])
 

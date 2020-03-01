@@ -1,10 +1,10 @@
-from src.base_factory import BaseFactory
-from src.model.backbone import osnet
+from src.model.backbone.osnet import osnet
+from src.model.backbone.shufflenet import shufflenetv2_plus
 
-#TODO: remove BaseFactory
-class BackboneFactory(BaseFactory):
+class BackboneFactory:
     products = {
-        'osnet': osnet
+        'osnet': osnet,
+        'shufflenetv2+': shufflenetv2_plus,
     }
 
     @classmethod
@@ -16,4 +16,6 @@ class BackboneFactory(BaseFactory):
         if cfg.MODEL.BACKBONE not in cls.products:
             raise KeyError
         else:
-            return cls.products[cfg.MODEL.BACKBONE]()
+            return cls.products[cfg.MODEL.BACKBONE if name is None else name](
+                shufflenetv2_plus_model_size='Large',
+            )
