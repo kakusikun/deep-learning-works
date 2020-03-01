@@ -5,21 +5,20 @@ import numpy as np
 import logging
 logger = logging.getLogger("logger")
 
-class ImageNetEngine(BaseEngine):
-    def __init__(self, cfg, solvers, loader, show, manager):
-        super(ImageNetEngine, self).__init__(cfg, solvers, loader, show, manager)
+class ClassificationEngine(BaseEngine):
+    def __init__(self, cfg, graph, loader, solvers, visualizer):
+        super(ClassificationEngine, self).__init__(cfg, graph, loader, solvers, visualizer)
         
     def _train_once(self):
         accus = []   
-        # for batch in tqdm(self.tdata, desc="Epoch[{}/{}]".format(self.epoch, self.max_epoch), position=0, leave=True):
         for i, batch in enumerate(self.tdata):
             self._train_iter_start()
             for key in batch:
                 batch[key] = batch[key].cuda()
             images = batch['inp']            
-            outputs = self.core(images)
+            outputs = self.graph.model(images)
 
-            self.total_loss, self.each_loss = self.manager.loss_func(outputs, batch)
+            self.total_loss, self.each_loss = self.graph.loss_head(outputs, batch)
             self.total_loss.backward()
 
             self._train_iter_end()     
@@ -44,7 +43,7 @@ class ImageNetEngine(BaseEngine):
                     batch[key] = batch[key].cuda()
                 images = batch['inp']      
                 
-                outputs = self.core(images)
+                outputs = self.graph.model(images)
 
                 accus.append((outputs.max(1)[1] == batch['target']).float().mean())
           
