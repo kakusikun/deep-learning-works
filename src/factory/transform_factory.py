@@ -2,25 +2,22 @@ import random
 import math
 import numbers
 import numpy as np
-from src.base_factory import BaseFactory
 
-from src.database.transform import (
-    RandAugment, 
-    Normalize, 
-    RandomHFlip, 
-    Tensorize, 
-    ResizeKeepAspectRatio, 
-    Resize, 
-    RandScale, 
-    AugMix, 
-    RandCrop,
-    Cutout
-)
+from src.database.transform.randaugment import RandAugment
+from src.database.transform.normalize import Normalize
+from src.database.transform.random_hflip import RandomHFlip
+from src.database.transform.resize import Resize
+from src.database.transform.resize_keep_aspect_ratio import ResizeKeepAspectRatio
+from src.database.transform.tensorize import Tensorize
+from src.database.transform.random_scale import RandScale
+from src.database.transform.augmix import AugMix
+from src.database.transform.random_crop import RandCrop
+from src.database.transform.cutout import Cutout
 
 import logging
 logger = logging.getLogger("logger")
 
-class TransformFactory(BaseFactory):
+class TransformFactory:
     products = [
         'RandAugment',
         'Resize',

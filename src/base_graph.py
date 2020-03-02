@@ -31,7 +31,7 @@ class BaseGraph:
         raise NotImplementedError
         
     @staticmethod
-    def save(self, path, model, sub_models=None, solvers=None, epoch=-1,  metric=-1):
+    def save(path, model, sub_models=None, solvers=None, epoch=-1,  metric=-1):
         state = {}
         if solvers is not None:
             assert isinstance(solvers, list)
@@ -53,8 +53,12 @@ class BaseGraph:
 
         torch.save(state, os.path.join(path,'model_{:03}_{:.4f}.pth'.format(epoch, metric)))
 
-    @staticmethod
     def load(self, path, model, sub_models=None, solvers=None): 
+        if not path:
+            path = self.save_path
+        if not model:
+            model = self.model
+            
         state = torch.load(path, map_location = torch.device('cpu'))
                
         if 'model' in state:

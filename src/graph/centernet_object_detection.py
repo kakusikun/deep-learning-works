@@ -51,6 +51,6 @@ class CenterNetObjectDetection(BaseGraph):
         super(CenterNetObjectDetection, self).__init__(cfg)        
     
     def build(self):
-        self.model = _Model(self.cfg)        
+        self.model = _Model(self.cfg)     
         self.loss_head = _LossHead()
             

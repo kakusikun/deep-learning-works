@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import torchvision.transforms as T
-from database.transform.base_transform import BaseTransform
+from src.database.transform import *
 
 class RandCrop(BaseTransform):
     '''

@@ -4,7 +4,7 @@ import torchvision.transforms.functional as TF
 import random
 from PIL import Image
 from tools.image import get_affine_transform, affine_transform
-from database.transform.base_transform import BaseTransform
+from src.database.transform import *
 
 class RandScale(BaseTransform):
     '''

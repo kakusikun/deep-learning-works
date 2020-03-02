@@ -2,7 +2,7 @@ import random
 
 import numpy as np
 import math
-from database.transform.base_transform import BaseTransform
+from src.database.transform import *
 from database.transform import augmentations as aug
 
 class RandAugment(BaseTransform):

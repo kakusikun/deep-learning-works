@@ -22,6 +22,13 @@ from yacs.config import CfgNode as CN
 
 _C = CN()
 
+# ---------------------------------------------------------------------------- #
+# Misc options
+# ---------------------------------------------------------------------------- #
+_C.OUTPUT_DIR = ""
+_C.RESUME = ""
+_C.EVALUATE = False
+_C.SAVE = True
 _C.IO = True
 _C.SEED = 42
 _C.EXPERIMENT = ""
@@ -31,7 +38,11 @@ _C.GRAPH = ""
 _C.TRAINER = ""
 _C.NUM_WORKERS = 16
 _C.ORACLE = False
+_C.EVALUATE_FREQ = 1
 
+# -----------------------------------------------------------------------------
+# Model in Graph
+# -----------------------------------------------------------------------------
 _C.MODEL = CN()
 _C.MODEL.GPU = []
 _C.MODEL.BACKBONE = ""
@@ -53,39 +64,6 @@ _C.INPUT.RAND_AUG_N = 2
 _C.INPUT.RAND_AUG_M = 10
 
 # -----------------------------------------------------------------------------
-# FACEID
-# -----------------------------------------------------------------------------
-_C.FACEID = CN()
-_C.FACEID.SIZE_PROBE = 5
-_C.FACEID.LFW_PAIRSFILE_PATH = ""
-_C.FACEID.PROBE_PATH = ""
-_C.FACEID.GALLERY_PATH = ""
-_C.FACEID.PROBE_TYPE = ""
-_C.FACEID.GALLERY_TYPE = ""
-
-# -----------------------------------------------------------------------------
-# REID
-# -----------------------------------------------------------------------------
-_C.REID = CN()
-_C.REID.SIZE_PERSON = 4
-_C.REID.CYCLE = 30
-_C.REID.MERGE = False
-_C.REID.TRT = ""
-
-# -----------------------------------------------------------------------------
-# Pedestrian Attribute Recognition
-# -----------------------------------------------------------------------------
-_C.PAR = CN()
-_C.PAR.SELECT_CAT = -1
-_C.PAR.IGNORE_CAT = []
-
-# -----------------------------------------------------------------------------
-# Pedestrian Attribute Recognition
-# -----------------------------------------------------------------------------
-_C.COCO = CN()
-_C.COCO.TARGET = 'original'
-
-# -----------------------------------------------------------------------------
 # Dataset
 # -----------------------------------------------------------------------------
 _C.DB = CN()
@@ -97,8 +75,6 @@ _C.DB.USE_TRAIN = True
 _C.DB.USE_TEST = True
 _C.DB.TRAIN_TRANSFORM = ""
 _C.DB.TEST_TRANSFORM = ""
-_C.DB.ATTENTION_MAPS = ""
-_C.DB.ATTENTION_MAPS_LIST = ""
 _C.DB.NUM_CLASSES = 0
 _C.DB.NUM_KEYPOINTS = 0
 
@@ -133,9 +109,6 @@ _C.SOLVER.T_0 = 10
 _C.SOLVER.WD_NORMALIZED = False
 _C.SOLVER.ITERATIONS_PER_EPOCH = -1
 
-_C.SOLVER.EVALUATE_FREQ = 1
-_C.SOLVER.LOG_FREQ = 1
-
 # for warmup
 _C.SOLVER.WARMUP = False 
 _C.SOLVER.WARMUP_FACTOR = 1.0 / 3
@@ -143,14 +116,38 @@ _C.SOLVER.WARMUP_SIZE = 10.0
 
 _C.SOLVER.MODEL_FREEZE_PEROID = 0
 
-# ---------------------------------------------------------------------------- #
-# Misc options
-# ---------------------------------------------------------------------------- #
-_C.OUTPUT_DIR = ""
-_C.RESUME = ""
-_C.EVALUATE = False
-_C.SAVE = True
+# -----------------------------------------------------------------------------
+# FACEID
+# -----------------------------------------------------------------------------
+_C.FACEID = CN()
+_C.FACEID.SIZE_PROBE = 5
+_C.FACEID.LFW_PAIRSFILE_PATH = ""
+_C.FACEID.PROBE_PATH = ""
+_C.FACEID.GALLERY_PATH = ""
+_C.FACEID.PROBE_TYPE = ""
+_C.FACEID.GALLERY_TYPE = ""
 
+# -----------------------------------------------------------------------------
+# REID
+# -----------------------------------------------------------------------------
+_C.REID = CN()
+_C.REID.SIZE_PERSON = 4
+_C.REID.CYCLE = 30
+_C.REID.MERGE = False
+_C.REID.TRT = ""
+
+# -----------------------------------------------------------------------------
+# Pedestrian Attribute Recognition
+# -----------------------------------------------------------------------------
+_C.PAR = CN()
+_C.PAR.SELECT_CAT = -1
+_C.PAR.IGNORE_CAT = []
+
+# -----------------------------------------------------------------------------
+# Pedestrian Attribute Recognition
+# -----------------------------------------------------------------------------
+_C.COCO = CN()
+_C.COCO.TARGET = 'original'
 def build_output(cfg, config_file=""):
     time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     if cfg.EVALUATE:

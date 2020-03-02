@@ -2,7 +2,7 @@ import numpy as np
 import torchvision.transforms.functional as TF
 import random
 from PIL import Image
-from database.transform.base_transform import BaseTransform
+from src.database.transform import *
 
 PERSON_KEYPOINT_INDICE = {0:[[1, 2], [3, 4], [5, 6], [7, 8], [9, 10], [11, 12], [13, 14], [15, 16]]}
 PERSON_KEYPOINT_INDICE_OFFSET = [0]

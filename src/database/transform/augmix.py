@@ -2,8 +2,8 @@ import random
 
 import numpy as np
 import math
-from database.transform.base_transform import BaseTransform
-from database.transform import augmentations as aug
+from src.database.transform import *
+import src.database.transform.augmentations as aug
 
 class AugMix(BaseTransform):
     '''
