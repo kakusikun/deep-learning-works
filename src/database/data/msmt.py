@@ -20,7 +20,7 @@ class MSMT17(BaseData):
     """
     dataset_dir = 'msmt17'
 
-    def __init__(self, path="", branch="", use_train=False, use_test=False, is_merge=False **kwargs):
+    def __init__(self, path="", branch="", use_train=False, use_test=False, is_merge=False, **kwargs):
         super().__init__()
         self.dataset_dir = osp.join(path, branch)
         self.train_dir = osp.join(self.dataset_dir, 'bounding_box_train')

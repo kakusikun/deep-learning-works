@@ -20,8 +20,8 @@ class BaseEngine():
         self.epoch = 0
         self.max_epoch = cfg.SOLVER.MAX_EPOCHS
         self.use_gpu = graph.use_gpu
-        self.total_loss = 1e5
-        self.each_loss = None
+        self.loss = 1e5
+        self.losses = None
         self.train_accu = 0.0
         self.best_accu = 0.0
         self.min_loss = 1e5
@@ -45,16 +45,16 @@ class BaseEngine():
     def _train_iter_start(self):
         self.iter += 1
         for solver in self.solvers:
-            self.solvers[solver].lr_adjust(self.total_loss, self.iter)
+            self.solvers[solver].lr_adjust(self.loss, self.iter)
             self.solvers[solver].zero_grad()
 
     def _train_iter_end(self):                
         for solver in self.solvers:
             self.solvers[solver].step()
         if self.cfg.IO:
-            self.visualizer.add_scalar('train/total_loss', self.total_loss, self.iter)              
+            self.visualizer.add_scalar('train/loss', self.loss, self.iter)              
             for loss in self.graph.crit:
-                self.visualizer.add_scalar(f'train/loss/{loss}', self.each_loss[loss], self.iter)
+                self.visualizer.add_scalar(f'train/loss/{loss}', self.losses[loss], self.iter)
             self.visualizer.add_scalar('train/accuracy', self.train_accu, self.iter)   
             for solver in self.solvers:
                 self.visualizer.add_scalar(f'train/solver/{solver}/lr', self.solvers[solver].monitor_lr, self.iter)
