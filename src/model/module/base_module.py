@@ -5,12 +5,12 @@ import torch.nn.functional as F
 class ConvModule(nn.Module):
     """
     (#activation)
-    (relu) Conv => BN => ReLU
-    (hs)   Conv => BN => HSwish
-    (linear)   Conv => BN
+    (relu) Conv => BN (use_bn) => ReLU
+    (hs)   Conv => BN (use_bn) => HSwish
+    (linear)   Conv => BN (use_bn)
     """
     
-    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, groups=1, activation='relu'):
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, groups=1, activation='relu', use_bn=True):
         super(ConvModule, self).__init__()
         self.conv = nn.Conv2d(
             in_channels, 
@@ -21,7 +21,11 @@ class ConvModule(nn.Module):
             bias=False, 
             groups=groups)
         
-        self.bn = nn.BatchNorm2d(out_channels)
+        if use_bn:
+            self.bn = nn.BatchNorm2d(out_channels)
+        else:
+            self.bn = None
+
         if activation == 'linear':
             self.activation = None
         else:
@@ -34,7 +38,8 @@ class ConvModule(nn.Module):
 
     def forward(self, x):
         x = self.conv(x)
-        x = self.bn(x)
+        if self.bn:
+            x = self.bn(x)
         if self.activation:
             x = self.activation(x)
         return x
