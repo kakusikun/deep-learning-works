@@ -6,9 +6,9 @@ class _Model(nn.Module):
         super(_Model, self).__init__()
         self.backbone = BackboneFactory.produce(cfg)
         self.feature_extraction = biFPN(self.backbone.stage_out_channels[-3:], 24, fpn_tail=True)
-        self.wh_head = ReshapeHead(24 * 3, 2)
-        self.heat_head = ReshapeHead(24 * 3, self.cfg.DB.NUM_CLASSES)
-        self.reg_head = ReshapeHead(24 * 3, 2)      
+        self.wh_head = RegressionHead(24, 2)
+        self.heat_head = RegressionHead(24, self.cfg.DB.NUM_CLASSES)
+        self.reg_head = RegressionHead(24, 2)      
     def forward(self, x):
         ps = self.backbone(x)
         feat = self.feature_extraction(ps[-3:])
