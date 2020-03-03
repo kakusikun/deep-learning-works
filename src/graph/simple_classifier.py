@@ -1,12 +1,10 @@
 from src.graph import *
-from src.model.module import ClassificationHead
 
 class _Model(nn.Module):
     def __init__(self, cfg):
         super().__init__()
-        #TODO: migrate MODEl to GRAPH
         self.backbone = BackboneFactory.produce(cfg)
-        self.head = ClassificationHead(self.backbone.last_channel, cfg.DB.NUM_CLASSES)
+        self.head = ClassifierHead(self.backbone.last_channel, cfg.DB.NUM_CLASSES)
     def forward(self, x):
         x = self.backbone(x)[-1]
         x = self.head(x)
