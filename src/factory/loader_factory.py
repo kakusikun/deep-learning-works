@@ -39,7 +39,7 @@ class LoaderFactory:
         else:
             return cls.products[cfg.DB.LOADER if loader_name is None else loader_name](
                         cfg, 
-                        head=cfg.MODEL.HEAD,
+                        target_format=cfg.DB.TARGET_FORMAT,
                         use_train=cfg.DB.USE_TRAIN, 
                         use_test=cfg.DB.USE_TEST,
                         train_transformation=cfg.TRAIN_TRANSFORM, 

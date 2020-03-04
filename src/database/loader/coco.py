@@ -1,10 +1,10 @@
 from src.database.loader import *
 from tools.centerface_utils import centerface_facial_target
-from tools.centernet_utils import centernet_keypoints_target
+from tools.centernet_utils import centernet_keypoints_target, centernet_bbox_target
 
 def build_coco_loader(
         cfg, 
-        head="",
+        target_format="",
         use_train=False, 
         use_test=False,
         train_transformation="", 
@@ -15,10 +15,12 @@ def build_coco_loader(
         **kwargs):
 
     data = DataFactory.produce(cfg)
-    if head == 'center_kp':
+    if target_format == 'centernet_kp':
         build_func = centernet_keypoints_target
-    elif head == 'centerface':
+    elif target_format == 'centerface':
         build_func = centerface_facial_target
+    elif target_format == 'centernet':
+        build_func = centernet_bbox_target
     else:
         build_func = None
     loader = {}
