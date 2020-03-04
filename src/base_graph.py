@@ -53,9 +53,7 @@ class BaseGraph:
 
         torch.save(state, os.path.join(path,'model_{:03}_{:.4f}.pth'.format(epoch, metric)))
 
-    def load(self, path, model, sub_models=None, solvers=None): 
-        if not path:
-            path = self.save_path
+    def load(self, path, model=None, sub_models=None, solvers=None): 
         if not model:
             model = self.model
             
@@ -169,9 +167,12 @@ class BaseGraph:
     @staticmethod
     def _state_processing(src_state, trt_state):
         loaded_params = set()
+        is_unknown = False
+        is_not_fit = False
         for layer, weight in src_state.items():
             if layer not in trt_state:
                 logger.info("{}src_state {:55} ...... {}?{}".format(bcolors.RESET, layer, bcolors.WARNING, bcolors.RESET))
+                is_unknown = True
             else:
                 src_w_shape = weight.size()
                 trt_w_shape = trt_state[layer].size()
@@ -182,8 +183,19 @@ class BaseGraph:
                 else:
                     logger.info("{}model {:55} ...... {}X{}".format(bcolors.RESET, layer, bcolors.WARNING, bcolors.RESET))
                     logger.info(" => Shape (ckpt != model) {} != {}".format(src_w_shape, trt_w_shape))
+                    is_unknown = True
         params = set(trt_state.keys())
         not_loaded_params = list(params.difference(loaded_params))
         for layer in not_loaded_params:
             logger.info("{}model {:55} ...... {}!{}".format(bcolors.RESET, layer, bcolors.WARNING, bcolors.RESET))  
+            is_not_fit = True
+        
+        if is_unknown:
+            logger.info("Unknown Weights or Shape")
+        else:
+            if is_not_fit:
+                logger.info("Unknown Layer in Model")
+            else:
+                logger.info("Model Loaded Successfully")
+        
         

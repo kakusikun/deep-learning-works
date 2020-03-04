@@ -22,10 +22,11 @@ def build_reid_loader(
             _data = [] 
             offset = 0
             for name in data_names[:-1]:
-                data = DataFactory.produce(cfg, name=name)
+                data = DataFactory.produce(cfg, data_name=name)
                 #TODO: move to config checking
                 cfg.DB.NUM_CLASSES += data.train['n_samples']
                 for path, pid, cam in data.train['indice']:
+                    _data.append([path, pid+offset, cam])
                     _data.append([path, pid+offset, cam])
                 offset += data.train['n_samples']
             data.train['indice'] = _data
@@ -41,6 +42,7 @@ def build_reid_loader(
             return_indice=return_indice
         )
         if use_sampler:    
+        if use_sampler:    
             sampler = IdBasedSampler(data.train['indice'], batch_size=train_batch_size, num_instances=num_people_per_batch)       
             loader['train'] = DataLoader(
                 train_dataset, 
@@ -49,6 +51,7 @@ def build_reid_loader(
                 num_workers=num_workers, 
                 pin_memory=False, 
                 drop_last=True
+            )
             )
         else:
             loader['train'] = DataLoader(
@@ -60,7 +63,7 @@ def build_reid_loader(
                 drop_last=True
             )
     if use_test:
-        data = DataFactory.produce(cfg, name=data_names[-1])      
+        data = DataFactory.produce(cfg, data_name=data_names[-1])      
         val_trans = TransformFactory.produce(cfg, train_transformation)      
         query_dataset = DataFormatFactory.produce(cfg, data=data.query, transform=val_trans)
         gallery_dataset = DataFormatFactory.produce(cfg, data=data.gallery, transform=val_trans)

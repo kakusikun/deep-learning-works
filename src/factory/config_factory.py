@@ -32,7 +32,6 @@ _C.SAVE = True
 _C.IO = True
 _C.SEED = 42
 _C.EXPERIMENT = ""
-_C.TASK = ""
 _C.ENGINE = ""
 _C.GRAPH = ""
 _C.TRAINER = ""
@@ -46,7 +45,6 @@ _C.EVALUATE_FREQ = 1
 _C.MODEL = CN()
 _C.MODEL.GPU = []
 _C.MODEL.BACKBONE = ""
-_C.MODEL.HEAD = ""
 _C.MODEL.SAVE_CRITERION = "acc"
 _C.MODEL.STRIDE = 1
 
@@ -70,6 +68,7 @@ _C.DB = CN()
 _C.DB.PATH = ""
 _C.DB.DATA = ""
 _C.DB.DATA_FORMAT = ""
+_C.DB.TARGET_FORMAT = ""
 _C.DB.LOADER = ""
 _C.DB.USE_TRAIN = True
 _C.DB.USE_TEST = True
@@ -158,3 +157,4 @@ def build_output(cfg, config_file=""):
         os.makedirs(cfg.OUTPUT_DIR)
         if config_file != "":
             shutil.copy(config_file, osp.join(cfg.OUTPUT_DIR, config_file.split("/")[-1]))
+    

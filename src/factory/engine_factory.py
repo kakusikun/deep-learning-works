@@ -13,10 +13,10 @@ class EngineFactory():
 
     @classmethod
     def produce(cls, cfg, graph, loader, solvers, visualizer):
-        if cfg.GRAPH not in cls.products:
+        if cfg.ENGINE not in cls.products:
             raise KeyError
         else:
-            return cls.products[cfg.GRAPH if graph is None else graph](
+            return cls.products[cfg.ENGINE](
                 cfg=cfg, 
                 graph=graph,
                 loader=loader,
