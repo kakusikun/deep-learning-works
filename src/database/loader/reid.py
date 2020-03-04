@@ -59,9 +59,6 @@ def build_reid_loader(
                 pin_memory=False, 
                 drop_last=True
             )
-        #TODO: move to config checking
-        cfg.SOLVER.ITERATIONS_PER_EPOCH = len(loader['train'])
-
     if use_test:
         data = DataFactory.produce(cfg, name=data_names[-1])      
         val_trans = TransformFactory.produce(cfg, train_transformation)      

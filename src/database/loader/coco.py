@@ -38,8 +38,6 @@ def build_coco_loader(
             pin_memory=False,
             drop_last=True
         )
-        #TODO: move to config checking
-        cfg.SOLVER.ITERATIONS_PER_EPOCH = len(loader['train'])
     if use_test:
         val_trans = TransformFactory.produce(cfg, test_transformation)
         val_dataset = DataFormatFactory.produce(cfg, data=data.val, transform=val_trans)
