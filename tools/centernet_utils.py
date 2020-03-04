@@ -18,14 +18,15 @@ from tools.utils import (
 
 import math
 
-def centernet_keypoints_target(bboxes, ptss, valid_ptss, max_objs, num_classes, num_keypoints, outsize, **kwargs):
+def centernet_keypoints_target(cls_ids, bboxes, ptss, valid_ptss, max_objs, num_classes, num_keypoints, outsize, **kwargs):
     '''
     According to CenterNet ( Objects as Points, https://arxiv.org/abs/1904.07850 ), create the target for keypoints detection.
 
     Args:
+        cls_ids (list): list of category of object.
         bboxes (list): list of 1x4 numpy arrays, the ground truth bounding box.
         ptss (list): list of a list with class of keypoints (int) and keypoints (Nx2 numpy array),
-                     [[c1, pts1], [c2, pts2], ...].
+                     [pts1, pts2, ...].
         valid_ptss (list): list of 1xN numpy arrays where the N is equal to the N of pts in ptss, 
                     indicating the visibility of each pt in pts. 2 is visible, 1 is occlusion and 0 is not labeled.
         max_objs (int): the maximum number of objects in a image.
@@ -72,14 +73,13 @@ def centernet_keypoints_target(bboxes, ptss, valid_ptss, max_objs, num_classes, 
 
     draw_gaussian = draw_umich_gaussian
 
-    for k, (bbox, (cls_id, pts), valid_pts) in enumerate(zip(bboxes, ptss, valid_ptss)):
+    for k, (cls_id, bbox, pts, valid_pts) in enumerate(zip(cls_ids, bboxes, ptss, valid_ptss)):
         h, w = bbox[3] - bbox[1], bbox[2] - bbox[0]            
         if h > 0 and w > 0:
             radius = gaussian_radius((math.ceil(h), math.ceil(w)))
             radius = max(0, int(radius))
             ct = np.array([(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2], dtype=np.float32)
             ct_int = ct.astype(np.int32)
-            draw_gaussian(hm[cls_id], ct_int, radius)
             wh[k] = 1. * w, 1. * h
             ind[k] = ct_int[1] * output_w + ct_int[0]
             reg[k] = ct - ct_int
@@ -200,6 +200,57 @@ def centernet_pose_post_process(dets, c, s, h, w, num_classes):
                                             dets[i, inds, 4:5],
                                             dets[i, inds, 5:-1]], axis=1).tolist()
         ret.append(top_preds)
+    return ret
+
+def centernet_bbox_target(cls_ids, bboxes, max_objs, num_classes, outsize, **kwargs):
+    '''
+    According to CenterNet ( Objects as Points, https://arxiv.org/abs/1904.07850 ), create the target for object detection.
+
+    Args:
+        cls_ids (list): list of category of object.
+        bboxes (list): list of 1x4 numpy arrays, the ground truth bounding box.
+        max_objs (int): the maximum number of objects in a image.
+        num_classes (int): number of classes in dataset.
+        outsize (tuple): tuple of width and height of feature map of model output
+    
+    Returns:
+        ret (dict): 
+            hm (numpy.ndarray): Class x outsize H x outsize W, heat map which acts as the weight of object for training, 
+                                the weight is a gaussian distribution with mean locate at the center of bounding box of objects in input data
+            wh (numpy.ndarray): Object x 2(= width + height), width and height of objects in input data
+            reg (numpy.ndarray): Object x 2(= width + height), offset of width and height of objects in input data, 
+                                 since the width and height are integers
+            reg_mask, ind (numpy.ndarray): Object, to reduce memory of data usage for training
+    '''
+    output_w, output_h = outsize
+
+    # center, object heatmap
+    hm = np.zeros((num_classes, output_h, output_w), dtype=np.float32)
+
+    # object size
+    wh = np.zeros((max_objs, 2), dtype=np.float32)
+    # object offset
+    reg = np.zeros((max_objs, 2), dtype=np.float32)       
+    ind = np.zeros((max_objs), dtype=np.int64)
+    reg_mask = np.zeros((max_objs), dtype=np.uint8)                       
+
+    draw_gaussian = draw_umich_gaussian
+
+    for k, (cls_id, bbox) in enumerate(zip(cls_ids, bboxes)):
+        h, w = bbox[3] - bbox[1], bbox[2] - bbox[0]            
+        if h > 0 and w > 0:
+            radius = gaussian_radius((math.ceil(h), math.ceil(w)))
+            radius = max(0, int(radius))
+            ct = np.array([(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2], dtype=np.float32)
+            ct_int = ct.astype(np.int32)
+            draw_gaussian(hm[cls_id], ct_int, radius)
+            wh[k] = 1. * w, 1. * h
+            ind[k] = ct_int[1] * output_w + ct_int[0]
+            reg[k] = ct - ct_int
+            reg_mask[k] = 1  
+            
+    ret = {'hm': hm, 'wh':wh, 'reg':reg,
+           'reg_mask': reg_mask, 'ind': ind}
     return ret
 
 def centernet_det_decode(heat, wh, reg=None, cat_spec_wh=False, K=100):

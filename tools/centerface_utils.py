@@ -19,15 +19,16 @@ from tools.utils import (
 
 import math
 
-def centerface_facial_target(bboxes, ptss, valid_ptss, max_objs, num_classes, num_keypoints, outsize, **kwargs):
+def centerface_facial_target(cls_ids, bboxes, ptss, valid_ptss, max_objs, num_classes, num_keypoints, outsize, **kwargs):
     '''
     According to CenterFace ( CenterFace: Joint Face Detection and Alignment Using Face as Point, https://arxiv.org/abs/1911.03599 ), 
     create the target for keypoints detection.
 
     Args:
+        cls_ids (list): list of category of object.
         bboxes (list): list of 1x4 numpy arrays, the ground truth bounding box.
         ptss (list): list of a list with class of keypoints (int) and keypoints (Nx2 numpy array),
-                     [[c1, pts1], [c2, pts2], ...].
+                     [pts1, pts2, ...].
         valid_ptss (list): list of 1xN numpy arrays where the N is equal to the N of pts in ptss, 
                     indicating the visibility of each pt in pts. 2 is visible, 1 is occlusion and 0 is not labeled.
         max_objs (int): the maximum number of objects in a image. To fix the object size, since that it's impossible to train model with dynamic size.
@@ -63,7 +64,7 @@ def centerface_facial_target(bboxes, ptss, valid_ptss, max_objs, num_classes, nu
 
     draw_gaussian = draw_umich_gaussian
 
-    for k, (bbox, (cls_id, pts), valid_pts) in enumerate(zip(bboxes, ptss, valid_ptss)):
+    for k, (cls_id, bbox, pts, valid_pts) in enumerate(zip(cls_ids, bboxes, ptss, valid_ptss)):
         h, w = bbox[3] - bbox[1], bbox[2] - bbox[0]            
         if h > 0 and w > 0:
             radius = gaussian_radius((math.ceil(h), math.ceil(w)))

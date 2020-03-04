@@ -13,6 +13,7 @@ class build_coco_dataset(Dataset):
         self.cat_ids = {v: i for i, v in enumerate(self.coco.getCatIds())}
         self.trans = trans
         self.build_func = build_func
+        self.use_kp = True if self.num_keypoints > 0 else False
 
     def _coco_box_to_bbox(self, box):
         bbox = np.array([box[0], box[1], box[0] + box[2], box[1] + box[3]], dtype=np.float32)
@@ -27,31 +28,28 @@ class build_coco_dataset(Dataset):
         anns = self.coco.loadAnns(ids=ann_ids)
         num_objs = min(len(anns), self.max_objs)  
 
-        use_kp = False
-        if len(anns) > 0 and 'keypoints' in anns[0] and len(anns[0]['keypoints']) > 0:
-            use_kp = True
-        
         ret = {}
         ss = {}
         img = Image.open(img_path)
+        cls_ids = []
         bboxes = []
         ptss = []
         valid_ptss = []
 
         for k in range(num_objs):
             ann = anns[k]
+            cls_ids.append(int(self.cat_ids[ann['category_id']]))
             bboxes.append(self._coco_box_to_bbox(ann['bbox']))            
-            cls_id = int(self.cat_ids[ann['category_id']])
-            if use_kp:
+            if self.use_kp:
                 pts = np.array(ann['keypoints'], np.float32).reshape(self.num_keypoints, 3)
             else:
                 pts = np.zeros((self.num_keypoints, 3))
-            ptss.append([cls_id, pts[:,:2]])
+            ptss.append(pts[:,:2])
             valid_ptss.append(pts[:,2])
 
         # rescale => hflip => tensorize => normalize
         if self.trans is not None:
-            if use_kp:
+            if self.use_kp:
                 img, ss = self.trans(img, bboxes=bboxes, ptss=ptss)
             else:
                 img, ss = self.trans(img, bboxes=bboxes)
@@ -74,7 +72,7 @@ class build_coco_dataset(Dataset):
             )
         else:            
             ret['bboxes'] = bboxes
-            if use_kp:
+            if self.use_kp:
                 ret['ptss'] = ptss
 
         ret['inp'] = img
