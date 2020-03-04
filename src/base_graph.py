@@ -77,7 +77,7 @@ class BaseGraph:
                     sub_models[sub_model].load_state_dict(sub_model_state)
 
         if solvers is not None:
-            assert isinstance(solvers, list)
+            assert isinstance(solvers, dict)
             for solver in solvers:
                 if f"{solver}" in state:
                     solvers[solver].opt.load_state_dict(state[f"{solver}"])
