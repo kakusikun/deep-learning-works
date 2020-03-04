@@ -1,10 +1,7 @@
 result/
 __pycache__
-evaluation/
-external/
 notebook/.ipynb_checkpoints/
 .ipynb_checkpoints/
-caffe_models/
 *.json
 *.swp
 *.txt
