@@ -105,22 +105,22 @@ class ShuffleNetV2_Plus(nn.Module):
                     inc, stride = ouc, 1
                 
                 midc = make_divisible(int(ouc // 2 * channel_scale[channel_choice[block_idx]]))
-                block_idx += 1
 
                 if block_choice[block_idx] == 0:
-                    stage.append(ShuffleBlock(inc, ouc, ksize=3, stride=stride,
-                                    activation=activation, useSE=useSE, mode='v2'), midc=midc)
+                    stage.append(ShuffleBlock(inc, midc, ouc, ksize=3, stride=stride,
+                                    activation=activation, useSE=useSE, mode='v2'))
                 elif block_choice[block_idx] == 1:
-                    stage.append(ShuffleBlock(inc, ouc, ksize=5, stride=stride,
-                                    activation=activation, useSE=useSE, mode='v2'), midc=midc)
+                    stage.append(ShuffleBlock(inc, midc, ouc, ksize=5, stride=stride,
+                                    activation=activation, useSE=useSE, mode='v2'))
                 elif block_choice[block_idx] == 2:
-                    stage.append(ShuffleBlock(inc, ouc, ksize=7, stride=stride,
-                                    activation=activation, useSE=useSE, mode='v2'), midc=midc)
+                    stage.append(ShuffleBlock(inc, midc, ouc, ksize=7, stride=stride,
+                                    activation=activation, useSE=useSE, mode='v2'))
                 elif block_choice[block_idx] == 3:
-                    stage.append(ShuffleBlock(inc, ouc, ksize=3, stride=stride,
-                                    activation=activation, useSE=useSE, mode='xception'), midc=midc)
+                    stage.append(ShuffleBlock(inc, midc, ouc, ksize=3, stride=stride,
+                                    activation=activation, useSE=useSE, mode='xception'))
                 else:
                     raise TypeError
+                block_idx += 1
             block_inc = ouc
             self.stages.append(nn.Sequential(*stage))
         assert block_idx == len(block_choice)

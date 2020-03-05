@@ -1,10 +1,12 @@
 from src.graph.simple_classifier import SimpleClassifier
 from src.graph.centernet_object_detection import CenterNetObjectDetection
+from src.graph.shufflenetv2plus_classification import ShuffleNetV2PlusClassifier
 
-class GraphFactory():
+class GraphFactory:
     products = {
         'simple_classifier': SimpleClassifier,
         'centernet_object_detection': CenterNetObjectDetection,
+        'shufflenetv2plus_classification': ShuffleNetV2PlusClassifier
     }
 
     @classmethod
