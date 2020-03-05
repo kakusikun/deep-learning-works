@@ -1,55 +1,54 @@
-EXPERIMENT: "OSNet_ce_SGD_plateau_lr0.05_ImageNet"
+EXPERIMENT: "ShuffleNetv2+-MobileNetv3_imagenet_cels_SGDW_cosine-lr-0.1_scratch"
+# [modelname]_[task]_[loss]_[opt]_[lr]_[trick]_[pretrain]
 
-TASK: "imagenet"
-
+SAVE: True
+IO: True
+TRAINER: "imagenet"
+ENGINE: "classification"
+GRAPH: "shufflenetv2plus_classification"
+EVALUATE_FREQ: 5
+# EVALUATE: True
+NUM_WORKERS: 16
 MODEL:
-  NUM_GPUS: 2
-  NUM_CLASSES: 1000
-  NAME: "osnet"
-  PRETRAIN: ""
+  GPU: [1]
+  BACKBONE: "shufflenetv2+"
 
 INPUT:
-  IMAGE_PAD: 0
-  IMAGE_SIZE: (256, 256)
-  IMAGE_CROP_SIZE: (224, 224)
-  TRAIN_BS: 256
-  TEST_BS: 256
+  SIZE: (224, 224)
+  TRAIN_BS: 1
+  TEST_BS: 1
   MEAN: [0.485, 0.456, 0.406]
   STD: [0.229, 0.224, 0.225]
-  
-DATALOADER:
-  NUM_WORKERS: 30
 
-DATASET:
-  NAME: "imagenet"
-  TRAIN_PATH: "/home/allen.jc.lin/imagenet"
+DB:
+  PATH: "/media/allen/mass/DB/"
+  NUM_CLASSES: 1000
+  DATA: "coco"
+  DATA_FORMAT: "coco"
+  TARGET_FORMAT: "centerface_bbox" 
+  LOADER: "coco"
+  USE_TRAIN: False
+  USE_TEST: True
+  TRAIN_TRANSFORM: "RandScale AugMix Tensorize Normalize"
+  TEST_TRANSFORM: "ResizeKeepAspectRatio Tensorize Normalize"
 
-TRANSFORM:
-  HFLIP: True
-  RANDOMCROP: True
-  NORMALIZE: True
-  RESIZE: True 
-  SINGLE_CROP: True
 
 SOLVER:
-  OPTIMIZER: "SGD"
-  START_EPOCH: 0
-  MAX_EPOCHS: 1000
-  BASE_LR: 0.05
+  OPTIMIZER: "Adam"
+  START_EPOCH: 1
+  MAX_EPOCHS: 400
+  BASE_LR: 0.0005
   BIAS_LR_FACTOR: 1.0
-  # CENTER_LOSS_LR: 0.5
-  # CENTER_LOSS_WEIGHT: 0.0005
   WEIGHT_DECAY: 0.0005
   WEIGHT_DECAY_BIAS_FACTOR: 1.0
-  EVALUATE_FREQ: 1
 
-  LR_POLICY: "plateau"
-  WARMUP: False
-  GAMMA: 0.1
+  LR_POLICY: "cosine"
+  T_0: 400
+  # MIN_LR: 1e-6
+  # WARMUP: True
+  # GAMMA: 0.1
   # WARMUP_FACTOR: 0.01
-  WARMUP_SIZE: 1.0
-  PLATEAU_SIZE: 5.0
-  T_MULT: 2
-  T_0: 5
+  # WARMUP_SIZE: 10.0
+  # PLATEAU_SIZE: 10.0
 
-# EVALUATE: "/home/allen.jc.lin/osnet_x1_0_imagenet.pth"
+# RESUME: '/media/allen/mass/deep-learning-works/caffe_models/Hourglass-squeeze_coco_focal_regl1_Freeze_Adam_lr_0.0001_plateau_10_COCO_0.2981.pth'
