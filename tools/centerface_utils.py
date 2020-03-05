@@ -163,6 +163,62 @@ def centerface_post_process(dets, c, s, h, w, num_classes):
       ret.append(top_preds)
   return ret
 
+def centerface_bbox_target(cls_ids, bboxes, max_objs, num_classes, outsize, **kwargs):
+    '''
+    According to CenterNet ( Objects as Points, https://arxiv.org/abs/1904.07850 ), create the target for object detection.
+
+    Args:
+        cls_ids (list): list of category of object.
+        bboxes (list): list of 1x4 numpy arrays, the ground truth bounding box.
+        max_objs (int): the maximum number of objects in a image.
+        num_classes (int): number of classes in dataset.
+        outsize (tuple): tuple of width and height of feature map of model output
+    
+    Returns:
+        ret (dict): 
+            hm (numpy.ndarray): Class x outsize H x outsize W, heat map which acts as the weight of object for training, 
+                                the weight is a gaussian distribution with mean locate at the center of bounding box of objects in input data
+            wh (numpy.ndarray): Object x 2(= width + height), width and height of objects in input data
+            reg (numpy.ndarray): Object x 2(= width + height), offset of width and height of objects in input data, 
+                                 since the width and height are integers
+            reg_mask, ind (numpy.ndarray): Object, to reduce memory of data usage for training
+    '''
+    output_w, output_h = outsize
+
+    # center, object heatmap
+    hm = np.zeros((num_classes, output_h, output_w), dtype=np.float32)
+
+    # object size
+    wh = np.zeros((max_objs, 2), dtype=np.float32)
+    # object offset
+    reg = np.zeros((max_objs, 2), dtype=np.float32)       
+    ind = np.zeros((max_objs), dtype=np.int64)
+    reg_mask = np.zeros((max_objs), dtype=np.uint8)                       
+
+    draw_gaussian = draw_umich_gaussian
+
+    for k, (cls_id, bbox) in enumerate(zip(cls_ids, bboxes)):
+        h, w = bbox[3] - bbox[1], bbox[2] - bbox[0]            
+        if h > 0 and w > 0:
+            radius = gaussian_radius((math.ceil(h), math.ceil(w)))
+            radius = max(0, int(radius))
+            ct = np.array([(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2], dtype=np.float32)
+            ct_int = ct.astype(np.int32)
+            draw_gaussian(hm[cls_id], ct_int, radius)
+            """
+            equation 4 in paper
+            w = log(x2 - x1)
+            h = log(y2 - y1)
+            """
+            wh[k] = np.log(1. * w), np.log(1. * h)
+            ind[k] = ct_int[1] * output_w + ct_int[0]
+            reg[k] = ct - ct_int
+            reg_mask[k] = 1  
+            
+    ret = {'hm': hm, 'wh':wh, 'reg':reg,
+           'reg_mask': reg_mask, 'ind': ind}
+    return ret
+
 if __name__ == '__main__':
     from config.config_factory import _C as cfg
     from database.data_factory import get_data
