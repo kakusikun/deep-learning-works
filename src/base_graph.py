@@ -97,26 +97,36 @@ class BaseGraph:
                 m.weight.data.normal_(0, 0.01)
                 m.bias.data.zero_()
     
-    def use_multigpu(self):
+    def to_gpu(self):
         gpu = os.environ['CUDA_VISIBLE_DEVICES']
-        num_gpus = len(gpu.split(","))
-        logger.info("Using GPU: {}{}{}{}".format(bcolors.RESET, bcolors.OKGREEN, gpu, bcolors.RESET))
-
-        if self.model is not None and torch.cuda.device_count() >= num_gpus and num_gpus > 0:
-            self.use_gpu = True
-            if num_gpus > 1: 
-                logger.info("Use Multi-GPUs")
-                self.model = torch.nn.DataParallel(self.model).cuda()
-            else:
-                logger.info("Use Single-GPU")
-                self.model = self.model.cuda()
+        num_gpus = len(gpu.split(","))        
+        if self.model is None:
+            logger.info("Initial model first")
         else:
-            if self.model is None:
-                logger.info("Initial model first")
-            elif torch.cuda.is_available():
+            if num_gpus > 0 and torch.cuda.device_count() > 0:
+                logger.info("Use GPU")
+                self.model = self.model.cuda()
+                self.use_gpu = True
+            elif torch.cuda.device_count() == 0:
                 logger.info("GPU is no found")
             else:
                 logger.info("GPU is not used")
+
+    def to_gpus(self):
+        gpu = os.environ['CUDA_VISIBLE_DEVICES']
+        num_gpus = len(gpu.split(","))
+
+        if self.model is None:
+            logger.info("Initial model first")
+        else:            
+            if num_gpus > 1 and torch.cuda.device_count() > 1:
+                if self.use_gpu:
+                    logger.info("Use GPUs: {}{}{}{}".format(bcolors.RESET, bcolors.OKGREEN, gpu, bcolors.RESET))
+                    self.model = torch.nn.DataParallel(self.model)
+                else:
+                    logger.info("Use .cuda() first")
+            else:
+                logger.info("Use One GPU")
 
     def set_save_path(self):
         self.save_path = os.path.join(self.cfg.OUTPUT_DIR, 'weights')

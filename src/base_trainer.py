@@ -16,23 +16,19 @@ class BaseTrainer():
         self.loader = LoaderFactory.produce(cfg)
         # must be checked after the loader is built
         self._check_config()
-
-        self.graph = GraphFactory.produce(cfg)
-        self.graph.use_multigpu()
+        self.graph = GraphFactory.produce(cfg)     
+        self.graph.to_gpu()   
         self.acc = 0.0
-
         self.solvers = {}  
         self.solvers['main'] = Solver(cfg, self.graph.model.named_parameters())
-
         self.visualizer = None
         if cfg.IO:
             self.visualizer = Tensorboard(cfg)
-
         self.resume()
         
     def activate(self, cfg):
         self.engine = EngineFactory.produce(
-            cfg, self.graph, self.loader, self.solvers, self.visualizer
+            self.cfg, self.graph, self.loader, self.solvers, self.visualizer
         )
     
     def train(self):

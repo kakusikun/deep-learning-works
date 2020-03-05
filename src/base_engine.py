@@ -4,6 +4,10 @@ import torch
 import numpy as np
 import logging
 logger = logging.getLogger("logger")
+try:
+    from apex import amp
+except:
+    logger.info("Install nvidia apex first")
 
 class BaseEngine():
     def __init__(self, cfg, graph, loader, solvers, visualizer):
@@ -48,9 +52,17 @@ class BaseEngine():
             self.solvers[solver].lr_adjust(self.loss, self.iter)
             self.solvers[solver].zero_grad()
 
-    def _train_iter_end(self):                
+    def _train_iter_end(self): 
+        if self.cfg.APEX:
+            with amp.scale_loss(self.loss, self.solvers['main'].opt) as scaled_loss:
+                scaled_loss.backward()  
+        else:       
+            self.loss.backward() 
         for solver in self.solvers:
             self.solvers[solver].step()
+
+        self.loss = self.tensor_to_scalar(self.loss)
+        self.losses = self.tensor_to_scalar(self.losses)     
         if self.cfg.IO:
             self.visualizer.add_scalar('train/loss', self.loss, self.iter)              
             for loss in self.graph.crit:

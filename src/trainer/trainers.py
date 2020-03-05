@@ -3,12 +3,12 @@ from src.trainer import *
 class CenternetODTrainer(BaseTrainer):
     def __init__(self, cfg):
         super(CenternetODTrainer, self).__init__(cfg)        
-        self.activate(cfg)        
+        self.activate()        
 
 class ImagenetTrainer(BaseTrainer):
     def __init__(self, cfg):
         super(ImagenetTrainer, self).__init__(cfg)
-        self.activate(cfg)
+        self.activate()
 
 class CenterKPTrainer(BaseTrainer):
     def __init__(self, cfg):
