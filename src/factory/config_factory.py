@@ -147,14 +147,35 @@ _C.PAR.IGNORE_CAT = []
 # -----------------------------------------------------------------------------
 _C.COCO = CN()
 _C.COCO.TARGET = 'original'
+
+
+
 def build_output(cfg, config_file=""):
     time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     if cfg.EVALUATE:
-        cfg.OUTPUT_DIR = osp.join("evaluation", cfg.TASK, cfg.EXPERIMENT, time)
+        cfg.OUTPUT_DIR = osp.join("evaluation", cfg.DB.DATA, cfg.EXPERIMENT, time)
     else:
-        cfg.OUTPUT_DIR = osp.join(os.getcwd(), "result", cfg.TASK, cfg.EXPERIMENT, time)
+        cfg.OUTPUT_DIR = osp.join(os.getcwd(), "result", cfg.DB.DATA, cfg.EXPERIMENT, time)
     if cfg.OUTPUT_DIR and not osp.exists(cfg.OUTPUT_DIR):
         os.makedirs(cfg.OUTPUT_DIR)
         if config_file != "":
             shutil.copy(config_file, osp.join(cfg.OUTPUT_DIR, config_file.split("/")[-1]))
     
+def show_products():
+    from src.factory.data_factory import DataFactory
+    from src.factory.data_format_factory import DataFormatFactory
+    from src.factory.transform_factory import TransformFactory
+    from src.factory.loader_factory import LoaderFactory
+    from src.factory.backbone_factory import BackboneFactory
+    from src.factory.graph_factory import GraphFactory
+    from src.factory.engine_factory import EngineFactory
+    from src.factory.trainer_factory import TrainerFactory
+    print("       DATA: ", DataFactory.get_products())
+    print("DATA_FORMAT: ", DataFormatFactory.get_products())
+    print("  TRANSFORM: ", TrainerFactory.get_products())
+    print("     LOADER: ", LoaderFactory.get_products())
+    print("   BACKBONE: ", BackboneFactory.get_products())
+    print("      GRAPH: ", GraphFactory.get_products())
+    print("     ENGINE: ", EngineFactory.get_products())
+    print("    TRAINER: ", TrainerFactory.get_products())
+    sys.exit(1)    

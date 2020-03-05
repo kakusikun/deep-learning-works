@@ -9,8 +9,9 @@ class build_image_dataset(Dataset):
     def __getitem__(self, index):
         img_path, label = self.data['handle'][index]
 
-        img = Image.open(img_path)        
-        img = img.convert('RGB')
+        img = Image.open(img_path)    
+        if img.mode != 'RGB':
+            img = img.convert('RGB')
 
         if self.transform is not None:
             img = self.transform(img)

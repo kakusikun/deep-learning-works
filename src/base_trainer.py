@@ -52,10 +52,12 @@ class BaseTrainer():
     
     def _check_config(self):
         if self.cfg.SOLVER.LR_POLICY == 'cosine':
-            adjusted_epochs, num_restart = self.calc_restart_maxepochs(self.cfg.SOLVER.WARMRESTART_MULTIPLIER, self.cfg.SOLVER.WARMRESTART_PERIOD, self.cfg.SOLVER.MAX_EPOCHS)
+            adjusted_epochs, num_restart = self.calc_restart_maxepochs(self.cfg.SOLVER.T_MULT, self.cfg.SOLVER.T_0, self.cfg.SOLVER.MAX_EPOCHS)
             logger.info(f"Max epochs is adjusted : {self.cfg.SOLVER.MAX_EPOCHS} => {adjusted_epochs} with {num_restart} restarts")
             self.cfg.SOLVER.MAX_EPOCHS = adjusted_epochs
-        self.cfg.SOLVER.ITERATIONS_PER_EPOCH = len(self.loader['train'])
+        if self.cfg.DB.USE_TRAIN:
+            self.cfg.SOLVER.ITERATIONS_PER_EPOCH = len(self.loader['train'])
+            assert self.cfg.ORACLE is False
 
     @staticmethod
     def calc_restart_maxepochs(base, period, epochs):

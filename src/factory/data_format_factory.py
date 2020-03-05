@@ -1,4 +1,3 @@
-from src.base_factory import BaseFactory
 from src.database.data_format.coco import build_coco_dataset
 from src.database.data_format.reid import build_reid_dataset
 from src.database.data_format.imagenet import build_image_dataset
@@ -19,10 +18,10 @@ class DataFormatFactory:
     @classmethod
     def produce(cls, 
         cfg, 
-        data=None, 
-        data_format=None,
+        data, 
         transform=None, 
         build_func=None,
+        data_format=None,
         return_indice=False):
 
         if cfg.DB.DATA_FORMAT not in cls.products:
@@ -30,7 +29,7 @@ class DataFormatFactory:
         else:
             return cls.products[cfg.DB.DATA_FORMAT if data_format is None else data_format](
                         data=data,
-                        transform=transform,
-                        build_func=build_func,          # coco
+                        transform=transform if transform is not None else None,
+                        build_func=build_func if build_func is not None else None,          # coco
                         return_indice=return_indice     # reid
                     )

@@ -2,6 +2,7 @@ from src.engine import *
 from tools.oracle_utils import gen_oracle_map
 from tools.centernet_utils import centernet_det_decode, centernet_det_post_process
 from pycocotools.cocoeval import COCOeval
+from tqdm import tqdm
 import json
 # recover = T.Compose([T.Normalize(mean = [-0.485/0.229, -0.456/0.224, -0.406/0.225], std = [1/0.229,1/0.224,1/0.225])])
 
@@ -10,7 +11,7 @@ class CenternetODEngine(BaseEngine):
         super(CenternetODEngine, self).__init__(cfg, graph, loader, solvers, visualizer)
 
     def _train_once(self):
-        for i, batch in enumerate(self.tdata):
+        for batch in tqdm(self.tdata, desc=f"TRAIN[{self.epoch}/{self.cfg.SOLVER.MAX_EPOCHS}]"):
             self._train_iter_start()
             for key in batch:
                 batch[key] = batch[key].cuda()
@@ -21,16 +22,15 @@ class CenternetODEngine(BaseEngine):
             self._train_iter_end()
             self.loss = self.tensor_to_scalar(self.loss)
             self.losses = self.tensor_to_scalar(self.losses)
-            if i % 10 == 0:
-                logger.info(f"Epoch [{self.epoch:03}/{self.max_epoch:03}]   Step [{i:04}/{self.cfg.SOLVER.ITERATIONS_PER_EPOCH:04}]   loss {self.loss:3.3f}")
 
     def _evaluate(self, eval=False):
         logger.info("Epoch {} evaluation start".format(self.epoch))
+        title = "EVALUATE" if eval else f"TEST[{self.epoch}/{self.cfg.SOLVER.MAX_EPOCHS}]"
         results = {}
         self._eval_epoch_start()
         with torch.no_grad():
             self._eval_epoch_start()
-            for batch in self.vdata: 
+            for batch in tqdm(self.vdata, desc=title): 
                 for key in batch:
                     batch[key] = batch[key].cuda()
 
@@ -56,6 +56,9 @@ class CenternetODEngine(BaseEngine):
                 else:               
                     feat = self.graph.model(batch['inp'])
                     feat['hm'].sigmoid_()
+                    
+                if self.cfg.DB.TARGET_FORMAT == 'centerface_bbox':
+                    feat['wh'].exp_()
 
                 dets = centernet_det_decode(feat['hm'], feat['wh'], reg=feat['reg'], K=100)
                 dets = dets.detach().cpu().numpy().reshape(1, -1, dets.shape[1])

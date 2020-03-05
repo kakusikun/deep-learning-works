@@ -3,7 +3,7 @@ import os.path as osp
 import h5py
 import cv2
 from scipy.io import loadmat
-from database.data.market1501 import Market1501
+from src.database.data.market1501 import Market1501
 from tools.utils import mkdir_if_missing, write_json, read_json
 
 class CUHK01(Market1501):

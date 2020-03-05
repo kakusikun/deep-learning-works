@@ -42,7 +42,6 @@ def build_reid_loader(
             return_indice=return_indice
         )
         if use_sampler:    
-        if use_sampler:    
             sampler = IdBasedSampler(data.train['indice'], batch_size=train_batch_size, num_instances=num_people_per_batch)       
             loader['train'] = DataLoader(
                 train_dataset, 
@@ -51,7 +50,6 @@ def build_reid_loader(
                 num_workers=num_workers, 
                 pin_memory=False, 
                 drop_last=True
-            )
             )
         else:
             loader['train'] = DataLoader(
