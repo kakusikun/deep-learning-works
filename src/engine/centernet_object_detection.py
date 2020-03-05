@@ -18,10 +18,7 @@ class CenternetODEngine(BaseEngine):
             images = batch['inp']            
             outputs = self.graph.model(images)
             self.loss, self.losses = self.graph.loss_head(outputs, batch)
-            self.loss.backward()
             self._train_iter_end()
-            self.loss = self.tensor_to_scalar(self.loss)
-            self.losses = self.tensor_to_scalar(self.losses)
 
     def _evaluate(self, eval=False):
         logger.info("Epoch {} evaluation start".format(self.epoch))
