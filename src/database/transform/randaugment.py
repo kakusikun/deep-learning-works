@@ -3,7 +3,7 @@ import random
 import numpy as np
 import math
 from src.database.transform import *
-from database.transform import augmentations as aug
+from src.database.transform import augmentations as aug
 
 class RandAugment(BaseTransform):
     '''
@@ -18,7 +18,9 @@ class RandAugment(BaseTransform):
         m (int): integer in [0, 30], apply operation on data with magnitude m
     
     '''
-    def __init__(self, n, m):
+    def __init__(self, n, m, size, stride):
+        self.size = size
+        self.stride = stride
         self.n = n
         self.m = m 
     
@@ -37,12 +39,17 @@ class RandAugment(BaseTransform):
             A = aug.AUG_AS[op_name](**s[op_name])
             bbox[:2] = aug.apply_A(bbox[:2], A)
             bbox[2:] = aug.apply_A(bbox[2:], A)
+        out_h, out_w = (np.array(self.size) // self.stride).astype(int)
+        bbox[[0, 2]] = np.clip(bbox[[0, 2]], 0, out_w - 1)
+        bbox[[1, 3]] = np.clip(bbox[[1, 3]], 0, out_h - 1) 
         return bbox
     
     def apply_pts(self, cid, pts, s):
         for op_name in s:
             A = aug.AUG_AS[op_name](**s[op_name])
             for i in range(pts.shape[0]):
-                pts[i] = aug.apply_A(pts[i], A)
+                pts[i,:2] = aug.apply_A(pts[i,:2], A)
+                if ((pts[i, :2] < 0).sum() + (pts[i, :2] > (out_w, out_h)).sum()) > 0:
+                    pts[i, 2] = 0.0
         return pts
 

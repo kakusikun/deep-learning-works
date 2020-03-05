@@ -90,7 +90,10 @@ class RandScale(BaseTransform):
         out_h, out_w = (np.array(self.size) // self.stride).astype(int)
         trans_output = get_affine_transform(s['c'], s['s'], 0, [out_w, out_h])
         for i in range(pts.shape[0]):
-            pts[i] = affine_transform(pts[i], trans_output)
+            pts[i,:2] = affine_transform(pts[i,:2], trans_output)
+            if ((pts[i, :2] < 0).sum() + (pts[i, :2] > (out_w, out_h)).sum()) > 0:
+                pts[i, 2] = 0.0
+
         return pts
 
 

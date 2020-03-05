@@ -41,7 +41,7 @@ class TransformFactory:
                 raise KeyError("Invalid transform, got '{}', but expected to be one of {}".format(tran, cls.products))
             
             if tran == 'RandAugment':
-                bag_of_transforms.append(RandAugment(cfg.INPUT.RAND_AUG_N, cfg.INPUT.RAND_AUG_M))
+                bag_of_transforms.append(RandAugment(cfg.INPUT.RAND_AUG_N, cfg.INPUT.RAND_AUG_M, size=cfg.INPUT.SIZE, stride=cfg.MODEL.STRIDE))
 
             if tran == 'Resize':
                 bag_of_transforms.append(Resize(size=cfg.INPUT.SIZE, stride=cfg.MODEL.STRIDE))
@@ -62,7 +62,7 @@ class TransformFactory:
                 bag_of_transforms.append(RandScale(size=cfg.INPUT.SIZE, stride=cfg.MODEL.STRIDE))
 
             if tran == 'AugMix':
-                bag_of_transforms.append(AugMix())
+                bag_of_transforms.append(AugMix(size=cfg.INPUT.SIZE, stride=cfg.MODEL.STRIDE))
 
             if tran == 'RandCrop':
                 bag_of_transforms.append(RandCrop(size=cfg.INPUT.SIZE, pad=cfg.INPUT.PAD))
@@ -83,16 +83,17 @@ class Transform():
     def __init__(self, t_list):
         self.t_list = t_list
     
-    def __call__(self, img, bboxes=None, ptss=None):
+    def __call__(self, img, bboxes=None, ptss=None, cls_ids=None):
         '''
         Apply transformation on data like call a function, bboxes and keypoints are changed in place
 
         Args:
             img (PIL Image): data on which applied transformations
             bboxes (list): optional, if bboxes is given, apply transformation related to change of position
-            ptss (list): optional, works like bboxes, but each cell in list is a list with class of keypoints and keypoints.
-                              [[c1, pts1], [c2, pts2], ...]
-        
+            ptss (list): list of a list with class of keypoints (int) and keypoints (Nx3 numpy array),
+                        [pts1, pts2, ...], pts[:,:2] is position, pts[:,2] indicates the visibility of each pt 
+                        in pts. 2 is visible, 1 is occlusion and 0 is not labeled.
+            cls_ids (list): list of category of object.
         Return:
             img (PIL Image): transformed data
             ss (list): states of randomness
@@ -108,10 +109,10 @@ class Transform():
                     bboxes[i] = t.apply_bbox(bboxes[i], ss[t])
 
         if ptss is not None:
+            assert cls_ids is not None
             for t in self.t_list:
                 for i in range(len(ptss)):
-                    cls_id, pts = ptss[i]
-                    ptss[i][1] = t.apply_pts(cls_id, pts, ss[t])
+                    ptss[i] = t.apply_pts(cls_ids[i], ptss[i], ss[t])
         if bboxes is None:
             return img
         return img, ss

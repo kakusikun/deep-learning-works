@@ -20,7 +20,9 @@ class AugMix(BaseTransform):
                    severities in [0.1, 3]
     '''
 
-    def __init__(self, width=3, depth=-1, mag=3):
+    def __init__(self, size, stride, width=3, depth=-1, mag=3):
+        self.size = size
+        self.stride = stride
         self.width = width
         self.depth = depth+1 if depth > 0 else 4
         self.mag = mag
@@ -59,12 +61,18 @@ class AugMix(BaseTransform):
             A = aug.AUG_AS[op_name](**s[op_name])
             bbox[:2] = aug.apply_A(bbox[:2], A)
             bbox[2:] = aug.apply_A(bbox[2:], A)
+        out_h, out_w = (np.array(self.size) // self.stride).astype(int)
+        bbox[[0, 2]] = np.clip(bbox[[0, 2]], 0, out_w - 1)
+        bbox[[1, 3]] = np.clip(bbox[[1, 3]], 0, out_h - 1) 
         return bbox
     
     def apply_pts(self, cid, pts, s):
+        out_h, out_w = (np.array(self.size) // self.stride).astype(int)
         for op_name in s:
             A = aug.AUG_AS[op_name](**s[op_name])
             for i in range(pts.shape[0]):
-                pts[i] = aug.apply_A(pts[i], A)
+                pts[i,:2] = aug.apply_A(pts[i,:2], A)
+                if ((pts[i, :2] < 0).sum() + (pts[i, :2] > (out_w, out_h)).sum()) > 0:
+                    pts[i, 2] = 0.0
         return pts
 
