@@ -106,6 +106,8 @@ class BaseGraph:
             if num_gpus > 0 and torch.cuda.device_count() > 0:
                 logger.info("Use GPU")
                 self.model = self.model.cuda()
+                for sub_model in self.sub_models:
+                    self.sub_models[sub_model] = self.sub_models[sub_model].cuda()
                 self.use_gpu = True
             elif torch.cuda.device_count() == 0:
                 logger.info("GPU is no found")
