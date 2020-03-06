@@ -276,3 +276,14 @@ class HourglassNet(nn.Module):
 def hourglass_net(**kwargs):
     model = HourglassNet()
     return model
+
+if __name__ == "__main__":
+    model = hourglass_net()
+    num = 0.0
+    for p in model.parameters():
+        num += p.numel()
+
+    print(num / 1e6)
+
+    x = torch.rand(2,3,512,512)
+    output = model(x)
