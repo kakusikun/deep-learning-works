@@ -27,7 +27,6 @@ class _LossHead(nn.Module):
         self.crit['hm'] = FocalLoss()  
         self.crit['wh'] = SmoothL1Loss()
         self.crit['reg'] = SmoothL1Loss()
-        self.loss_w = nn.Parameter(torch.Tensor([0.0, 0.0, -1.0 * math.log(0.2), -1.0 * math.log(2)]))
     def forward(self, feats, batch):
         hm_loss = 0.0
         wh_loss = 0.0
@@ -36,15 +35,15 @@ class _LossHead(nn.Module):
             output = feats[head]
             if head == 'hm':
                 output = _sigmoid(output)
-                hm_loss += self.crit[head](self.loss_w[:2], output, batch['hm'])                 
+                hm_loss += self.crit[head](output, batch['hm'])                 
             elif head == 'wh':
-                wh_loss += self.crit[head](output, batch['reg_mask'], batch['ind'], batch['wh']) * torch.exp(-1.0 * self.loss_w[2]) * 0.5
+                wh_loss += self.crit[head](output, batch['reg_mask'], batch['ind'], batch['wh']) * 0.1
             elif head == 'reg':
-                reg_loss += self.crit[head](output, batch['reg_mask'], batch['ind'], batch['reg']) * torch.exp(-1.0 * self.loss_w[3]) * 0.5
+                reg_loss += self.crit[head](output, batch['reg_mask'], batch['ind'], batch['reg'])
             else:
                 raise TypeError
-        losses = {'hm':hm_loss, 'wh':wh_loss, 'reg':reg_loss, 'w0': self.loss_w[0], 'w1': self.loss_w[1], 'w2': self.loss_w[2], 'w3': self.loss_w[3]}
-        loss = losses['hm'] + losses['wh'] + losses['reg'] + losses['w0'] + losses['w1'] + losses['w2'] + losses['w3']
+        losses = {'hm':hm_loss, 'wh':wh_loss, 'reg':reg_loss, }
+        loss = losses['hm'] + losses['wh'] + losses['reg']
         return loss, losses
 
 class CenterNetObjectDetection(BaseGraph):

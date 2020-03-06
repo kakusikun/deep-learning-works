@@ -25,12 +25,12 @@ class FocalLoss(nn.Module):
         super(FocalLoss, self).__init__()
         self.a = a
         self.b = b
-    def forward(self, loss_w, feat, target):
+    def forward(self, feat, target):
         pos_inds = target.eq(1).float()
         neg_inds = target.lt(1).float()
 
-        pos_loss = pos_inds * torch.exp(-1.0 * loss_w[0]) * torch.log(feat) * torch.pow(1 - feat, self.a)
-        neg_loss = neg_inds * torch.exp(-1.0 * loss_w[1]) * torch.pow(1 - target, self.b) * torch.pow(feat, self.a) * torch.log(1 - feat)
+        pos_loss = pos_inds * torch.log(feat) * torch.pow(1 - feat, self.a)
+        neg_loss = neg_inds * torch.pow(1 - target, self.b) * torch.pow(feat, self.a) * torch.log(1 - feat)
     
         num_pos  = pos_inds.float().sum()
         pos_loss = pos_loss.sum()

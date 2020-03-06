@@ -5,14 +5,14 @@ class CenternetODTrainer(BaseTrainer):
     def __init__(self, cfg):
         super(CenternetODTrainer, self).__init__(cfg)
         self.solvers['main'] = Solver(
-            cfg, [self.graph.model.named_parameters(), self.graph.sub_models['loss'].named_parameters()])
+            cfg, [self.graph.model.named_parameters()])
         self.graph.to_gpu()
         self.activate()        
 
 class ImagenetTrainer(BaseTrainer):
     def __init__(self, cfg):
         super(ImagenetTrainer, self).__init__(cfg)
-        self.solvers['main'] = Solver(cfg, self.graph.model.named_parameters())
+        self.solvers['main'] = Solver(cfg, [self.graph.model.named_parameters()])
         self.graph.to_gpu()
         self.activate()
 
