@@ -6,13 +6,16 @@ class _Model(nn.Module):
     def __init__(self, cfg):
         super(_Model, self).__init__()
         self.backbone = BackboneFactory.produce(cfg)
-        self.heads = {
+        self.heads = nn.ModuleDict({
             'hm': nn.ModuleList([HourGlassHead(256, cfg.DB.NUM_CLASSES), HourGlassHead(256, cfg.DB.NUM_CLASSES)]),
             'wh': nn.ModuleList([HourGlassHead(256, 2), HourGlassHead(256, 2)]),
             'reg': nn.ModuleList([HourGlassHead(256, 2), HourGlassHead(256, 2)])
-        }
-        for m in self.heads['hm']:
-            m[-1].bias.data.fill_(-2.19)
+        })
+        for head in self.heads['hm']:
+            for m in head.modules():
+                if isinstance(m, nn.Conv2d):
+                    if m.bias is not None:
+                        m.bias.data.fill_(-2.19)
 
     def forward(self, x):
         outs = self.backbone(x)
@@ -42,7 +45,7 @@ class _LossHead(nn.Module):
                     output = _sigmoid(output)
                     hm_loss += self.crit[head](output, batch['hm'])                 
                 elif head == 'wh':
-                    wh_loss += self.crit[head](output, batch['reg_mask'], batch['ind'], batch['wh']) * 0.1
+                    wh_loss += self.crit[head](output, batch['reg_mask'], batch['ind'], batch['wh'])
                 elif head == 'reg':
                     reg_loss += self.crit[head](output, batch['reg_mask'], batch['ind'], batch['reg'])
                 else:
@@ -51,9 +54,9 @@ class _LossHead(nn.Module):
         loss = losses['hm'] + losses['wh'] + losses['reg']
         return loss, losses
 
-class CenterNetObjectDetection(BaseGraph):
+class HourglassObjectDetection(BaseGraph):
     def __init__(self, cfg):
-        super(CenterNetObjectDetection, self).__init__(cfg)        
+        super(HourglassObjectDetection, self).__init__(cfg)        
     
     def build(self):
         self.model = _Model(self.cfg)     

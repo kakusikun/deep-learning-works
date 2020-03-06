@@ -6,9 +6,9 @@ from tqdm import tqdm
 import json
 # recover = T.Compose([T.Normalize(mean = [-0.485/0.229, -0.456/0.224, -0.406/0.225], std = [1/0.229,1/0.224,1/0.225])])
 
-class CenternetODEngine(BaseEngine):
+class HourglassODEngine(BaseEngine):
     def __init__(self, cfg, graph, loader, solvers, visualizer):
-        super(CenternetODEngine, self).__init__(cfg, graph, loader, solvers, visualizer)
+        super(HourglassODEngine, self).__init__(cfg, graph, loader, solvers, visualizer)
 
     def _train_once(self):
         for batch in tqdm(self.tdata, desc=f"TRAIN[{self.epoch}/{self.cfg.SOLVER.MAX_EPOCHS}]"):

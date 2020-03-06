@@ -52,7 +52,7 @@ class residual(nn.Module):
         # self.bn1   = nn.BatchNorm2d(out_dim)
         # self.relu1 = nn.ReLU(inplace=True)
 
-        self.conv2 = ConvModule(ouc, ouc, k, stride=stride, padding=p, activation='linear')
+        self.conv2 = ConvModule(ouc, ouc, k, stride=1, padding=p, activation='linear')
         # self.conv2 = nn.Conv2d(out_dim, out_dim, (k, k), padding=(p, p), bias=False)
         # self.bn2   = nn.BatchNorm2d(out_dim)
         
