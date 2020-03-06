@@ -1,4 +1,4 @@
-EXPERIMENT: "ShuffleNetv2+-biFPN_coco-object-detection_focal-smoothl1_Adam_cosine-lr-0.0005_scratch"
+EXPERIMENT: "ShuffleNetv2+-biFPN_coco-object-detection_focal-smoothl1_SGDW_cosine-lr-0.01-warmup_scratch"
 # [modelname]_[task]_[loss]_[opt]_[lr]_[trick]_[pretrain]
 
 SAVE: True
@@ -8,17 +8,17 @@ TRAINER: "centernet_object_detection"
 ENGINE: "centernet_object_detection"
 GRAPH: "centernet_object_detection"
 ORACLE: False
-EVALUATE_FREQ: 1
+EVALUATE_FREQ: 10
 # EVALUATE: True
-NUM_WORKERS: 1
+NUM_WORKERS: 32
 MODEL:
-  GPU: [1]
+  GPU: [0,1,2]
   BACKBONE: "shufflenetv2+"
   STRIDE: 8
 
 INPUT:
   SIZE: (512,512)
-  TRAIN_BS: 8
+  TRAIN_BS: 64
   TEST_BS: 1
   MEAN: [0.5, 0.5, 0.5]
   STD: [0.5, 0.5, 0.5]
@@ -27,7 +27,7 @@ COCO:
   TARGET: 'original'
 
 DB:
-  PATH: "/media/allen/mass/DB/"
+  PATH: "/home/agent/deep-learning-works/data"
   NUM_CLASSES: 80
   DATA: "coco"
   DATA_FORMAT: "coco"
@@ -40,21 +40,21 @@ DB:
 
 
 SOLVER:
-  OPTIMIZER: "Adam"
+  OPTIMIZER: "SGDW"
   START_EPOCH: 1
-  MAX_EPOCHS: 400
-  BASE_LR: 0.0005
+  MAX_EPOCHS: 120
+  BASE_LR: 0.01
   BIAS_LR_FACTOR: 1.0
   WEIGHT_DECAY: 0.0005
   WEIGHT_DECAY_BIAS_FACTOR: 1.0
 
   LR_POLICY: "cosine"
-  T_0: 400
+  T_0: 120
   # MIN_LR: 1e-6
-  # WARMUP: True
+  WARMUP: True
   # GAMMA: 0.1
-  # WARMUP_FACTOR: 0.01
-  # WARMUP_SIZE: 10.0
+  WARMUP_FACTOR: 0.01
+  WARMUP_SIZE: 5.0
   # PLATEAU_SIZE: 10.0
 
 # RESUME: '/media/allen/mass/deep-learning-works/caffe_models/Hourglass-squeeze_coco_focal_regl1_Freeze_Adam_lr_0.0001_plateau_10_COCO_0.2981.pth'
