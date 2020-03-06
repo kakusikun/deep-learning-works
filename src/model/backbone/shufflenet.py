@@ -74,6 +74,7 @@ class ShuffleNetV2_Plus(nn.Module):
 
         channel_scale = [0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0]
 
+        self.stride = [2, 2, 2, 1]
         self.stage_repeats = [4, 4, 8, 4]
 
         if model_size == 'Large':
@@ -82,6 +83,8 @@ class ShuffleNetV2_Plus(nn.Module):
             self.stage_out_channels = [48, 128, 256, 512]
         elif model_size == 'Small':
             self.stage_out_channels = [36, 104, 208, 416]
+        elif model_size == 'OneShot':
+            self.stage_out_channels = [64, 160, 320, 640]
         else:
             raise TypeError
         
@@ -100,7 +103,7 @@ class ShuffleNetV2_Plus(nn.Module):
 
             for i in range(num_blocks):
                 if i == 0:
-                    inc, stride = block_inc, 2
+                    inc, stride = block_inc, self.stride[stage_i]
                 else:
                     inc, stride = ouc, 1
                 
@@ -124,6 +127,7 @@ class ShuffleNetV2_Plus(nn.Module):
             block_inc = ouc
             self.stages.append(nn.Sequential(*stage))
         assert block_idx == len(block_choice)
+        self.last_channel = block_inc
 
         # TODO: move to head module
         # ------------------------------------------------------------------------#
@@ -191,8 +195,10 @@ def make_divisible(x, divisible_by=8):
     return int(np.ceil(x * 1. / divisible_by) * divisible_by)
 
 def shufflenetv2_plus(shufflenetv2_plus_model_size):
-    block_choice = [0, 0, 3, 1, 1, 1, 0, 0, 2, 0, 2, 1, 1, 0, 2, 0, 2, 1, 3, 2]
-    channel_choice = [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
+    #  block_choice = [0, 0, 3, 1, 1, 1, 0, 0, 2, 0, 2, 1, 1, 0, 2, 0, 2, 1, 3, 2]
+    #  channel_choice = [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
+    block_choice = [1, 3, 2, 3, 3, 1, 2, 0, 3, 0, 2, 3, 0, 0, 1, 2, 2, 2, 3, 1] 
+    channel_choice = [8, 7, 5, 7, 1, 7, 7, 5, 1, 4, 0, 1, 0, 5, 1, 2, 3, 8, 2, 8]
     model = ShuffleNetV2_Plus(block_choice=block_choice, channel_choice=channel_choice, model_size='Small')
     return model
 
