@@ -27,9 +27,9 @@ class ShuffleBlock(nn.Module):
             branch_main = [
                 ConvModule(inc, inc, 3, stride=stride, padding=1, groups=inc, activation='linear'),
                 ConvModule(inc, midc, 1, activation=activation),
-                ConvModule(midc, midc, 3, stride=stride, padding=1, groups=midc, activation='linear'),
+                ConvModule(midc, midc, 3, stride=1, padding=1, groups=midc, activation='linear'),
                 ConvModule(midc, midc, 1, activation=activation),
-                ConvModule(midc, midc, 3, stride=stride, padding=1, groups=midc, activation='linear'),
+                ConvModule(midc, midc, 3, stride=1, padding=1, groups=midc, activation='linear'),
                 ConvModule(midc, ouc - inc, 1, activation=activation),
             ]
         else:
@@ -199,15 +199,18 @@ def shufflenetv2_plus(shufflenetv2_plus_model_size):
     #  channel_choice = [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
     block_choice = [1, 3, 2, 3, 3, 1, 2, 0, 3, 0, 2, 3, 0, 0, 1, 2, 2, 2, 3, 1] 
     channel_choice = [8, 7, 5, 7, 1, 7, 7, 5, 1, 4, 0, 1, 0, 5, 1, 2, 3, 8, 2, 8]
-    model = ShuffleNetV2_Plus(block_choice=block_choice, channel_choice=channel_choice, model_size='Small')
+    model = ShuffleNetV2_Plus(block_choice=block_choice, channel_choice=channel_choice, model_size='OneShot')
     return model
 
 if __name__ == "__main__":
-    block_choice = [0, 0, 3, 1, 1, 1, 0, 0, 2, 0, 2, 1, 1, 0, 2, 0, 2, 1, 3, 2]
-    channel_choice = [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
-    model = ShuffleNetV2_Plus(block_choice=block_choice, channel_choice=channel_choice, model_size='Small')
+    block_choice = [1, 3, 2, 3, 3, 1, 2, 0, 3, 0, 2, 3, 0, 0, 1, 2, 2, 2, 3, 1] 
+    channel_choice = [8, 7, 5, 7, 1, 7, 7, 5, 1, 4, 0, 1, 0, 5, 1, 2, 3, 8, 2, 8]
+    model = ShuffleNetV2_Plus(block_choice=block_choice, channel_choice=channel_choice, model_size='OneShot')
     num = 0.0
     for p in model.parameters():
         num += p.numel()
 
     print(num / 1e6)
+
+    x = torch.rand(2,3,112,112)
+    output = model(x)

@@ -51,7 +51,7 @@ class MobileNetv3ClassifierHead(nn.Module):
         self.v3_fc = nn.Linear(featc, featc, bias=False)
         self.v3_hs = HSwish()
         self.dropout = nn.Dropout(0.2)
-        self.v3_fc2 = nn.Linear(1280, num_classes, bias=False)
+        self.v3_fc2 = nn.Linear(featc, num_classes, bias=False)
 
         self._initialize_weights()
 

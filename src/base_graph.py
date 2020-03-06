@@ -34,7 +34,7 @@ class BaseGraph:
     def save(path, model, sub_models=None, solvers=None, epoch=-1,  metric=-1):
         state = {}
         if solvers is not None:
-            assert isinstance(solvers, list)
+            assert isinstance(solvers, dict)
             for solver in solvers:
                 opt_state = solvers[solver].opt.state_dict()
                 state[f"{solver}"] = opt_state

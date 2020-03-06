@@ -88,18 +88,18 @@ class BaseEngine():
             if self.save_criterion == 'loss':
                 logger.info(f"Epoch {self.epoch} evaluation ends, loss {self.test_loss:.4f}")
                 if self.min_loss > self.test_loss:
-                    self.min_loss = self.test_loss
                     if self.cfg.SAVE:
                         logger.info(f"Save checkpoint, with {self.min_loss - self.test_loss:.4f} improvement")
-                        self.graph.save(self.graph.save_path, self.graph.model, self.graph.sub_models, self.epoch, self.solvers, self.min_loss)
+                        self.graph.save(self.graph.save_path, self.graph.model, self.graph.sub_models, self.solvers, self.epoch, self.min_loss)
+                    self.min_loss = self.test_loss
                 self.visualizer.add_scalar('val/loss', self.min_loss, self.epoch)
             else:
                 logger.info(f"Epoch {self.epoch} evaluation ends, accuracy {self.accu:.4f}")
                 if self.accu > self.best_accu:
-                    self.best_accu = self.accu
                     if self.cfg.SAVE:
                         logger.info(f"Save checkpoint, with {self.accu - self.best_accu:.4f} improvement")
-                        self.graph.save(self.graph.save_path, self.graph.model, self.graph.sub_models, self.epoch, self.solvers, self.best_accu)                    
+                        self.graph.save(self.graph.save_path, self.graph.model, self.graph.sub_models, self.solvers, self.epoch, self.best_accu)                    
+                    self.best_accu = self.accu
                 self.visualizer.add_scalar('val/accuracy', self.best_accu, self.epoch)
 
     def _train_once(self):
