@@ -29,16 +29,13 @@ class BaseTrainer():
     def activate(self):
         if self.cfg.APEX:
             try:
-                from apex.fp16_utils import *
                 from apex import amp
                 self.graph.model, self.solvers['main'].opt = amp.initialize(
                     self.graph.model, 
                     self.solvers['main'].opt,
-                    opt_level='O3',
+                    opt_level='O2',
                     keep_batchnorm_fp32=True
                 )
-                p = next(iter(self.graph.model.parameters()))
-                assert p.dtype == 'torch.float16'
                 logger.info("Using nvidia apex")
             except:
                 logger.info("Install nvidia apex first")
