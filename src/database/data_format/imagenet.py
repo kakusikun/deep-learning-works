@@ -7,7 +7,7 @@ class build_image_dataset(Dataset):
         self.transform = transform
     
     def __getitem__(self, index):
-        img_path, label = self.data['handle'][index]
+        img_path, label = self.data['indice'][index]
 
         img = Image.open(img_path)    
         if img.mode != 'RGB':

@@ -112,7 +112,7 @@ class BaseEngine():
             self._train_once()
             self._train_epoch_end()
             
-            if self.epoch % self.cfg.SOLVER.EVALUATE_FREQ == 0:
+            if self.epoch % self.cfg.EVALUATE_FREQ == 0:
                 self._evaluate()
             if self.cfg.SOLVER.LR_POLICY == 'plateau' and self.cfg.SOLVER.MIN_LR >= self.solvers['model'].monitor_lr:
                 logger.info(f"LR {self.solvers['model'].monitor_lr} is less than {self.cfg.SOLVER.MIN_LR}")
