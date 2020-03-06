@@ -10,7 +10,7 @@ logger = logging.getLogger("logger")
 class Solver(): 
     def __init__(self, 
         cfg, 
-        params,
+        params_groups,
         lr=None,
         momentum=None,
         wd=None,
@@ -39,7 +39,7 @@ class Solver():
         self.patience = cfg.SOLVER.PLATEAU_SIZE * self.num_iter_per_epoch 
         self.monitor_lr = 0.0
             
-        self._model_analysis(params, custom=cfg.SOLVER.CUSTOM)
+        self._model_analysis(params_groups, custom=cfg.SOLVER.CUSTOM)
 
         if self.opt_name == 'SGD':
             self.opt = torch.optim.SGD(self.params, momentum=self.momentum, nesterov=cfg.SOLVER.NESTEROV)
@@ -78,31 +78,31 @@ class Solver():
             logger.info("LR policy is not specified")
             sys.exit(1)    
 
-    def _model_analysis(self, params, custom=[]):
+    def _model_analysis(self, params_groups, custom=[]):
         self.params = []
         # self.params = [{"params": params, "lr": self.lr, "weight_decay": self.wd}]
         num_params = 0.0
-        
-        for layer, p in params:
-            #  try:
-            if not p.requires_grad:
-                continue
-            lr = self.lr
-            wd = self.wd
-            if "bias" in layer:
-                lr = self.lr * self.bias_lr_factor
-                wd = self.wd * self.wd_factor    
-            for name, target, value in custom:
-                if name in layer:
-                    if target == 'lr':
-                        lr = value
-                    elif target == 'wd':
-                        wd = value
-                    else:
-                        logger.info("Unsupported optimizer parameter: {}".format(target))
+        for params in params_groups:
+            for layer, p in params:
+                #  try:
+                if not p.requires_grad:
+                    continue
+                lr = self.lr
+                wd = self.wd
+                if "bias" in layer:
+                    lr = self.lr * self.bias_lr_factor
+                    wd = self.wd * self.wd_factor    
+                for name, target, value in custom:
+                    if name in layer:
+                        if target == 'lr':
+                            lr = value
+                        elif target == 'wd':
+                            wd = value
+                        else:
+                            logger.info("Unsupported optimizer parameter: {}".format(target))
 
-            self.params += [{"params": p, "lr": lr, "weight_decay": wd}]
-            num_params += p.numel()
+                self.params += [{"params": p, "lr": lr, "weight_decay": wd}]
+                num_params += p.numel()
         
         logger.info("Trainable parameters: {:.2f}M".format(num_params / 1000000.0))
     

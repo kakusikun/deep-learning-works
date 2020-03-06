@@ -10,13 +10,7 @@ class _Model(nn.Module):
         self.wh_head = RegressionHead(24 * 3, 2)
         self.heat_head = RegressionHead(24 * 3, cfg.DB.NUM_CLASSES)
         self.reg_head = RegressionHead(24 * 3, 2)      
-        self.crit = {}
-        self.crit['hm'] = FocalLoss()  
-        self.crit['wh'] = SmoothL1Loss()
-        self.crit['reg'] = SmoothL1Loss()
-        self.loss_w = nn.Parameter(torch.Tensor([0.0, 0.0, -1.0 * math.log(0.2), -1.0 * math.log(2)]))
-    def forward(self, batch):
-        x = batch['inp']
+    def forward(self, x):
         ps = self.backbone(x)
         feat = self.feature_extraction(ps[-3:])
         outputs = {
@@ -24,14 +18,22 @@ class _Model(nn.Module):
             'wh': self.wh_head(feat),
             'reg': self.reg_head(feat)
         }
-        if not self.training:
-            return outputs
+        return outputs
 
+class _LossHead(nn.Module):
+    def __init__(self):
+        super(_LossHead, self).__init__()
+        self.crit = {}
+        self.crit['hm'] = FocalLoss()  
+        self.crit['wh'] = SmoothL1Loss()
+        self.crit['reg'] = SmoothL1Loss()
+        self.loss_w = nn.Parameter(torch.Tensor([0.0, 0.0, -1.0 * math.log(0.2), -1.0 * math.log(2)]))
+    def forward(self, feats, batch):
         hm_loss = 0.0
         wh_loss = 0.0
         reg_loss = 0.0
-        for head in outputs:
-            output = outputs[head]
+        for head in feats:
+            output = feats[head]
             if head == 'hm':
                 output = _sigmoid(output)
                 hm_loss += self.crit[head](self.loss_w[:2], output, batch['hm'])                 
@@ -41,8 +43,8 @@ class _Model(nn.Module):
                 reg_loss += self.crit[head](output, batch['reg_mask'], batch['ind'], batch['reg']) * torch.exp(-1.0 * self.loss_w[3]) * 0.5
             else:
                 raise TypeError
-        losses = {'hm':hm_loss, 'wh':wh_loss, 'reg':reg_loss}
-        loss = losses['hm'] + losses['wh'] + losses['reg'] + self.loss_w.sum()
+        losses = {'hm':hm_loss, 'wh':wh_loss, 'reg':reg_loss, 'w0': self.loss_w[0], 'w1': self.loss_w[1], 'w2': self.loss_w[2], 'w3': self.loss_w[3]}
+        loss = losses['hm'] + losses['wh'] + losses['reg'] + losses['w0'] + losses['w1'] + losses['w2'] + losses['w3']
         return loss, losses
 
 class CenterNetObjectDetection(BaseGraph):
@@ -51,6 +53,6 @@ class CenterNetObjectDetection(BaseGraph):
     
     def build(self):
         self.model = _Model(self.cfg)     
-        # self.loss_head = _LossHead()
-        # self.sub_models['loss'] = self.loss_head
+        self.loss_head = _LossHead()
+        self.sub_models['loss'] = self.loss_head
             

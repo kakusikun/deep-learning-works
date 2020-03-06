@@ -16,24 +16,22 @@ class BaseTrainer():
         self.loader = LoaderFactory.produce(cfg)
         # must be checked after the loader is built
         self._check_config()
-        self.graph = GraphFactory.produce(cfg)     
-        self.graph.to_gpu()   
+        self.graph = GraphFactory.produce(cfg)                
         self.acc = 0.0
-        self.solvers = {}  
-        self.solvers['main'] = Solver(cfg, self.graph.model.named_parameters())
+        self.solvers = {}          
         self.visualizer = None
         if cfg.IO:
-            self.visualizer = Tensorboard(cfg)
-        self.resume()
+            self.visualizer = Tensorboard(cfg)        
         
     def activate(self):
+        self.resume()
         if self.cfg.APEX:
             try:
                 from apex import amp
                 self.graph.model, self.solvers['main'].opt = amp.initialize(
                     self.graph.model, 
                     self.solvers['main'].opt,
-                    opt_level='O2',
+                    opt_level='O1',
                     keep_batchnorm_fp32=True
                 )
                 logger.info("Using nvidia apex")
