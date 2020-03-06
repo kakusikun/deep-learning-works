@@ -1,10 +1,11 @@
 from src.model.backbone.osnet import osnet
 from src.model.backbone.shufflenet import shufflenetv2_plus
-
+from src.model.backbone.hourglass import hourglass_net
 class BackboneFactory:
     products = {
         'osnet': osnet,
         'shufflenetv2+': shufflenetv2_plus,
+        'hourglass': hourglass_net,
     }
 
     @classmethod
@@ -16,6 +17,4 @@ class BackboneFactory:
         if cfg.MODEL.BACKBONE not in cls.products:
             raise KeyError
         else:
-            return cls.products[cfg.MODEL.BACKBONE if name is None else name](
-                shufflenetv2_plus_model_size='Large',
-            )
+            return cls.products[cfg.MODEL.BACKBONE if name is None else name]()

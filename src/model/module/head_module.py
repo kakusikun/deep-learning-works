@@ -88,3 +88,15 @@ class MobileNetv3ClassifierHead(nn.Module):
                 nn.init.normal_(m.weight, 0, 0.01)
                 if m.bias is not None:
                     nn.init.constant_(m.bias, 0)
+
+class HourGlassHead(nn.Module):
+    def __init__(self, in_channels, num_dim):
+        super(HourGlassHead, self).__init__()    
+
+        self.head = nn.Sequential(
+            ConvModule(in_channels, 256, 1, use_bn=False),
+            ConvModule(256, num_dim, 1, activation='linear', use_bn=False, bias=True)
+        )
+    
+    def forward(self, x):
+        return self.head(x)
