@@ -65,7 +65,7 @@ class BaseEngine():
         self.losses = self.tensor_to_scalar(self.losses)     
         if self.cfg.IO:
             self.visualizer.add_scalar('train/loss', self.loss, self.iter)              
-            for loss in self.graph.crit:
+            for loss in self.losses:
                 self.visualizer.add_scalar(f'train/loss/{loss}', self.losses[loss], self.iter)
             self.visualizer.add_scalar('train/accuracy', self.train_accu, self.iter)   
             for solver in self.solvers:

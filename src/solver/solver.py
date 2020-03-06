@@ -8,14 +8,21 @@ import logging
 logger = logging.getLogger("logger")
 
 class Solver(): 
-    def __init__(self, cfg, params):  
-        self.lr = cfg.SOLVER.BASE_LR
-        self.bias_lr_factor = cfg.SOLVER.BIAS_LR_FACTOR
-        self.momentum = cfg.SOLVER.MOMENTUM
-        self.wd = cfg.SOLVER.WEIGHT_DECAY
+    def __init__(self, 
+        cfg, 
+        params,
+        lr=None,
+        momentum=None,
+        wd=None,
+        lr_policy=None,
+        opt_name=None):  
+        self.lr = cfg.SOLVER.BASE_LR if lr is None else lr
+        self.bias_lr_factor = cfg.SOLVER.BIAS_LR_FACTOR 
+        self.momentum = cfg.SOLVER.MOMENTUM if momentum is None else momentum
+        self.wd = cfg.SOLVER.WEIGHT_DECAY if wd is None else wd
         self.wd_factor = cfg.SOLVER.WEIGHT_DECAY_BIAS_FACTOR
-        self.lr_policy = cfg.SOLVER.LR_POLICY
-        self.opt_name = cfg.SOLVER.OPTIMIZER
+        self.lr_policy = cfg.SOLVER.LR_POLICY if lr_policy is None else lr_policy
+        self.opt_name = cfg.SOLVER.OPTIMIZER if opt_name is None else opt_name
 
         # cosine annealing
         self.T_0 = cfg.SOLVER.T_0

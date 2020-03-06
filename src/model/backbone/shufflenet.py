@@ -143,7 +143,7 @@ class ShuffleNetV2_Plus(nn.Module):
         self._initialize_weights()
 
     def forward(self, x):
-        x = self.stem(x)
+        x = self.stem(x)        
         stage_feats = []
         for stage in self.stages:
             x = stage(x)

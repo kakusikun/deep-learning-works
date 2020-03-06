@@ -1,8 +1,9 @@
 from src.trainer import *
+from src.solver.solver import Solver
 
 class CenternetODTrainer(BaseTrainer):
     def __init__(self, cfg):
-        super(CenternetODTrainer, self).__init__(cfg)        
+        super(CenternetODTrainer, self).__init__(cfg)   
         self.activate()        
 
 class ImagenetTrainer(BaseTrainer):
