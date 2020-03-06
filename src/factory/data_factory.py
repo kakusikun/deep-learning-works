@@ -5,6 +5,7 @@ from src.database.data.dukemtmc import DukeMTMCreID
 from src.database.data.msmt import MSMT17
 from src.database.data.imagenet import ImageNet
 from src.database.data.cifar10 import Cifar10
+from src.database.data.emotion import Emotion
 
 class DataFactory:
     products = {
@@ -20,6 +21,7 @@ class DataFactory:
         'imagenet': ImageNet,
         'cifar10': Cifar10,
         'widerface': coco_data,
+        'emotion': Emotion,
     }
 
     @classmethod
