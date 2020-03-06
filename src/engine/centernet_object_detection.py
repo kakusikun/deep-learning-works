@@ -15,9 +15,7 @@ class CenternetODEngine(BaseEngine):
             self._train_iter_start()
             for key in batch:
                 batch[key] = batch[key].cuda()
-            images = batch['inp']            
-            outputs = self.graph.model(images)
-            self.loss, self.losses = self.graph.loss_head(outputs, batch)
+            self.loss, self.losses = self.graph.model(batch)
             self._train_iter_end()
 
     def _evaluate(self, eval=False):
@@ -51,7 +49,7 @@ class CenternetODEngine(BaseEngine):
                         )
                     ).cuda()
                 else:               
-                    feat = self.graph.model(batch['inp'])
+                    feat = self.graph.model(batch)
                     feat['hm'].sigmoid_()
                     
                 if self.cfg.DB.TARGET_FORMAT == 'centerface_bbox':
