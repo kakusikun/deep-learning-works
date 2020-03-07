@@ -25,8 +25,8 @@ class _LossHead(nn.Module):
         super(_LossHead, self).__init__()
         self.crit = {}
         self.crit['hm'] = FocalLoss()  
-        self.crit['wh'] = SmoothL1Loss()
-        self.crit['reg'] = SmoothL1Loss()
+        self.crit['wh'] = L1Loss()
+        self.crit['reg'] = L1Loss()
     def forward(self, feats, batch):
         hm_loss = 0.0
         wh_loss = 0.0

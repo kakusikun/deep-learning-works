@@ -3,14 +3,20 @@ import torch.nn as nn
 import torch.nn.functional as F
 from tools.utils import _tranpose_and_gather_feat
 
-class SmoothL1Loss(nn.Module):
-    def __init__(self):
-        super(SmoothL1Loss, self).__init__()
+class L1Loss(nn.Module):
+    def __init__(self, loss_type='l1'):
+        super(L1Loss, self).__init__()
+        if loss_type == 'l1':
+            self.loss = F.l1_loss
+        elif loss_type == 'smooth':
+            self.loss = F.smooth_l1_loss
+        else:
+            raise TypeError
     
     def forward(self, output, mask, ind, target):
         pred = _tranpose_and_gather_feat(output, ind)
         mask = mask.unsqueeze(2).expand_as(pred).float()
-        loss = F.smooth_l1_loss(pred * mask, target * mask, reduction='sum')
+        loss = self.loss(pred * mask, target * mask, reduction='sum')
         loss = loss / (mask.sum() + 1e-4)
         return loss
 
