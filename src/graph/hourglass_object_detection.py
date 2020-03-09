@@ -51,7 +51,7 @@ class _LossHead(nn.Module):
                 else:
                     raise TypeError
         losses = {'hm':hm_loss, 'wh':wh_loss, 'reg':reg_loss, }
-        loss = losses['hm'] + losses['wh'] + losses['reg']
+        loss = losses['hm'] + losses['wh'] * 0.1 + losses['reg']
         return loss, losses
 
 class HourglassObjectDetection(BaseGraph):

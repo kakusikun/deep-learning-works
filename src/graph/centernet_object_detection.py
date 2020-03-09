@@ -25,8 +25,8 @@ class _LossHead(nn.Module):
         super(_LossHead, self).__init__()
         self.crit = {}
         self.crit['hm'] = FocalLoss()  
-        self.crit['wh'] = L1Loss()
-        self.crit['reg'] = L1Loss()
+        self.crit['wh'] = L1Loss(loss_type = 'smooth')
+        self.crit['reg'] = L1Loss(loss_type = 'smooth')
     def forward(self, feats, batch):
         hm_loss = 0.0
         wh_loss = 0.0
@@ -37,13 +37,13 @@ class _LossHead(nn.Module):
                 output = _sigmoid(output)
                 hm_loss += self.crit[head](output, batch['hm'])                 
             elif head == 'wh':
-                wh_loss += self.crit[head](output, batch['reg_mask'], batch['ind'], batch['wh']) * 0.1
+                wh_loss += self.crit[head](output, batch['reg_mask'], batch['ind'], batch['wh'])
             elif head == 'reg':
                 reg_loss += self.crit[head](output, batch['reg_mask'], batch['ind'], batch['reg'])
             else:
                 raise TypeError
         losses = {'hm':hm_loss, 'wh':wh_loss, 'reg':reg_loss, }
-        loss = losses['hm'] + losses['wh'] + losses['reg']
+        loss = losses['hm'] + losses['wh'] * 0.1+ losses['reg']
         return loss, losses
 
 class CenterNetObjectDetection(BaseGraph):
@@ -53,5 +53,3 @@ class CenterNetObjectDetection(BaseGraph):
     def build(self):
         self.model = _Model(self.cfg)     
         self.loss_head = _LossHead()
-        self.sub_models['loss'] = self.loss_head
-            
