@@ -67,26 +67,21 @@ def channel_shuffle(x):
     return x[0], x[1]
 
 class ShuffleNetV2_Plus(nn.Module):
-    def __init__(self, block_choice=None, channel_choice=None, model_size='Large'):
+    def __init__(self,
+        strides,
+        stage_repeats,
+        stage_out_channels,
+        block_choice=None, 
+        channel_choice=None, 
+        model_size='Large'):
         super(ShuffleNetV2_Plus, self).__init__()
         assert block_choice is not None
         assert channel_choice is not None
 
         channel_scale = [0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0]
-
-        self.stride = [2, 2, 2, 1]
-        self.stage_repeats = [4, 4, 8, 4]
-
-        if model_size == 'Large':
-            self.stage_out_channels = [68, 168, 336, 672]
-        elif model_size == 'Medium':
-            self.stage_out_channels = [48, 128, 256, 512]
-        elif model_size == 'Small':
-            self.stage_out_channels = [36, 104, 208, 416]
-        elif model_size == 'OneShot':
-            self.stage_out_channels = [64, 160, 320, 640]
-        else:
-            raise TypeError
+        self.strides = strides
+        self.stage_repeats = stage_repeats
+        self.stage_out_channels = stage_out_channels
         
         stemc = block_inc = 16
         self.stem = ConvModule(3, stemc, 3, stride=2, padding=1, activation='hs')
@@ -103,7 +98,7 @@ class ShuffleNetV2_Plus(nn.Module):
 
             for i in range(num_blocks):
                 if i == 0:
-                    inc, stride = block_inc, self.stride[stage_i]
+                    inc, stride = block_inc, self.strides[stage_i]
                 else:
                     inc, stride = ouc, 1
                 
@@ -194,23 +189,57 @@ class ShuffleNetV2_Plus(nn.Module):
 def make_divisible(x, divisible_by=8):
     return int(np.ceil(x * 1. / divisible_by) * divisible_by)
 
-def shufflenetv2_plus(**kwargs):
+def shufflenetv2_plus(model_size='Small', **kwargs):
     #  block_choice = [0, 0, 3, 1, 1, 1, 0, 0, 2, 0, 2, 1, 1, 0, 2, 0, 2, 1, 3, 2]
     #  channel_choice = [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
     block_choice = [1, 3, 2, 3, 3, 1, 2, 0, 3, 0, 2, 3, 0, 0, 1, 2, 2, 2, 3, 1] 
     channel_choice = [8, 7, 5, 7, 1, 7, 7, 5, 1, 4, 0, 1, 0, 5, 1, 2, 3, 8, 2, 8]
-    model = ShuffleNetV2_Plus(block_choice=block_choice, channel_choice=channel_choice, model_size='OneShot')
+    strides = [2, 2, 2, 1]
+    stage_repeats = [4, 4, 8, 4]
+
+    if model_size == 'Large':
+        stage_out_channels = [68, 168, 336, 672]
+    elif model_size == 'Medium':
+        stage_out_channels = [48, 128, 256, 512]
+    elif model_size == 'Small':
+        stage_out_channels = [36, 104, 208, 416]
+    elif model_size == 'OneShot':
+        stage_out_channels = [64, 160, 320, 640]
+    else:
+        raise TypeError
+
+
+    model = ShuffleNetV2_Plus(
+        strides=strides,
+        stage_repeats=stage_repeats,
+        stage_out_channels=stage_out_channels,
+        block_choice=block_choice, channel_choice=channel_choice)
     return model
 
 if __name__ == "__main__":
-    block_choice = [1, 3, 2, 3, 3, 1, 2, 0, 3, 0, 2, 3, 0, 0, 1, 2, 2, 2, 3, 1] 
-    channel_choice = [8, 7, 5, 7, 1, 7, 7, 5, 1, 4, 0, 1, 0, 5, 1, 2, 3, 8, 2, 8]
-    model = ShuffleNetV2_Plus(block_choice=block_choice, channel_choice=channel_choice, model_size='OneShot')
+    import torch
+    import numpy as np
+    import random
+
+    torch.manual_seed(42)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False  
+    np.random.seed(42)
+    random.seed(42)
+
+    block_choice = [0, 0, 3, 1, 1, 1, 0, 0, 2, 0, 2, 1, 1, 0, 2, 0]
+    channel_choice = [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
+    model = ShuffleNetV2_Plus(
+        strides=[2,2,2],
+        stage_repeats=[4,4,8],
+        stage_out_channels=[64, 160, 320],
+        block_choice=block_choice, channel_choice=channel_choice)
     num = 0.0
     for p in model.parameters():
         num += p.numel()
 
     print(num / 1e6)
 
-    x = torch.rand(2,3,112,112)
+    x = torch.ones(2,3,112,112)
     output = model(x)
+    print(output)
