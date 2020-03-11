@@ -307,35 +307,50 @@ class biFPNLayer(nn.Module):
         return p_os
 
 class biFPN(nn.Module):
-
-    def __init__(self, in_feat_sizes, out_feat_size, level=3, num_layers=2, fpn_tail=False):
+    '''
+    Args:
+        in_feat_sizes(list): list of input channel for each input of inputs, e.g., [64, 128, 512].
+        out_feat_size(int): output channel for lateral convolutional layer that extracts feature from inputs
+        feat_config(list): list of input feature type to be extracted by lateral convolutional layer, 
+            for example, ["i_0", "i_1", "i_2", "i_2", "p_3"],
+            A_B where A is either "i" or "p", "i" means the feature is from input and "p" is from 
+            lateral convolutional  layer.
+            Where B is the index of inputs or feature of lateral convolutional layer.
+            In this example, 
+            index 0 of input (i) -> lateral conv -> index 0 of lateral feature (p)
+            index 1 of input (i) -> lateral conv -> index 1 of lateral feature (p)
+            index 2 of input (i) -> lateral conv -> index 2 of lateral feature (p)
+            index 2 of input (i) -> lateral conv -> index 3 of lateral feature (p)
+            index 3 of lateral feature (p) -> lateral conv -> index 4 of lateral feature (p)
+        num_layers(int): number of top-down and bottom-up combination (=> biFPNLayer)
+        fpn_tail(bool): whether upsample the high-level feature and concat to one output
+            
+    '''
+    def __init__(self, in_feat_sizes, out_feat_size, feat_config, num_layers=2, fpn_tail=False):
         super().__init__()
-        assert len(in_feat_sizes) == level
-        self.level = level
+        self.feat_config = feat_config
         self.p_lats = nn.ModuleList()
-        for i, in_feat_size in zip(range(level), in_feat_sizes):
-            if i <= 2: 
-                self.p_lats.append(nn.Conv2d(in_feat_size, out_feat_size, 1, stride=1, padding=0))
-            elif i == 3:
-                self.p_lats.append(nn.Conv2d(in_feat_sizes[-1], out_feat_size, 1, stride=1, padding=0))
-            elif i > 3:
+        for cfg in self.feat_config:
+            in_feat_type, index = cfg.split("_")
+            if in_feat_type == "i":
+                self.p_lats.append(nn.Conv2d(in_feat_sizes[int(index)], out_feat_size, 1, stride=1, padding=0))
+            elif in_feat_type == 'p':
                 self.p_lats.append(nn.Conv2d(out_feat_size, out_feat_size, 1, stride=1, padding=0))
         
         biFPNLayers = []
         for _ in range(num_layers-1):
-            biFPNLayers.append(biFPNLayer(out_feat_size, level))
-        biFPNLayers.append(biFPNLayer(out_feat_size, level, fpn_tail))
+            biFPNLayers.append(biFPNLayer(out_feat_size, len(feat_config)))
+        biFPNLayers.append(biFPNLayer(out_feat_size, len(feat_config), fpn_tail))
         self.biFPNLayers = nn.Sequential(*biFPNLayers)
 
     def forward(self, inputs): # low to high level, e.g., P3 -> P4 -> P5 ...
         ps = [] # high to low level, e.g., P7 -> P6 -> P5 ...
-        for i in range(self.level):
-            if i <= 2:
-                ps.insert(0, self.p_lats[i](inputs[i]))               
-            elif i == 3:
-                ps.insert(0, self.p_lats[i](inputs[i-1]))
-            else:
-                ps.insert(0, self.p_lats[i](ps[i-1]))
+        for i, cfg in enumerate(self.feat_config):
+            in_feat_type, index = cfg.split("_")
+            if in_feat_type == "i":
+                ps.insert(0, self.p_lats[i](inputs[int(index)]))               
+            elif in_feat_type == 'p':
+                ps.insert(0, self.p_lats[i](ps[int(index)]))
         
         return self.biFPNLayers(ps)
 
