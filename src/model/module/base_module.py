@@ -10,7 +10,10 @@ class ConvModule(nn.Module):
     (linear)   Conv => BN (use_bn)
     """
     
-    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, groups=1, activation='relu', use_bn=True, bias=False):
+    def __init__(self, in_channels, out_channels, kernel_size, 
+        stride=1, padding=0, groups=1, bias=False,
+        activation='relu', 
+        use_bn=True, affine=True):
         super(ConvModule, self).__init__()
         self.conv = nn.Conv2d(
             in_channels, 
@@ -22,7 +25,7 @@ class ConvModule(nn.Module):
             groups=groups)
         
         if use_bn:
-            self.bn = nn.BatchNorm2d(out_channels)
+            self.bn = nn.BatchNorm2d(out_channels, affine=affine)
         else:
             self.bn = None
 
