@@ -102,7 +102,7 @@ class ShuffleNetV2_Plus(nn.Module):
                 else:
                     inc, stride = ouc, 1
                 
-                midc = make_divisible(int(ouc // 2 * channel_scale[channel_choice[block_idx]]))
+                midc = int(ouc // 2 * channel_scale[channel_choice[block_idx]])
 
                 if block_choice[block_idx] == 0:
                     stage.append(ShuffleBlock(inc, midc, ouc, ksize=3, stride=stride,
@@ -185,9 +185,6 @@ class ShuffleNetV2_Plus(nn.Module):
                 nn.init.normal_(m.weight, 0, 0.01)
                 if m.bias is not None:
                     nn.init.constant_(m.bias, 0)
-
-def make_divisible(x, divisible_by=8):
-    return int(np.ceil(x * 1. / divisible_by) * divisible_by)
 
 def shufflenetv2_plus(model_size='Small', **kwargs):
     #  block_choice = [0, 0, 3, 1, 1, 1, 0, 0, 2, 0, 2, 1, 1, 0, 2, 0, 2, 1, 3, 2]

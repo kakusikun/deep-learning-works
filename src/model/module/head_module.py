@@ -44,7 +44,7 @@ class RegressionHead(nn.Module):
 class MobileNetv3ClassifierHead(nn.Module):
     def __init__(self, in_channels, num_classes, featc=1024):
         super(MobileNetv3ClassifierHead, self).__init__()
-
+        featc = int(featc * 0.75)
         self.v3_conv = ConvModule(in_channels, featc, 1, activation='hs')
         self.gap = nn.AdaptiveAvgPool2d(1)
         self.v3_se = SEModule(featc)
