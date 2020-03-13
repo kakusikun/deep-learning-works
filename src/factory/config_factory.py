@@ -149,14 +149,16 @@ _C.PAR.IGNORE_CAT = []
 _C.COCO = CN()
 _C.COCO.TARGET = 'original'
 
-
-
 def build_output(cfg, config_file=""):
-    time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
     if cfg.EVALUATE:
-        cfg.OUTPUT_DIR = osp.join("evaluation", cfg.DB.DATA, cfg.EXPERIMENT, time)
+        root = osp.join("evaluation", cfg.DB.DATA, cfg.EXPERIMENT)
     else:
-        cfg.OUTPUT_DIR = osp.join(os.getcwd(), "result", cfg.DB.DATA, cfg.EXPERIMENT, time)
+        root = osp.join(os.getcwd(), "result", cfg.DB.DATA, cfg.EXPERIMENT)
+    if not osp.exists(root):
+        os.makedirs(root)
+    n_folders = len([f for f in os.scandir(root) if f.is_dir()])
+    cfg.OUTPUT_DIR = osp.join(root, f"{n_folders:03}-{time}")
     if cfg.OUTPUT_DIR and not osp.exists(cfg.OUTPUT_DIR):
         os.makedirs(cfg.OUTPUT_DIR)
         if config_file != "":
