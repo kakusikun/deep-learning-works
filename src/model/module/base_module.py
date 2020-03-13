@@ -260,9 +260,10 @@ class biFPNLayer(nn.Module):
             p_1     ------> w+(p_1, u(p_2)) --- f ---> p_tds_1     -------> w+(p_1, p_tds_1, d(p_0)))                     --- f ---> p_os_1            
     low     p_0     ------> w+(p_0, u(p_1)) --- f ---> p_tds_0     ----------------------------------------------------------------> p_os_0
     '''
-    def __init__(self, feat_size, level=3, fpn_tail=False):
+    def __init__(self, feat_size, oss, fpn=False, weighted_resize=False):
         super().__init__()
-        self.fpn_tail = fpn_tail
+        self.weighted_resize = weighted_resize
+        self.fpn = fpn
         self.p_lat1s = nn.ModuleList()
         self.p_lat2s = nn.ModuleList()
         self.p_ups = nn.ModuleList()
@@ -270,18 +271,30 @@ class biFPNLayer(nn.Module):
         self.p_w_td_adds = nn.ModuleList()
         self.p_w_bu_adds = nn.ModuleList()
 
-        for _ in range(level-1):
+        for i in range(len(oss)-1):
             self.p_lat1s.append(DepthwiseSeparable(feat_size, feat_size, 1))
             self.p_lat2s.append(DepthwiseSeparable(feat_size, feat_size, 1))
-            self.p_ups.append(nn.Upsample(scale_factor=2))
             self.p_w_td_adds.append(FusedNormalization(2))
-            self.p_downs.append(nn.Upsample(scale_factor=0.5))
             self.p_w_bu_adds.append(FusedNormalization(3))
+            if weighted_resize:
+                self.p_ups.append(nn.ConvTranspose2d(feat_size, feat_size, 4, stride=2, padding=1) if oss[len(oss)-1-i] // 2 == oss[len(oss)-1-i-1] else nn.Sequential())
+                self.p_downs.append(nn.Conv2d(feat_size, feat_size, 3, stride=2, padding=1) if oss[i] * 2 == oss[i+1] else nn.Sequential())
+            else:
+                self.p_ups.append(nn.Upsample(scale_factor=2) if oss[len(oss)-1-i] // 2 == oss[len(oss)-1-i-1] else nn.Sequential())
+                self.p_downs.append(nn.Upsample(scale_factor=0.5) if oss[i] * 2 == oss[i+1] else nn.Sequential())
+        
+        if fpn:
+            for i in range(len(oss)-1):
+                if weighted_resize:
+                    self.p_ups.append(nn.ConvTranspose2d((i+1)*feat_size, (i+1)*feat_size, 4, stride=2, padding=1) if oss[len(oss)-1-i] // 2 == oss[len(oss)-1-i-1] else nn.Sequential())
+                else:
+                    self.p_ups.append(nn.Upsample(scale_factor=2) if oss[len(oss)-1-i] // 2 == oss[len(oss)-1-i-1] else nn.Sequential())
+
     
     def forward(self, ps): # high to low level, e.g., P7 -> P6 -> P5 ...
         level = len(ps)
-        p_tds = [ps[0]] # high to low level
-        for i in range(level-1):
+        p_tds = [ps[0]] 
+        for i in range(level-1): # from high to low level
             p_tds.append(
                 self.p_lat1s[i](
                     self.p_w_td_adds[i](
@@ -289,8 +302,8 @@ class biFPNLayer(nn.Module):
                     )
                 )
             )
-        p_os = [p_tds[-1]] # high to low level
-        for i in range(level-1):
+        p_os = [p_tds[-1]] 
+        for i in range(level-1): # from low to high level
             p_os.insert(0,
                 self.p_lat2s[i](
                     self.p_w_bu_adds[i](
@@ -299,58 +312,76 @@ class biFPNLayer(nn.Module):
                 )
             )
 
-        if self.fpn_tail:
+        if self.fpn:
             fpn_feat = p_os[0]
             for i in range(level-1):
-                fpn_feat = torch.cat((p_os[i+1], self.p_ups[i](fpn_feat)), dim=1)
+                fpn_feat = torch.cat((p_os[i+1], self.p_ups[level-1+i](fpn_feat)), dim=1)
             return fpn_feat
-        return p_os
+        return p_os # from high to low level
 
 class biFPN(nn.Module):
     '''
     Args:
-        in_feat_sizes(list): list of input channel for each input of inputs, e.g., [64, 128, 512].
-        out_feat_size(int): output channel for lateral convolutional layer that extracts feature from inputs
-        feat_config(list): list of input feature type to be extracted by lateral convolutional layer, 
-            for example, ["i_0", "i_1", "i_2", "i_2", "p_3"],
-            A_B where A is either "i" or "p", "i" means the feature is from input and "p" is from 
-            lateral convolutional  layer.
-            Where B is the index of inputs or feature of lateral convolutional layer.
+        config (list): 
+            list of input feature type to be extracted by 
+            lateral convolutional layer.
+            For example, ["i_0", "i_1", "i_2", "i_2", "p_3"]
+                where A_B,
+                A: either "i" or "p", "i" means the feature is from input and "p" is from 
+                    lateral convolutional  layer.
+                B: the index of inputs or feature of lateral convolutional layer.
             In this example, 
             index 0 of input (i) -> lateral conv -> index 0 of lateral feature (p)
             index 1 of input (i) -> lateral conv -> index 1 of lateral feature (p)
             index 2 of input (i) -> lateral conv -> index 2 of lateral feature (p)
             index 2 of input (i) -> lateral conv -> index 3 of lateral feature (p)
             index 3 of lateral feature (p) -> lateral conv -> index 4 of lateral feature (p)
-        num_layers(int): number of top-down and bottom-up combination (=> biFPNLayer)
-        fpn_tail(bool): whether upsample the high-level feature and concat to one output
+
+        incs (list):
+            list of input channels for feature in config with "i" prefixed.
+
+        oss (list):
+            list of output stride for feature in config.
+            
+        ouc (int): 
+            output channel for lateral convolutional layer that extracts feature from inputs
+
+        n_layers (int): 
+            number of top-down and bottom-up combination (=> biFPNLayer)
+
+        fpn (bool): 
+            whether upsample the high-level feature and concat to one output
+
+        weighted_resize (bool):
+            down- and upsampling is nn.Upsample or nn.Conv2d and nn.ConvTranspose2d respectively
             
     '''
-    def __init__(self, in_feat_sizes, out_feat_size, feat_config, num_layers=2, fpn_tail=False):
+    def __init__(self, configs, incs, oss, ouc, n_layers=2, fpn=False, weighted_resize=False):
         super().__init__()
-        self.feat_config = feat_config
+        assert len(configs) == len(oss)
+        self.configs = configs
         self.p_lats = nn.ModuleList()
-        for cfg in self.feat_config:
-            in_feat_type, index = cfg.split("_")
-            if in_feat_type == "i":
-                self.p_lats.append(nn.Conv2d(in_feat_sizes[int(index)], out_feat_size, 1, stride=1, padding=0))
-            elif in_feat_type == 'p':
-                self.p_lats.append(nn.Conv2d(out_feat_size, out_feat_size, 1, stride=1, padding=0))
+        for config in self.configs:
+            cat, idx = config.split("_")
+            if cat == "i":
+                self.p_lats.append(nn.Conv2d(incs[int(idx)], ouc, 1, stride=1, padding=0))
+            elif cat == 'p':
+                self.p_lats.append(nn.Conv2d(ouc, ouc, 1, stride=1, padding=0))
         
         biFPNLayers = []
-        for _ in range(num_layers-1):
-            biFPNLayers.append(biFPNLayer(out_feat_size, len(feat_config)))
-        biFPNLayers.append(biFPNLayer(out_feat_size, len(feat_config), fpn_tail))
+        for _ in range(n_layers-1):
+            biFPNLayers.append(biFPNLayer(ouc, oss, weighted_resize=weighted_resize))
+        biFPNLayers.append(biFPNLayer(ouc, oss, fpn=fpn, weighted_resize=weighted_resize))
         self.biFPNLayers = nn.Sequential(*biFPNLayers)
 
     def forward(self, inputs): # low to high level, e.g., P3 -> P4 -> P5 ...
         ps = [] # high to low level, e.g., P7 -> P6 -> P5 ...
-        for i, cfg in enumerate(self.feat_config):
-            in_feat_type, index = cfg.split("_")
-            if in_feat_type == "i":
-                ps.insert(0, self.p_lats[i](inputs[int(index)]))               
-            elif in_feat_type == 'p':
-                ps.insert(0, self.p_lats[i](ps[int(index)]))
+        for i, cfg in enumerate(self.configs):
+            cat, idx = cfg.split("_")
+            if cat == "i":
+                ps.insert(0, self.p_lats[i](inputs[int(idx)]))               
+            elif cat == 'p':
+                ps.insert(0, self.p_lats[i](ps[0]))
         
         return self.biFPNLayers(ps)
 
@@ -372,7 +403,11 @@ if __name__ == '__main__':
     a = torch.rand([1,4,16,16])
     b = torch.rand([1,4,8,8])
     c = torch.rand([1,4,4,4])
+    d = torch.rand([1,4,4,4])
 
-    model = biFPNLayer(4, fpn_tail=True)
-    model([c,b,a])
+    # model = biFPNLayer(4, [1,2,4,4], fpn=True)
+    # out = model([d,c,b,a])
+    model = biFPN(["i_0", "i_1", "i_2", "i_3", "p_3"], [4,4,4,4], [1,2,4,4,4], 2, fpn=True, weighted_resize=True)
+    out = model([a,b,c,d])
+    print(out.shape)
 
