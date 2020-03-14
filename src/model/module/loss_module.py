@@ -36,7 +36,7 @@ class FocalLoss(nn.Module):
         neg_inds = target.lt(1).float()
 
         pos_loss = pos_inds * torch.log(feat) * torch.pow(1 - feat, self.a)
-        neg_loss = neg_inds * torch.pow(1 - target, self.b) * torch.pow(feat, self.a) * torch.log(1 - feat)
+        neg_loss = neg_inds * torch.log(1 - feat) * torch.pow(feat, self.a) * torch.pow(1 - target, self.b)
     
         num_pos  = pos_inds.float().sum()
         pos_loss = pos_loss.sum()
