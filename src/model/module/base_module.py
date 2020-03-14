@@ -407,7 +407,7 @@ if __name__ == '__main__':
 
     # model = biFPNLayer(4, [1,2,4,4], fpn=True)
     # out = model([d,c,b,a])
-    model = biFPN(["i_0", "i_1", "i_2", "i_3", "p_3"], [4,4,4,4], [1,2,4,4,4], 2, fpn=True, weighted_resize=True)
+    model = biFPN(["i_0", "i_1", "i_2", "i_3"], [4,4,4,4], [1,2,4,4], 2, fpn=True, weighted_resize=True)
     out = model([a,b,c,d])
     print(out.shape)
 
