@@ -124,21 +124,6 @@ class ShuffleNetV2_Plus(nn.Module):
         assert block_idx == len(block_choice)
         self.last_channel = block_inc
 
-        # TODO: move to head module
-        # ------------------------------------------------------------------------#
-        # ------------------------------------------------------------------------#
-        # self.conv_last = ConvModule(block_inc, featc, 1, activation='hs')
-        # self.gap = nn.AdaptiveAvgPool2d(1)
-        # self.LastSE = SEModule(featc)
-        # self.fc = nn.Sequential(
-        #     nn.Linear(featc, featc, bias=False),
-        #     HSwish(),
-        # )
-        # self.dropout = nn.Dropout(0.2)
-        # self.classifier = nn.Sequential(nn.Linear(1280, n_class, bias=False))
-        # ------------------------------------------------------------------------#
-        # ------------------------------------------------------------------------#
-
         self._initialize_weights()
 
     def forward(self, x):
@@ -148,19 +133,6 @@ class ShuffleNetV2_Plus(nn.Module):
             x = stage(x)
             stage_feats.append(x)
         return stage_feats
-
-        # TODO: move to head module
-        # ------------------------------------------------------------------------#
-        # ------------------------------------------------------------------------#
-        # x = self.conv_last(x)
-        # x = self.gap(x)
-        # x = self.LastSE(x)
-        # x = x.contiguous().view(-1, 1280)
-        # x = self.fc(x)
-        # x = self.dropout(x)
-        # x = self.classifier(x)
-        # ------------------------------------------------------------------------#
-        # ------------------------------------------------------------------------#
 
     def _initialize_weights(self):
         for name, m in self.named_modules():
@@ -187,8 +159,8 @@ class ShuffleNetV2_Plus(nn.Module):
                     nn.init.constant_(m.bias, 0)
 
 def shufflenetv2_plus(model_size='Medium', **kwargs):
-     block_choice = [0, 0, 3, 1, 1, 1, 0, 0, 2, 0, 2, 1, 1, 0, 2, 0, 2, 1, 3, 2]
-     channel_choice = [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
+    block_choice = [0, 0, 3, 1, 1, 1, 0, 0, 2, 0, 2, 1, 1, 0, 2, 0, 2, 1, 3, 2]
+    channel_choice = [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
     # block_choice = [1, 3, 2, 3, 3, 1, 2, 0, 3, 0, 2, 3, 0, 0, 1, 2, 2, 2, 3, 1] 
     # channel_choice = [8, 7, 5, 7, 1, 7, 7, 5, 1, 4, 0, 1, 0, 5, 1, 2, 3, 8, 2, 8]
     strides = [2, 2, 2, 1]
@@ -224,19 +196,19 @@ if __name__ == "__main__":
     np.random.seed(42)
     random.seed(42)
 
-    block_choice = [0, 0, 3, 1, 1, 1, 0, 0, 2, 0, 2, 1, 1, 0, 2, 0]
-    channel_choice = [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
-    model = ShuffleNetV2_Plus(
-        strides=[2,2,2],
-        stage_repeats=[4,4,8],
-        stage_out_channels=[64, 160, 320],
-        block_choice=block_choice, channel_choice=channel_choice)
-    num = 0.0
-    for p in model.parameters():
-        num += p.numel()
+    # block_choice = [0, 0, 3, 1, 1, 1, 0, 0, 2, 0, 2, 1, 1, 0, 2, 0]
+    # channel_choice = [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
+    # model = ShuffleNetV2_Plus(
+    #     strides=[2,2,2],
+    #     stage_repeats=[4,4,8],
+    #     stage_out_channels=[64, 160, 320],
+    #     block_choice=block_choice, channel_choice=channel_choice)
+    # num = 0.0
+    # for p in model.parameters():
+    #     num += p.numel()
 
-    print(num / 1e6)
-
+    # print(num / 1e6)
+    model = shufflenetv2_plus()
     x = torch.ones(2,3,112,112)
     output = model(x)
     print(output)

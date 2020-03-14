@@ -1,5 +1,5 @@
 from src.model.backbone.osnet import osnet
-from src.model.backbone.shufflenet import shufflenetv2_plus
+from src.model.backbone.shufflenetv2_plus import shufflenetv2_plus
 from src.model.backbone.hourglass import hourglass_net
 class BackboneFactory:
     products = {
