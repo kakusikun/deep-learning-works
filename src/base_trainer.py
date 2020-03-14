@@ -1,4 +1,5 @@
 import os
+from copy import deepcopy
 import numpy as np
 import logging
 logger = logging.getLogger("logger")
@@ -54,7 +55,10 @@ class BaseTrainer():
     def resume(self):
         if self.cfg.RESUME:
             logger.info("Resuming from {}".format(self.cfg.RESUME))
+            before_p = deepcopy(next(iter(self.graph.model.parameters())))
             self.graph.load(self.cfg.RESUME, solvers=self.solvers)
+            after_p = next(iter(self.graph.model.parameters()))
+            assert (after_p == before_p).sum() == 0
         else:
             logger.info("Training model from scratch")
     
