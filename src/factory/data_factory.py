@@ -6,6 +6,7 @@ from src.database.data.msmt import MSMT17
 from src.database.data.imagenet import ImageNet
 from src.database.data.cifar10 import Cifar10
 from src.database.data.emotion import Emotion
+from src.database.data.tinyimagenet import TinyImageNet
 
 class DataFactory:
     products = {
@@ -22,6 +23,7 @@ class DataFactory:
         'cifar10': Cifar10,
         'widerface': coco_data,
         'emotion': Emotion,
+        'tinyimagenet': TinyImageNet
     }
 
     @classmethod
