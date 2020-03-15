@@ -107,7 +107,7 @@ class BaseEngine():
 
     def Train(self):
         self._start()
-        while self.epoch <= self.max_epoch:
+        while self.epoch < self.max_epoch:
             self._train_epoch_start()
             self._train_once()
             self._train_epoch_end()
