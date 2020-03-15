@@ -70,26 +70,29 @@ class InvertedResidual(nn.Module):
 
 
 class ShuffleNetV2(nn.Module):
-    def __init__(self, stages_repeats, stages_out_channels, inverted_residual=InvertedResidual):
+    def __init__(self, strides, stages_repeats, stages_out_channels, inverted_residual=InvertedResidual):
         super(ShuffleNetV2, self).__init__()
         self.stage_out_channels = stages_out_channels
 
         input_channels = 3
         output_channels = self.stage_out_channels[0]
         self.conv1 = nn.Sequential(
-            nn.Conv2d(input_channels, output_channels, 3, 2, 1, bias=False),
+            nn.Conv2d(input_channels, output_channels, 3, strides[0], 1, bias=False),
             nn.BatchNorm2d(output_channels),
             nn.ReLU(inplace=True),
         )
         input_channels = output_channels
-
-        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+        
+        if strides[1] == 2:
+            self.maxpool = nn.MaxPool2d(kernel_size=3, stride=strides[1], padding=1)
+        else:
+            self.maxpool = nn.BatchNorm2d(input_channels)
 
         stage_names = ['stage{}'.format(i) for i in [2, 3, 4]]
-        for name, repeats, output_channels in zip(
-                stage_names, stages_repeats, self.stage_out_channels[1:]):
-            seq = [inverted_residual(input_channels, output_channels, 2)]
-            for i in range(repeats - 1):
+        for name, stride, repeats, output_channels in zip(
+                stage_names, strides[2:], stages_repeats, self.stage_out_channels[1:]):
+            seq = [inverted_residual(input_channels, output_channels, stride)]
+            for _ in range(repeats - 1):
                 seq.append(inverted_residual(output_channels, output_channels, 1))
             setattr(self, name, nn.Sequential(*seq))
             input_channels = output_channels
@@ -118,4 +121,7 @@ class ShuffleNetV2(nn.Module):
         return stage_feats
 
 def shufflenetv2():
-    return ShuffleNetV2([4, 8, 4], [24, 116, 232, 464])
+    return ShuffleNetV2([2, 2, 2, 2, 2], [4, 8, 4], [24, 116, 232, 464])
+
+def shufflenetv2_low_resolution():
+    return ShuffleNetV2([1, 1, 2, 2, 2], [4, 8, 4], [24, 116, 232, 464])
