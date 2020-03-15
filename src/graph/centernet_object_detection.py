@@ -6,7 +6,7 @@ class _Model(nn.Module):
     def __init__(self, cfg):
         super(_Model, self).__init__()
         self.backbone = BackboneFactory.produce(cfg)
-        self.feature_extraction = biFPN(["i_0", "i_1", "i_2", "i_3"], self.backbone.stage_out_channels, [1,2,4,4], 32, fpn=True, weighted_resize=True)
+        self.feature_extraction = biFPN(["i_0", "i_1", "i_2"], self.backbone.stage_out_channels[-3:], [1,2,4], 32, fpn=True, weighted_resize=True)
         self.wh_head = RegressionHead(32 * len(self.feature_extraction.configs), 2)
         self.heat_head = RegressionHead(32 * len(self.feature_extraction.configs), cfg.DB.NUM_CLASSES)
         self.reg_head = RegressionHead(32 * len(self.feature_extraction.configs), 2)      

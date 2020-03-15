@@ -63,9 +63,10 @@ class BaseGraph:
             ckpt = state['model']            
         else:
             ckpt = state
+            model = self.model.backbone
         model_state = model.state_dict() 
         self._state_processing(ckpt, model_state)                    
-        self.model.load_state_dict(model_state)
+        model.load_state_dict(model_state)
 
         if sub_models is not None:
             assert isinstance(sub_models, dict)
