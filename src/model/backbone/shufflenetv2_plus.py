@@ -10,7 +10,7 @@ from src.model.module.base_module import (
 )
 
 class ShuffleBlock(nn.Module):
-    def __init__(self, inc, midc, ouc, ksize, stride, activation, useSE, mode):
+    def __init__(self, inc, midc, ouc, ksize, stride, activation, useSE, mode, affine=True):
         super(ShuffleBlock, self).__init__()
         self.stride = stride
         pad = ksize // 2
@@ -18,19 +18,19 @@ class ShuffleBlock(nn.Module):
 
         if mode == 'v2':
             branch_main = [
-                ConvModule(inc, midc, 1, activation=activation),
-                ConvModule(midc, midc, ksize, stride=stride, padding=pad, groups=midc, activation='linear'),
-                ConvModule(midc, ouc - inc, 1, activation=activation),
+                ConvModule(inc, midc, 1, activation=activation, affine=affine),
+                ConvModule(midc, midc, ksize, stride=stride, padding=pad, groups=midc, activation='linear', affine=affine),
+                ConvModule(midc, ouc - inc, 1, activation=activation, affine=affine),
             ]
         elif mode == 'xception':
             assert ksize == 3
             branch_main = [
-                ConvModule(inc, inc, 3, stride=stride, padding=1, groups=inc, activation='linear'),
-                ConvModule(inc, midc, 1, activation=activation),
-                ConvModule(midc, midc, 3, stride=1, padding=1, groups=midc, activation='linear'),
-                ConvModule(midc, midc, 1, activation=activation),
-                ConvModule(midc, midc, 3, stride=1, padding=1, groups=midc, activation='linear'),
-                ConvModule(midc, ouc - inc, 1, activation=activation),
+                ConvModule(inc, inc, 3, stride=stride, padding=1, groups=inc, activation='linear', affine=affine),
+                ConvModule(inc, midc, 1, activation=activation, affine=affine),
+                ConvModule(midc, midc, 3, stride=1, padding=1, groups=midc, activation='linear', affine=affine),
+                ConvModule(midc, midc, 1, activation=activation, affine=affine),
+                ConvModule(midc, midc, 3, stride=1, padding=1, groups=midc, activation='linear', affine=affine),
+                ConvModule(midc, ouc - inc, 1, activation=activation, affine=affine),
             ]
         else:
             raise TypeError
@@ -44,8 +44,8 @@ class ShuffleBlock(nn.Module):
 
         if stride == 2:
             self.branch_proj = nn.Sequential(
-                ConvModule(inc, inc, ksize, stride=stride, padding=pad, groups=inc, activation='linear'),
-                ConvModule(inc, inc, 1, activation=activation),
+                ConvModule(inc, inc, ksize, stride=stride, padding=pad, groups=inc, activation='linear', affine=affine),
+                ConvModule(inc, inc, 1, activation=activation, affine=affine),
             )
         else:
             self.branch_proj = None
@@ -73,7 +73,7 @@ class ShuffleNetV2_Plus(nn.Module):
         stage_out_channels,
         block_choice=None, 
         channel_choice=None, 
-        model_size='Large'):
+        mode='plus'):
         super(ShuffleNetV2_Plus, self).__init__()
         assert block_choice is not None
         assert channel_choice is not None
@@ -83,22 +83,30 @@ class ShuffleNetV2_Plus(nn.Module):
         self.stage_repeats = stage_repeats
         self.stage_out_channels = stage_out_channels
         
-        stemc = block_inc = 16
-        self.stem = ConvModule(3, stemc, 3, stride=2, padding=1, activation='hs')
+        stemc = block_inc = self.stage_out_channels[0]
+        self.stem = ConvModule(3, stemc, 3, stride=self.strides[0], padding=1, activation='hs')
+
+        self.max_pool = None
+        if mode == 'v2':
+            if strides[1] == 2:
+                self.max_pool = nn.MaxPool2d(kernel_size=3, stride=self.strides[1], padding=1)
+            else:
+                self.max_pool = nn.BatchNorm2d(block_inc)
+
         self.stages = nn.ModuleList()
 
         block_idx = 0
         for stage_i in range(len(self.stage_repeats)):
             stage = []
             num_blocks = self.stage_repeats[stage_i]
-            ouc = self.stage_out_channels[stage_i]
+            ouc = self.stage_out_channels[stage_i+1]
 
-            activation = 'hs' if stage_i >= 1 else 'relu'
-            useSE = 'True' if stage_i >= 2 else False
+            activation = 'hs' if stage_i >= 1 and mode == 'plus' else 'relu'
+            useSE = 'True' if stage_i >= 2 and mode == 'plus' else False
 
             for i in range(num_blocks):
                 if i == 0:
-                    inc, stride = block_inc, self.strides[stage_i]
+                    inc, stride = block_inc, self.strides[stage_i+1]
                 else:
                     inc, stride = ouc, 1
                 
@@ -163,26 +171,39 @@ def shufflenetv2_plus(model_size='Medium', **kwargs):
     channel_choice = [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
     # block_choice = [1, 3, 2, 3, 3, 1, 2, 0, 3, 0, 2, 3, 0, 0, 1, 2, 2, 2, 3, 1] 
     # channel_choice = [8, 7, 5, 7, 1, 7, 7, 5, 1, 4, 0, 1, 0, 5, 1, 2, 3, 8, 2, 8]
-    strides = [2, 2, 2, 1]
+    strides = [2, 2, 2, 2, 2]
     stage_repeats = [4, 4, 8, 4]
 
     if model_size == 'Large':
-        stage_out_channels = [68, 168, 336, 672]
+        stage_out_channels = [16, 68, 168, 336, 672]
     elif model_size == 'Medium':
-        stage_out_channels = [48, 128, 256, 512]
+        stage_out_channels = [16, 48, 128, 256, 512]
     elif model_size == 'Small':
-        stage_out_channels = [36, 104, 208, 416]
+        stage_out_channels = [16, 36, 104, 208, 416]
     elif model_size == 'OneShot':
-        stage_out_channels = [64, 160, 320, 640]
+        stage_out_channels = [16, 64, 160, 320, 640]
     else:
         raise TypeError
-
 
     model = ShuffleNetV2_Plus(
         strides=strides,
         stage_repeats=stage_repeats,
         stage_out_channels=stage_out_channels,
-        block_choice=block_choice, channel_choice=channel_choice)
+        block_choice=block_choice, 
+        channel_choice=channel_choice)
+    return model
+
+def shufflenetv2():
+    block_choice = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    channel_choice = [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
+
+    model = ShuffleNetV2_Plus(
+        strides=[1, 1, 2, 2, 2],
+        stage_repeats=[4, 8, 4],
+        stage_out_channels=[24, 116, 232, 464],
+        block_choice=block_choice, 
+        channel_choice=channel_choice,
+        mode='v2')
     return model
 
 if __name__ == "__main__":
