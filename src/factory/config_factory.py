@@ -48,6 +48,7 @@ _C.MODEL.GPU = []
 _C.MODEL.BACKBONE = ""
 _C.MODEL.SAVE_CRITERION = "acc"
 _C.MODEL.STRIDE = 1
+_C.MODEL.FEATSIZE = 0
 
 # -----------------------------------------------------------------------------
 # INPUT
