@@ -4,7 +4,7 @@ class _Model(nn.Module):
     def __init__(self, cfg):
         super().__init__()
         self.backbone = BackboneFactory.produce(cfg)
-        self.head = MobileNetv3ClassifierHead(cfg.MODEL.FEATSIZE, cfg.DB.NUM_CLASSES)
+        self.head = ShuffleNetv2PlusClassifierHead(cfg.MODEL.FEATSIZE, cfg.DB.NUM_CLASSES)
     def forward(self, x):
         x = self.backbone(x)[-1]
         x = self.head(x)
