@@ -160,6 +160,7 @@ if __name__ == '__main__':
     import torch
     import numpy as np
     import random
+    from copy import deepcopy
 
     torch.manual_seed(42)
     torch.backends.cudnn.deterministic = True
@@ -172,24 +173,27 @@ if __name__ == '__main__':
     cfg.MODEL.FEATSIZE = 464
     graph = ShuffleNetv2SPOS(cfg)
 
-    b = graph.random_block_choices(-1)
-    b = graph.random_block_choices(10)
-    c = graph.random_channel_choices(-1)
-    c = graph.random_channel_choices(10)
-    c = graph.random_channel_choices(20)
-    c = graph.random_channel_choices(30)
-    c = graph.random_channel_choices(40)
-    c = graph.random_channel_choices(50)
-    c = graph.random_channel_choices(60)
-    c = graph.random_channel_choices(70)
-    c = graph.random_channel_choices(80)
-    c = graph.random_channel_choices(90)
-    c = graph.random_channel_choices(100)
-    c = graph.random_channel_choices(110)
+    # b = graph.random_block_choices(-1)
+    # b = graph.random_block_choices(10)
+    # c = graph.random_channel_choices(-1)
+    # c = graph.random_channel_choices(10)
+    # c = graph.random_channel_choices(20)
+    # c = graph.random_channel_choices(30)
+    # c = graph.random_channel_choices(40)
+    # c = graph.random_channel_choices(50)
+    # c = graph.random_channel_choices(60)
+    # c = graph.random_channel_choices(70)
+    # c = graph.random_channel_choices(80)
+    # c = graph.random_channel_choices(90)
+    # c = graph.random_channel_choices(100)
+    # c = graph.random_channel_choices(110)
 
     for m in graph.model.modules():
         if hasattr(m, 'copy_weight'):
+            before_p = deepcopy(next(iter(m.parameters())))
             m.copy_weight()
+            after_p = next(iter(m.parameters()))
+            assert (after_p == before_p).sum() == 0
 
     # block_choice = [0, 0, 3, 0, 0, 0, 0, 0, 3, 0, 3, 0, 0, 0, 3, 0]
     # channel_choice = [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]

@@ -34,12 +34,13 @@ class SPOSClassificationEngine(BaseEngine):
                     time.sleep(1)
 
             channel_choices = cand['channel_choices']
-            block_choices = cand['block_choices']                
+            block_choices = cand['block_choices']        
+            self.visualizer.add_scalar('train/evolution/flops', cand['flops'], self.iter)              
+            self.visualizer.add_scalar('train/evolution/params', cand['param'], self.iter)                      
             outputs = self.graph.model(batch['inp'], block_choices, channel_choices)
             self.loss, self.losses = self.graph.loss_head(outputs, batch)
             accus.append((outputs.max(1)[1] == batch['target']).float().mean())        
             self._train_iter_end()    
-
         self.train_accu = self.tensor_to_scalar(torch.stack(accus).mean())
         self.finished.value = True
 
@@ -48,8 +49,27 @@ class SPOSClassificationEngine(BaseEngine):
         while self.epoch < self.max_epoch:
             self._train_epoch_start()
             self.finished.value = False
+            if self.epoch - self.cfg.SPOS.EPOCH_TO_SEARCH == 0:
+                logger.info("Copy Weights from Nas Blocks")
+                if isinstance(self.graph.model, nn.DataParallel):
+                    for m in self.graph.model.module.modules():
+                        if hasattr(m, 'copy_weight'):
+                            before_p = deepcopy(next(iter(m.parameters())))
+                            m.copy_weight()
+                            after_p = next(iter(m.parameters()))
+                            assert (after_p == before_p).sum() == 0
+                else:
+                    for m in self.graph.model.modules():
+                        if hasattr(m, 'copy_weight'):
+                            before_p = deepcopy(next(iter(m.parameters())))
+                            m.copy_weight()
+                            after_p = next(iter(m.parameters()))
+                            assert (after_p == before_p).sum() == 0
+
+
             pool_process = multiprocessing.Process(target=self.evolution.maintain,
                 args=[self.epoch - self.cfg.SPOS.EPOCH_TO_SEARCH, self.cand_pool, self.lock, self.finished, logger])
+
             pool_process.start()                                        
             self._train_once()
             pool_process.join()
