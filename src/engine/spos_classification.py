@@ -30,16 +30,11 @@ class SPOSClassificationEngine(BaseEngine):
                 if len(self.cand_pool) > 0:
                     with self.lock:
                         cand = self.cand_pool.pop()
-                        if i % 50 == 0:
-                            logger.info('-' * 40)
-                            logger.info(f"[Train] Block Choices: {cand['block_choices']}")
-                            logger.info(f"[Train] Channel Choice: {cand['channel_choices']}")
-                            logger.info(f"[Train] Flop: {cand['flops']:.2f}M, param: {cand['param']:.2f}M")
                 else:
                     time.sleep(1)
 
             channel_choices = cand['channel_choices']
-            block_choices = cand['block_choices']        
+            block_choices = cand['block_choices']                
             outputs = self.graph.model(batch['inp'], block_choices, channel_choices)
             self.loss, self.losses = self.graph.loss_head(outputs, batch)
             accus.append((outputs.max(1)[1] == batch['target']).float().mean())        
@@ -52,7 +47,7 @@ class SPOSClassificationEngine(BaseEngine):
         self._start()
         while self.epoch < self.max_epoch:
             self._train_epoch_start()
-            self.finished.value = True
+            self.finished.value = False
             pool_process = multiprocessing.Process(target=self.evolution.maintain,
                 args=[self.epoch - self.cfg.SPOS.EPOCH_TO_SEARCH, self.cand_pool, self.lock, self.finished, logger])
             pool_process.start()                                        

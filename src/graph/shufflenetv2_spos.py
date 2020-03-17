@@ -7,26 +7,30 @@ from src.model.module.loss_module import CrossEntropyLossLS
 import random
 
 class _Model(nn.Module):
-    def __init__(self, cfg):
+    def __init__(self, cfg, strides, stage_repeats, stage_out_channels):
         super().__init__()
         self.backbone = ShuffleNetOneShot(
-            strides=[1, 1, 2, 2, 2],
-            stage_repeats=[4, 8, 4],
-            stage_out_channels=[24, 116, 232, 464],
+            strides=strides,
+            stage_repeats=stage_repeats,
+            stage_out_channels=stage_out_channels,
             mode='v2'
         )
         self.head = ClassifierHead(cfg.MODEL.FEATSIZE, cfg.DB.NUM_CLASSES)
-    def forward(self, x):
-        x = self.backbone(x)
+    def forward(self, x, block_choices, channel_choices):
+        x = self.backbone(x, block_choices, channel_choices)
         x = self.head(x)
         return x
 
 class ShuffleNetv2SPOS(BaseGraph):
     def __init__(self, cfg):
+        self.strides = [1, 1, 2, 2, 2]
+        self.stage_repeats = [4, 8, 4]
+        self.stage_out_channels = [24, 116, 232, 464]
+        self.channel_scales = [0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0]
         super().__init__(cfg)
 
     def build(self):
-        self.model = _Model(self.cfg)
+        self.model = _Model(self.cfg, self.strides, self.stage_repeats, self.stage_out_channels)
     
         self.crit = {}
         self.crit['cels'] = CrossEntropyLossLS(self.cfg.DB.NUM_CLASSES)
@@ -39,30 +43,32 @@ class ShuffleNetv2SPOS(BaseGraph):
         self.loss_head = loss_head
         self.lookup_table = self.get_lookup_table()
 
-    def _generate_block_candidates(self, epoch_after_search):
-        self.block_candidates = []
-        for num_repeats in self.model.backbone.stage_repeats:
+    def generate_block_candidates(self, epoch_after_search=None):
+        block_candidates = []
+        for num_repeats in self.stage_repeats:
             for i in range(num_repeats):
                 if i == 0:
-                    self.block_candidates.append([1,2])
+                    block_candidates.append([1,2])
                 else:
                     if epoch_after_search >= 0 or epoch_after_search is None:
-                        self.block_candidates.append([0, 1, 2])
+                        block_candidates.append([0, 1, 2])
                     else:
-                        self.block_candidates.append([1, 2])
+                        block_candidates.append([1, 2])
+        return block_candidates
 
-    def _generate_channel_candidates(self, epoch_after_search):
-        choice = list(range(len(self.model.backbone.channel_scales)))
-        self.channel_candidates = []
-        for num_repeats in self.model.backbone.stage_repeats:
+    def generate_channel_candidates(self, epoch_after_search=None):
+        choice = list(range(len(self.channel_scales)))
+        channel_candidates = []
+        for num_repeats in self.stage_repeats:
             for _ in range(num_repeats):
                 if epoch_after_search is None:                   
-                    self.channel_candidates.append(choice)
+                    channel_candidates.append(choice)
                 else:
                     if epoch_after_search >= 0:
-                        self.channel_candidates.append(choice[(-1*(epoch_after_search//self.cfg.SPOS.CANDIDATE_RELAX_EPOCHS+2)):])
+                        channel_candidates.append(choice[(-1*(epoch_after_search//self.cfg.SPOS.CANDIDATE_RELAX_EPOCHS+2)):])
                     else:
-                        self.channel_candidates.append(choice[-1:])
+                        channel_candidates.append(choice[-1:])
+        return channel_candidates
 
     def get_lookup_table(self):
         root = os.getcwd()
@@ -82,10 +88,10 @@ class ShuffleNetv2SPOS(BaseGraph):
         return lookup_table
 
     def random_block_choices(self, epoch_after_search=None):
-        self._generate_block_candidates(epoch_after_search)
+        block_candidates = self.generate_block_candidates(epoch_after_search)
         block_choices = []
-        for i in range(sum(self.model.backbone.stage_repeats)):
-            block_choices.append(random.choice(self.block_candidates[i]))
+        for i in range(sum(self.stage_repeats)):
+            block_choices.append(random.choice(block_candidates[i]))
         return block_choices
 
     def random_channel_choices(self, epoch_after_search=None):
@@ -94,10 +100,10 @@ class ShuffleNetv2SPOS(BaseGraph):
         mode: str, "dense" or "sparse". Sparse mode select # channel from candidate scales. Dense mode selects
               # channels between randint(min_channel, max_channel).
         """
-        assert len(self.model.backbone.stage_repeats) == len(self.model.backbone.stage_out_channels[1:])
+        assert len(self.stage_repeats) == len(self.stage_out_channels[1:])
         # From [1.0, 1.2, 1.4, 1.6, 1.8, 2.0] to [0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0], warm-up stages are
         # not just 1 epoch, but 2, 3, 4, 5 accordingly.
-        self._generate_channel_candidates(epoch_after_search)
+        channel_candidates = self.generate_channel_candidates(epoch_after_search)
 
         #TODO: remove older method
         # epoch_delay_early = {0: 0,  # 8
@@ -143,8 +149,8 @@ class ShuffleNetv2SPOS(BaseGraph):
         #             channel_choices.append(channel_choice)
 
         channel_choices = []
-        for i in range(sum(self.model.backbone.stage_repeats)):
-            channel_choices.append(random.choice(self.channel_candidates[i]))
+        for i in range(sum(self.stage_repeats)):
+            channel_choices.append(random.choice(channel_candidates[i]))
 
         return channel_choices
 

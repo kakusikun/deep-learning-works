@@ -53,8 +53,6 @@ class Evolution:
         self.param_range = [max_params - i * self.param_interval for i in range(len(self.children_pick_ids))]
 
         self.cur_step = 0
-        self.source_choice = {'channel_choices': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-                            'block_choices': [0, 3]}
         
         p = next(iter(self.graph.model.parameters()))
         if p.is_cuda:
@@ -73,6 +71,8 @@ class Evolution:
             pick_id, find_max_param, max_flops, max_params, min_params = self.forced_evolution() 
             g = f"{find_max_param}, {max_flops:.2f}, {max_params:.2f}, {min_params:.2f}"
         # Prepare random parents for the initial evolution
+        block_candidates = self.graph.generate_block_candidates(epoch_after_search)
+        channel_candidates = self.graph.generate_channel_candidates(epoch_after_search)
         while len(self.parents) < self.parent_size:
             block_choices = self.graph.random_block_choices(epoch_after_search)
             channel_choices = self.graph.random_channel_choices(epoch_after_search)
@@ -103,7 +103,7 @@ class Evolution:
                 block_choices[i] = random.choice([mother['block_choices'][i], father['block_choices'][i]])
                 # Mutation: randomly mutate some of the children.
                 if random.random() < self.mutate_ratio:
-                    block_choices[i] = random.choice(self.source_choice['block_choices'])
+                    block_choices[i] = random.choice(block_candidates[i])
 
             # breed channel choice
             channel_choices = [0] * len(father['channel_choices'])
@@ -111,7 +111,7 @@ class Evolution:
                 channel_choices[i] = random.choice([mother['channel_choices'][i], father['channel_choices'][i]])
                 # Mutation: randomly mutate some of the children after all channel is warming up.
                 if random.random() < self.mutate_ratio and epoch_after_search > 0:
-                    channel_choices[i] = random.choice(self.source_choice['channel_choices'])
+                    channel_choices[i] = random.choice(channel_candidates[i])
 
             flops, param = get_flop_params(block_choices, channel_choices, self.lookup_table)
 
@@ -182,6 +182,7 @@ class Evolution:
 
     def maintain(self, epoch_after_search, pool, lock, finished_flag, logger=None):
         self._read_bad_generation()
+        logger.info("Evolution Starts")
         while not finished_flag.value:
             if len(pool) < self.pool_target_size:
                 max_flops, pick_id, range_id, find_max_param = self.get_cur_evolve_state()
@@ -216,11 +217,15 @@ class Evolution:
         logger.info("[Evolution] Ends")
 
     def set_flops_params_bound(self):
-        block_choices = [3] * sum(self.graph.model.backbone.stage_repeats)
-        channel_choices = [7] * sum(self.graph.model.backbone.stage_repeats)
+        block_choices = [2] * sum(self.graph.stage_repeats)
+        channel_choices = [7] * sum(self.graph.stage_repeats)
         max_flops, max_params = get_flop_params(block_choices, channel_choices, self.lookup_table)
-        block_choices = [0] * sum(self.graph.model.backbone.stage_repeats)
-        channel_choices = [3] * sum(self.graph.model.backbone.stage_repeats)     
+        block_choices = [0] * sum(self.graph.stage_repeats)
+        cum_repeats = 0
+        for repeats in self.graph.stage_repeats:
+            block_choices[cum_repeats] = 1
+            cum_repeats += repeats
+        channel_choices = [3] * sum(self.graph.stage_repeats)     
         min_flops, min_params = get_flop_params(block_choices, channel_choices, self.lookup_table)
         return max_flops, min_flops, max_params, min_params
 
@@ -269,8 +274,9 @@ class SearchEvolution:
         self.history = defaultdict(list)
 
         self.lookup_table = self.graph.lookup_table
-
-        self.graph.use_multigpu()
+        self.graph.to_gpus()
+        self.block_candidates = self.graph.generate_block_candidates()
+        self.channel_candidates = self.graph.generate_channel_candidates()
 
     def build_population(self):
         population = []
@@ -313,8 +319,8 @@ class SearchEvolution:
         children = []
         for _ in range(2):
             child = {}
-            child['block'] = self.crossover_mutate(father['block'], mother['block'], self.graph.block_candidates, self.mutate_chance)
-            child['channel'] = self.crossover_mutate(father['channel'], mother['channel'], self.graph.channel_candidates, self.mutate_chance)
+            child['block'] = self.crossover_mutate(father['block'], mother['block'], self.block_candidates, self.mutate_chance)
+            child['channel'] = self.crossover_mutate(father['channel'], mother['channel'], self.channel_candidates, self.mutate_chance)
             children.append(child)
         return children
 
@@ -467,13 +473,11 @@ def recalc_bn(graph, block_choices, channel_choices, bndata, use_gpu, bn_recalc_
 
 def get_flop_params(all_block_choice, all_channel_choice, lookup_table):
     assert isinstance(all_block_choice, list) and isinstance(all_channel_choice, list)
-    flops = lookup_table['flops']['input_block'] + lookup_table['flops']['output_block']
-    params = lookup_table['params']['input_block'] + lookup_table['params']['output_block']
-
+    flops = params = 0.0
     for block_idx, (block_choice, channel_choice) in enumerate(zip(all_block_choice, all_channel_choice)):
         choice_id = f"{block_idx}-{block_choice}-{channel_choice}"
-        flops += lookup_table['flops']['nas_block'][choice_id]
-        params += lookup_table['params']['nas_block'][choice_id]
+        flops += lookup_table['flops']['backbone'][choice_id]
+        params += lookup_table['params']['backbone'][choice_id]
     return flops, params
     
 if __name__ == "__main__":
