@@ -16,6 +16,14 @@ class ImagenetTrainer(BaseTrainer):
         self.graph.to_gpu()
         self.activate()
 
+class SPOSClassificationTrainer(BaseTrainer):
+    def __init__(self, cfg):
+        super(SPOSClassificationTrainer, self).__init__(cfg)
+        self.solvers['main'] = Solver(
+            cfg, [self.graph.model.named_parameters()])
+        self.graph.to_gpu()
+        self.activate()
+        
 # class ReIDTrainer(BaseTrainer):
 #     def __init__(self, cfg):
 #         super(ReIDTrainer, self).__init__(cfg)

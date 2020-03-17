@@ -150,6 +150,18 @@ _C.PAR.IGNORE_CAT = []
 _C.COCO = CN()
 _C.COCO.TARGET = 'original'
 
+# ---------------------------------------------------------------------------- #
+# SPOS
+# ---------------------------------------------------------------------------- #
+_C.SPOS = CN()
+_C.SPOS.EPOCH_TO_SEARCH = 60
+_C.SPOS.CANDIDATE_RELAX_EPOCHS = 10
+_C.SPOS.DURATION = 4
+
+# ---------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------- #
+
+
 def build_output(cfg, config_file=""):
     time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
     if cfg.EVALUATE:

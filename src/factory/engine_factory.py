@@ -1,12 +1,14 @@
 from src.engine.classification import ClassificationEngine
 from src.engine.centernet_object_detection import CenternetODEngine
 from src.engine.hourglass_object_detection import HourglassODEngine
+from src.engine.spos_classification import SPOSClassificationEngine
 
 class EngineFactory():
     products = {
         'classification': ClassificationEngine,
         'centernet_object_detection': CenternetODEngine,
         'hourglass_object_detection': HourglassODEngine,
+        'spos_classification': SPOSClassificationEngine,
     }
 
     @classmethod

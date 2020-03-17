@@ -5,6 +5,7 @@ import numpy as np
 from src.model.module.base_module import (
     ConvModule,
     SEModule,
+    Identity,
     HSwish,
 )
 
@@ -90,7 +91,7 @@ class ShuffleNasBlock(nn.Module):
         self.nas_block = nn.ModuleList()
 
         self.nas_block.append(
-            nn.Sequential()
+            Identity()
         )
         self.nas_block.append(
             ShuffleNetCSBlock(input_channel, output_channel, channel_scales,

@@ -1,9 +1,14 @@
-from src.trainer.trainers import CenternetODTrainer, ImagenetTrainer
+from src.trainer.trainers import (
+    CenternetODTrainer, 
+    ImagenetTrainer,
+    SPOSClassificationTrainer,
+)
 
 class TrainerFactory:
     products = {
         'imagenet': ImagenetTrainer,
         'centernet_object_detection': CenternetODTrainer,
+        'spos_classification': SPOSClassificationTrainer,
     }
 
     @classmethod

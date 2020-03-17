@@ -7,7 +7,11 @@ import torch.nn.functional as F
 import numpy as np
 
 from src.model.module.spos_modules import ShuffleNasBlock
-from src.model.module.base_module import ConvModule
+from src.model.module.base_module import ConvModule, HSwish
+
+from thop import profile
+import logging
+logger = logging.getLogger('logger')
 
 class ShuffleNetOneShot(nn.Module):
     def __init__(self,
@@ -17,10 +21,11 @@ class ShuffleNetOneShot(nn.Module):
         mode='plus'):
         super(ShuffleNetOneShot, self).__init__()
 
-        channel_scales = [0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0]
+        self.channel_scales = [0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0]
         self.strides = strides
         self.stage_repeats = stage_repeats
         self.stage_out_channels = stage_out_channels
+        self.mode = mode
         
         stemc = block_inc = self.stage_out_channels[0]
         self.stem = ConvModule(3, stemc, 3, stride=self.strides[0], padding=1, activation='hs', affine=False)
@@ -50,7 +55,7 @@ class ShuffleNetOneShot(nn.Module):
                     inc,
                     ouc,
                     stride=stride,
-                    channel_scales=channel_scales,
+                    channel_scales=self.channel_scales,
                     use_se=useSE,
                     act_name=activation))
                 block_idx += 1
@@ -71,8 +76,43 @@ class ShuffleNetOneShot(nn.Module):
         assert block_idx == len(block_choices)
         return x
 
-    def _get_flops_params(self, x):
-        #TODO
+    def _get_lookup_table(self, x):
+        lookup_table = dict()
+        lookup_table['config'] = dict()
+        lookup_table['config']['mode'] = self.mode
+        lookup_table['config']['stage_repeats'] = self.stage_repeats
+        lookup_table['config']['stage_out_channels'] = self.stage_out_channels
+        lookup_table['config']['channel_scales'] = self.channel_scales
+        lookup_table['config']['block_choices'] = ['ShuffleNetV2_3x3', 'ShuffleXception']
+        lookup_table['config']['input_size'] = list(x.size())
+        lookup_table['flops'] = dict()
+        lookup_table['params'] = dict()
+        lookup_table['flops']['backbone'] = {}
+        lookup_table['params']['backbone'] = {}
+        block_choices = [0, 1, 2]
+        channel_choices = list(range(len(self.channel_scales)))
+        self.stem.eval()
+        x = self.stem(x)
+        if self.max_pool:
+            x = self.max_pool(x)
+
+        block_idx = 0
+        for m in self.stages:
+            for b in block_choices:
+                for c in channel_choices:
+                    if b == 0:
+                        b_flops, b_params = 0.0, 0.0
+                    else:
+                        b_flops, b_params = profile(m.nas_block[b].block[c], inputs=(x,), custom_ops={HSwish:count_hs})
+                    choice_id = f"{block_idx}-{b}-{c}"
+                    lookup_table['flops']['backbone'][choice_id] = b_flops / 1e6
+                    lookup_table['params']['backbone'][choice_id] = b_params / 1e6
+            m.eval()
+            x = m(x, 1, 1)
+            block_idx += 1
+        assert block_idx == sum(self.stage_repeats)
+        return lookup_table
+        
 
     def _initialize_weights(self):
         for name, m in self.named_modules():
@@ -94,3 +134,7 @@ class ShuffleNetOneShot(nn.Module):
                 if m.bias is not None:
                     nn.init.constant_(m.bias, 0)
 
+def count_hs(m, x, y):
+    x = x[0]
+    nelements = x.numel()
+    m.total_ops += torch.Tensor([int(nelements * 2)])
