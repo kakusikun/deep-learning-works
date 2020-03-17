@@ -24,6 +24,24 @@ import logging
 from tqdm import tqdm
 logger = logging.getLogger("logger")
 
+def tensor_to_scalar(tensor):
+    if isinstance(tensor, list):
+        scalar = []
+        for _tensor in tensor:
+            scalar.append(_tensor.item())
+    elif isinstance(tensor, dict):
+        scalar = {}
+        for _tensor in tensor:
+            scalar[_tensor] = tensor[_tensor].item()
+    elif isinstance(tensor, torch.Tensor) and tensor.dim() != 0:
+        if tensor.is_cuda:
+            scalar = tensor.cpu().detach().numpy().tolist()
+        else:
+            scalar = tensor.detach().numpy().tolist()
+    else:
+        scalar = tensor.item()
+    return scalar
+    
 def _sigmoid(x):
   y = torch.clamp(x.sigmoid_(), min=1e-4, max=1-1e-4)
   return y

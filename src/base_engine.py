@@ -92,7 +92,7 @@ class BaseEngine():
                         logger.info(f"Save checkpoint, with {self.min_loss - self.test_loss:.4f} improvement")
                         self.graph.save(self.graph.save_path, self.graph.model, self.graph.sub_models, self.solvers, self.epoch, self.min_loss)
                     self.min_loss = self.test_loss
-                self.visualizer.add_scalar('val/loss', self.min_loss, self.epoch)
+                self.visualizer.add_scalar('val/loss', self.test_loss, self.epoch)
             else:
                 logger.info(f"Epoch {self.epoch} evaluation ends, accuracy {self.accu:.4f}")
                 if self.accu > self.best_accu:
@@ -100,7 +100,7 @@ class BaseEngine():
                         logger.info(f"Save checkpoint, with {self.accu - self.best_accu:.4f} improvement")
                         self.graph.save(self.graph.save_path, self.graph.model, self.graph.sub_models, self.solvers, self.epoch, self.best_accu)                    
                     self.best_accu = self.accu
-                self.visualizer.add_scalar('val/accuracy', self.best_accu, self.epoch)
+                self.visualizer.add_scalar('val/accuracy', self.accu, self.epoch)
 
     def _train_once(self):
         raise NotImplementedError
