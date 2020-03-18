@@ -33,14 +33,14 @@ class ShuffleNetv2SPOS(BaseGraph):
         self.model = _Model(self.cfg, self.strides, self.stage_repeats, self.stage_out_channels)
     
         self.crit = {}
-        self.crit['cels'] = CrossEntropyLossLS(self.cfg.DB.NUM_CLASSES)
+        self.crit['ce'] = nn.CrossEntropyLoss()
 
         def loss_head(feat, batch):
-            losses = {'cels':self.crit['cels'](feat, batch['target'])}
-            loss = losses['cels']
+            losses = {'ce':self.crit['ce'](feat, batch['target'])}
+            loss = losses['ce']
             return loss, losses
-
         self.loss_head = loss_head
+
         self.lookup_table = self.get_lookup_table()
 
     def generate_block_candidates(self, epoch_after_search=None):
@@ -50,7 +50,7 @@ class ShuffleNetv2SPOS(BaseGraph):
                 if i == 0:
                     block_candidates.append([1,2])
                 else:
-                    if epoch_after_search >= 0 or epoch_after_search is None:
+                    if epoch_after_search is None or epoch_after_search >= 0:
                         block_candidates.append([0, 1, 2])
                     else:
                         block_candidates.append([1, 2])
