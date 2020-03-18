@@ -96,8 +96,7 @@ class SPOSClassificationEngine(BaseEngine):
             for batch in tqdm(self.vdata, desc=title): 
                 for key in batch:
                     batch[key] = batch[key].cuda()
-                images = batch['inp']                      
-                outputs = self.graph.model(images)
+                outputs = self.graph.model(batch['inp'], block_choices, channel_choices)
                 accus.append((outputs.max(1)[1] == batch['target']).float().mean())
           
         self.accu = self.tensor_to_scalar(torch.stack(accus).mean())   
