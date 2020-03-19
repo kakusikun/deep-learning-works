@@ -128,7 +128,7 @@ class BaseGraph:
                     self.model = torch.nn.DataParallel(self.model)
                 else:
                     logger.info("Use .cuda() first")
-            else:
+            elif self.use_gpu:
                 logger.info("Use One GPU")
 
     def set_save_path(self):

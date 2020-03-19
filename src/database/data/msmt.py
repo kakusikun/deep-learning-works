@@ -18,7 +18,6 @@ class MSMT17(BaseData):
     # images: 32621 (train) + 11659 (query) + 82161 (gallery)
     # cameras: 15
     """
-    dataset_dir = 'msmt17'
 
     def __init__(self, path="", branch="", use_train=False, use_test=False, is_merge=False, **kwargs):
         super().__init__()

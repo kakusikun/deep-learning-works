@@ -32,7 +32,7 @@ class DataFactory:
 
     @classmethod
     def produce(cls, cfg, data_name=None):
-        if cfg.DB.DATA not in cls.products:
+        if data_name is None and cfg.DB.DATA not in cls.products:
             raise KeyError
         else:
             return cls.products[cfg.DB.DATA if data_name is None else data_name](

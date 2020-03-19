@@ -43,28 +43,14 @@ class RegressionHead(nn.Module):
 
 class MobileNetv3ClassifierHead(nn.Module):
     def __init__(self, in_channels, num_classes, featc=1024):
+        #TODO: recorrect
         super(MobileNetv3ClassifierHead, self).__init__()
-        featc = int(featc * 0.75)
-        self.v3_conv = ConvModule(in_channels, featc, 1, activation='hs')
-        self.gap = nn.AdaptiveAvgPool2d(1)
-        self.v3_se = SEModule(featc)
-        self.v3_fc = nn.Linear(featc, featc, bias=False)
-        self.v3_hs = HSwish()
-        self.dropout = nn.Dropout(0.2)
-        self.v3_fc2 = nn.Linear(featc, num_classes, bias=False)
-
+        
         self._initialize_weights()
 
     def forward(self, x):
-        x = self.v3_conv(x)
-        x = self.gap(x)
-        x = self.v3_se(x)
-        x = x.contiguous().view(x.size(0), -1)
-        x = self.v3_fc(x)
-        x = self.dropout(x)
-        x = self.v3_fc2(x)
-        return x
-        
+        pass
+
     def _initialize_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -135,13 +121,54 @@ class ShuffleNetv2PlusClassifierHead(nn.Module):
                     nn.init.constant_(m.bias, 0)
 
 class HourGlassHead(nn.Module):
-    def __init__(self, in_channels, num_dim):
+    def __init__(self, in_channels, n_dim):
         super(HourGlassHead, self).__init__()    
 
         self.head = nn.Sequential(
             ConvModule(in_channels, 256, 1, use_bn=False),
-            ConvModule(256, num_dim, 1, activation='linear', use_bn=False, bias=True)
+            ConvModule(256, n_dim, 1, activation='linear', use_bn=False, bias=True)
         )
     
     def forward(self, x):
         return self.head(x)
+
+class ReIDTrickHead(nn.Module):
+    def __init__(self, in_channels, n_dim):
+        super(ReIDTrickHead, self).__init__()
+        self.gap = nn.AdaptiveAvgPool2d(1)        
+        self.BNNeck = nn.BatchNorm1d(in_channels)
+        self.BNNeck.bias.requires_grad_(False)  # no shift
+        self.BNNeck.apply(self.weights_init_kaiming)
+        self.id_fc = nn.Linear(in_channels, n_dim, bias=False)        
+        self.id_fc.apply(self.weights_init_classifier)
+
+    def forward(self, x):
+        x = self.gap(x)
+        local_feat = x.view(x.size(0), -1)
+        x = self.BNNeck(local_feat)
+        global_feat = None
+        if self.training:
+            global_feat = self.id_fc(x)
+        return x, local_feat, global_feat
+    
+    def weights_init_kaiming(self, module):
+        for m in module.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.kaiming_normal_(m.weight, a=0, mode='fan_out')
+                nn.init.constant_(m.bias, 0.0)
+            elif isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, a=0, mode='fan_in')
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0.0)
+            elif isinstance(m, nn.BatchNorm2d):
+                if m.affine:
+                    nn.init.constant_(m.weight, 1.0)
+                    nn.init.constant_(m.bias, 0.0)
+
+    def weights_init_classifier(self, module):
+        for m in module.modules():
+            if isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
+                nn.init.normal_(m.weight, std=0.001)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0.0)
+            

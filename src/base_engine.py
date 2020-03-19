@@ -16,8 +16,8 @@ class BaseEngine():
         self.solvers = solvers
         self.tdata = loader['train'] if 'train' in loader else None
         self.vdata = loader['val'] if 'val' in loader else None
-        self.qdata = loader['val']['query'] if 'val' in loader and isinstance(loader['val'], dict) and 'query' in loader['val'] else None
-        self.gdata = loader['val']['gallery'] if 'val' in loader and isinstance(loader['val'], dict) and 'gallery' in loader['val'] else None
+        self.qdata = loader['query'] if 'query' in loader else None
+        self.gdata = loader['gallery'] if 'gallery' in loader else None
         self.visualizer = visualizer
 
         self.iter = 0

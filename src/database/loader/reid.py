@@ -16,24 +16,27 @@ def build_reid_loader(
     **kwargs):
 
     loader = {}
-    data_names = cfg.DB.DATA.split(" ")[1:]
+    data_names = cfg.DB.DATA.split(" ")
+
     if use_train: 
         if len(data_names) > 1:
+            #TODO: move to config check in trainer, datafactory argument alias
+            cfg.DB.NUM_CLASSES = 0   
+            cfg.DB.USE_TEST = False         
             _data = [] 
             offset = 0
             for name in data_names[:-1]:
                 data = DataFactory.produce(cfg, data_name=name)
-                #TODO: move to config checking
                 cfg.DB.NUM_CLASSES += data.train['n_samples']
                 for path, pid, cam in data.train['indice']:
-                    _data.append([path, pid+offset, cam])
-                    _data.append([path, pid+offset, cam])
+                    _data.append((path, pid+offset, cam))
                 offset += data.train['n_samples']
             data.train['indice'] = _data
             data.train['n_samples'] = offset
+            cfg.DB.USE_TEST = True         
         else:
             data = DataFactory.produce(cfg)
-
+            cfg.DB.NUM_CLASSES = data.train['n_samples']
         train_trans = TransformFactory.produce(cfg, test_transformation)
         train_dataset = DataFormatFactory.produce(
             cfg, 

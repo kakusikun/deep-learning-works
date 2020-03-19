@@ -16,7 +16,7 @@ class CUHK01(Market1501):
     """
     
     def __init__(self, path="", branch="", use_train=False, use_test=False, **kwargs):
-        super().__init__(path="", branch="", use_train=False, use_test=False)
+        super().__init__(path=path, branch=branch, use_train=use_train, use_test=use_test)
 
 class CUHK02(Market1501):
     """
@@ -28,7 +28,7 @@ class CUHK02(Market1501):
     """
 
     def __init__(self, path="", branch="", use_train=False, use_test=False, **kwargs):
-        super().__init__(path="", branch="", use_train=False, use_test=False)
+        super().__init__(path=path, branch=branch, use_train=use_train, use_test=use_test)
 
 class CUHK03(BaseData):
     """
@@ -49,12 +49,11 @@ class CUHK03(BaseData):
         split_id (int): split index (default: 0)
         cuhk03_labeled (bool): whether to load labeled images; if false, detected images are loaded (default: False)
     """
-    dataset_dir = 'cuhk03'
 
-    def __init__(self, cfg, split_id=0, cuhk03_labeled=False, cuhk03_classic_split=False, **kwargs):
+    def __init__(self, path="", branch="", use_train=False, use_test=False, 
+        split_id=0, cuhk03_labeled=False, cuhk03_classic_split=False, **kwargs):
         super().__init__()
-        root = cfg.DB.PATH
-        self.dataset_dir = osp.join(root, self.dataset_dir)
+        self.dataset_dir = osp.join(path, branch)
         self.data_dir = osp.join(self.dataset_dir, 'cuhk03_release')
         self.raw_mat_path = osp.join(self.data_dir, 'cuhk-03.mat')
         
@@ -99,10 +98,10 @@ class CUHK03(BaseData):
         num_gallery_imgs = split['num_gallery_imgs']
         num_total_imgs = num_train_imgs + num_query_imgs
 
-        if cfg.DB.USE_TRAIN:
+        if use_train:
             self.train['indice'] = train
             self.train['n_samples'] = num_train_pids
-            logger.info("=> {} TRAIN loaded".format(cfg.DB.DATA.upper()))
+            logger.info("=> {} TRAIN loaded".format(branch.upper()))
             logger.info("Dataset statistics:")
             logger.info("  ------------------------------")
             logger.info("  subset   | # ids | # images")
@@ -111,12 +110,12 @@ class CUHK03(BaseData):
             logger.info("  ------------------------------")
 
 
-        if cfg.DB.USE_TEST:
+        if use_test:
             self.query['indice'] = query
             self.gallery['indice'] = gallery
             self.query['n_samples'] = num_query_pids
             self.gallery['n_samples'] = num_gallery_pids            
-            logger.info("=> {} VAL loaded".format(cfg.DB.DATA.upper()))
+            logger.info("=> {} VAL loaded".format(branch.upper()))
             logger.info("Dataset statistics:")
             logger.info("  ------------------------------")
             logger.info("  subset   | # ids | # images")

@@ -11,7 +11,7 @@ class ClassificationEngine(BaseEngine):
             self._train_iter_start()
             for key in batch:
                 batch[key] = batch[key].cuda()
-            images = batch['inp']            
+            images = batch['inp']
             outputs = self.graph.model(images)
             self.loss, self.losses = self.graph.loss_head(outputs, batch)
             accus.append((outputs.max(1)[1] == batch['target']).float().mean())        

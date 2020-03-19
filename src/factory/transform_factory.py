@@ -30,7 +30,11 @@ class TransformFactory:
         'RandCrop',
         'Cutout'
     ]
-        
+
+    @classmethod
+    def get_products(cls):
+        return list(cls.products)
+
     @classmethod
     def produce(cls, cfg, trans):
         trans = trans.split(" ")

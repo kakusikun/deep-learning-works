@@ -9,9 +9,7 @@ class build_reid_dataset(Dataset):
            
     def __getitem__(self, index):
         img_path, pid, camid = self.data['indice'][index]
-
         img = Image.open(img_path)
-
         if self.transform is not None:
             img = self.transform(img)
             if isinstance(img, tuple):
@@ -19,7 +17,7 @@ class build_reid_dataset(Dataset):
         if self.return_indice:
             return img, pid, camid, index
             
-        return img, pid, camid
+        return {'inp': img, 'pid': pid, 'camid': camid}
 
     def __len__(self):
         return self.data['n_samples']
