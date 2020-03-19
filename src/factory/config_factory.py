@@ -89,8 +89,6 @@ _C.SOLVER.MAX_EPOCHS = 50
 _C.SOLVER.BASE_LR = 0.001
 _C.SOLVER.BIAS_LR_FACTOR = 1.0
 _C.SOLVER.CUSTOM = [] 
-_C.SOLVER.CENTER_LOSS_LR = 0.5
-_C.SOLVER.CENTER_LOSS_WEIGHT = 0.0005
 _C.SOLVER.MOMENTUM = 0.9
 _C.SOLVER.WEIGHT_DECAY = 0.0005
 _C.SOLVER.WEIGHT_DECAY_BIAS_FACTOR = 1.0
@@ -133,9 +131,9 @@ _C.FACEID.GALLERY_TYPE = ""
 # -----------------------------------------------------------------------------
 _C.REID = CN()
 _C.REID.SIZE_PERSON = 4
-_C.REID.CYCLE = 30
 _C.REID.MERGE = False
-_C.REID.TRT = ""
+_C.REID.CENTER_LOSS_LR = 0.5
+_C.REID.CENTER_LOSS_WEIGHT = 0.0005
 
 # -----------------------------------------------------------------------------
 # Pedestrian Attribute Recognition
@@ -188,10 +186,25 @@ def show_products():
     from src.factory.trainer_factory import TrainerFactory
     print("       DATA: ", DataFactory.get_products())
     print("DATA_FORMAT: ", DataFormatFactory.get_products())
-    print("  TRANSFORM: ", TrainerFactory.get_products())
+    print("  TRANSFORM: ", TransformFactory.get_products())
     print("     LOADER: ", LoaderFactory.get_products())
     print("   BACKBONE: ", BackboneFactory.get_products())
     print("      GRAPH: ", GraphFactory.get_products())
     print("     ENGINE: ", EngineFactory.get_products())
     print("    TRAINER: ", TrainerFactory.get_products())
-    sys.exit(1)    
+    sys.exit(1)
+
+def show_configs():
+    for c in _C:
+        print("="*50)
+        if isinstance(_C[c], CN):
+            print(c)
+            for cc in list(_C[c].keys()):
+                print("-"*50)
+                _type = str(type(_C[c][cc])).split(" ")[-1].split(">")[0].replace("\'", "")
+                print(f"{cc:>30}    {_type:>6}    {_C[c][cc]}")
+        else:
+            _type = str(type(_C[c])).split(" ")[-1].split(">")[0].replace("\'", "")
+            print(f"{c:<30}    {_type:>6}    {_C[c]}")
+    print("="*50)
+    sys.exit(1)
