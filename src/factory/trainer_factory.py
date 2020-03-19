@@ -2,6 +2,7 @@ from src.trainer.trainers import (
     CenternetODTrainer, 
     ImagenetTrainer,
     SPOSClassificationTrainer,
+    TrickReIDTrainer,
 )
 
 class TrainerFactory:
@@ -9,6 +10,7 @@ class TrainerFactory:
         'imagenet': ImagenetTrainer,
         'centernet_object_detection': CenternetODTrainer,
         'spos_classification': SPOSClassificationTrainer,
+        'trick_reid': TrickReIDTrainer,
     }
 
     @classmethod

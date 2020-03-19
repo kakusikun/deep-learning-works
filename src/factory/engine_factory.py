@@ -2,6 +2,7 @@ from src.engine.classification import ClassificationEngine
 from src.engine.centernet_object_detection import CenternetODEngine
 from src.engine.hourglass_object_detection import HourglassODEngine
 from src.engine.spos_classification import SPOSClassificationEngine
+from src.engine.trick_reid import TrickReIDEngine
 
 class EngineFactory():
     products = {
@@ -9,6 +10,7 @@ class EngineFactory():
         'centernet_object_detection': CenternetODEngine,
         'hourglass_object_detection': HourglassODEngine,
         'spos_classification': SPOSClassificationEngine,
+        'trick_reid': TrickReIDEngine,
     }
 
     @classmethod

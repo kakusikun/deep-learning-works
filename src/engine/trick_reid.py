@@ -1,61 +1,57 @@
-import os
-import sys
+from src.engine import *
 from tqdm import tqdm
-import torch
-import torch.nn.functional as F
-import torchvision.transforms as T
-import torchvision
-from engine.base_engine import BaseEngine, data_prefetcher
 from tools.eval_reid_metrics import evaluate, eval_recall
-import numpy as np
-import logging
-logger = logging.getLogger("logger")
+
 # recover = T.Compose([T.Normalize(mean = [-0.485/0.229, -0.456/0.224, -0.406/0.225], std = [1/0.229,1/0.224,1/0.225])])
 
-class ReIDEngine(BaseEngine):
-    def __init__(self, cfg, solvers, loader, show, manager):
-        super(ReIDEngine, self).__init__(cfg, solvers, loader, show, manager)
+class TrickReIDEngine(BaseEngine):
+    def __init__(self, cfg, graph, loader, solvers, visualizer):
+        super(TrickReIDEngine, self).__init__(cfg, graph, loader, solvers, visualizer)
+
+    def _train_iter_end(self): 
+        self.loss.backward() 
+        self.solvers['main'].step()
+
+        self.loss = self.tensor_to_scalar(self.loss)
+        self.losses = self.tensor_to_scalar(self.losses)     
+        if self.cfg.IO:
+            self.visualizer.add_scalar('train/loss', self.loss, self.iter)              
+            for loss in self.losses:
+                self.visualizer.add_scalar(f'train/loss/{loss}', self.losses[loss], self.iter)
+            self.visualizer.add_scalar('train/accuracy', self.train_accu, self.iter)   
+            for solver in self.solvers:
+                self.visualizer.add_scalar(f'train/solver/{solver}/lr', self.solvers[solver].monitor_lr, self.iter)
 
     def _train_once(self):
-        prefetcher = data_prefetcher(self.tdata)
-        for _ in tqdm(range(len(self.tdata)), desc="Epoch[{}/{}]".format(self.epoch, self.max_epoch)):
+        accus = []   
+        for batch in tqdm(self.tdata, desc=f"TRAIN[{self.epoch}/{self.cfg.SOLVER.MAX_EPOCHS}]"):
             self._train_iter_start()
-
-            batch = prefetcher.next()
-            if batch is None:
-                break
-            images, target, _ = batch            
-
-
-            local, glob = self.core(images) 
-            self.total_loss, self.each_loss = self.manager.loss_func(local, glob, target)
-            self.total_loss.backward()
-
-            for submodel in self.manager.submodels:
-                for param in self.manager.submodels[submodel].parameters():
-                    param.grad.data *= (1. / self.cfg.SOLVER.CENTER_LOSS_WEIGHT)
-
+            if self.use_gpu:
+                for key in batch:
+                    batch[key] = batch[key].cuda()
+            outputs = self.graph.model(batch['inp']) 
+            self.loss, self.losses = self.graph.loss_head(outputs, batch)
+            accus.append((outputs['global'].max(1)[1] == batch['pid']).float().mean())        
             self._train_iter_end()
 
-            self.total_loss = self.tensor_to_scalar(self.total_loss)
-            self.each_loss = self.tensor_to_scalar(self.each_loss)
+            for sub_model in self.graph.sub_models:
+                for param in self.graph.sub_models[sub_model].parameters():
+                    param.grad.data *= (1. / self.cfg.REID.CENTER_LOSS_WEIGHT)
+            self.solvers['center'].step()
 
-            self.train_accu = (glob.max(1)[1] == target).float().mean()          
+        self.train_accu = self.tensor_to_scalar(torch.stack(accus).mean())
 
     def _evaluate(self, eval=False):
         logger.info("Epoch {} evaluation start".format(self.epoch))
-        self._eval_epoch_start()
+        title = "EVALUATE" if eval else f"TEST[{self.epoch}/{self.cfg.SOLVER.MAX_EPOCHS}]"
+        accus = []        
         with torch.no_grad():
+            self._eval_epoch_start()
             qf, q_pids, q_camids = [], [], []
-            for batch in tqdm(self.qdata, desc="Validation"):
-                
-                imgs, pids, camids = batch
-                if self.use_gpu: imgs = imgs.cuda()
-                
-                features = self.core(imgs)
-
+            for batch in tqdm(self.qdata, desc=title): 
+                imgs, pids, camids = batch['inp'], batch['pid'], batch['camid']
+                features = self.graph.model(imgs.cuda() if self.use_gpu else imgs)['neck']
                 features = F.normalize(features)
-                
                 qf.append(features.cpu())
                 q_pids.extend(pids)
                 q_camids.extend(camids)
@@ -66,15 +62,10 @@ class ReIDEngine(BaseEngine):
             logger.info("Extracted features for query set, obtained {}-by-{} matrix".format(qf.size(0), qf.size(1)))
 
             gf, g_pids, g_camids = [], [], []
-            for batch in tqdm(self.gdata, desc="Validation"):
-                
-                imgs, pids, camids = batch
-                if self.use_gpu: imgs = imgs.cuda()
-                
-                features = self.core(imgs)
-
+            for batch in tqdm(self.gdata, desc=title): 
+                imgs, pids, camids = batch['inp'], batch['pid'], batch['camid']
+                features = self.graph.model(imgs.cuda() if self.use_gpu else imgs)['neck']
                 features = F.normalize(features)
-                
                 gf.append(features.cpu())
                 g_pids.extend(pids)
                 g_camids.extend(camids)
@@ -111,8 +102,7 @@ class ReIDEngine(BaseEngine):
             np.save(self.cfg.OUTPUT_DIR+"/confs.npy", confs)
             np.save(self.cfg.OUTPUT_DIR+"/gts.npy", gts)
             np.save(self.cfg.OUTPUT_DIR+"/filtered_gallery.npy", fg)
-
-        if not eval:
+        else:
             self.accu = cmc[0]
             self._eval_epoch_end()
 
@@ -120,3 +110,4 @@ class ReIDEngine(BaseEngine):
         
     def Evaluate(self):
         self._evaluate(eval=True)
+        logger.info(self.accu)

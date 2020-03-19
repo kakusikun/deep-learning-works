@@ -24,9 +24,18 @@ class SPOSClassificationTrainer(BaseTrainer):
         self.graph.to_gpu()
         self.activate()
         
-# class ReIDTrainer(BaseTrainer):
-#     def __init__(self, cfg):
-#         super(ReIDTrainer, self).__init__(cfg)
-#         for submodel in self.manager.submodels:
-#             self.solvers[submodel] = Solver(cfg, self.manager.submodels[submodel].named_parameters(), _lr=cfg.SOLVER.CENTER_LOSS_LR, _name="SGD", _lr_policy="none")
-#         self.activate(cfg)
+class TrickReIDTrainer(BaseTrainer):
+    def __init__(self, cfg):
+        super(TrickReIDTrainer, self).__init__(cfg)
+        self.solvers['main'] = Solver(
+            cfg, [self.graph.model.named_parameters()])
+        for sub_model in self.graph.sub_models:
+            self.solvers[sub_model] = Solver(
+                cfg, 
+                [self.graph.sub_models[sub_model].named_parameters()], 
+                lr=cfg.REID.CENTER_LOSS_LR, 
+                lr_policy="none",
+                opt_name="SGDW"
+            )
+        self.graph.to_gpu()
+        self.activate()
