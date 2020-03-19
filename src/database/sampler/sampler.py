@@ -19,6 +19,7 @@ class IdBasedSampler(sampler.Sampler):
         self.data_source = data_source
         self.batch_size = batch_size
         self.num_instances = num_instances
+        assert self.batch_size > self.num_instances
         self.num_pids_per_batch = self.batch_size // self.num_instances
         self.index_dic = defaultdict(list)
         for index, (_, pid, _) in enumerate(self.data_source):
@@ -36,7 +37,6 @@ class IdBasedSampler(sampler.Sampler):
 
     def _build(self):
         batch_idxs_dict = defaultdict(list)
-
         for pid in self.pids:
             idxs = copy.deepcopy(self.index_dic[pid])
             if len(idxs) < self.num_instances:
