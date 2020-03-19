@@ -1,0 +1,54 @@
+# [modelname]_[task]_[loss]_[opt]_[pretrain]
+EXPERIMENT: "ShuffleNetv2+-biFPN_coco-object-detection_focal-smoothl1_SGDW_cosine-lr-0.01-warmup_scratch"
+RESUME: '/media/allen/mass/shufflenetv2_x1-5666bf0f80.pth'
+# EVALUATE: True
+SAVE: True
+IO: True
+APEX: False
+ENGINE: "centernet_object_detection"
+GRAPH: "centernet_object_detection"
+TRAINER: "centernet_object_detection"
+NUM_WORKERS: 1  
+ORACLE: False
+EVALUATE_FREQ: 10
+MODEL:
+  GPU: [1]
+  BACKBONE: "shufflenetv2"
+  STRIDE: 4
+  FEATSIZE: 464
+INPUT:
+  SIZE: (512,512)
+  TRAIN_BS: 4
+  TEST_BS: 1
+  MEAN: [0.5, 0.5, 0.5]
+  STD: [0.5, 0.5, 0.5]
+DB:
+  PATH: "/path/to/data"
+  DATA: "coco"
+  DATA_FORMAT: "coco"
+  LOADER: "coco"
+  NUM_CLASSES: 1
+  USE_TRAIN: True
+  USE_TEST: True
+  TARGET_FORMAT: "centernet" 
+  TRAIN_TRANSFORM: "RandScale AugMix Tensorize Normalize"
+  TEST_TRANSFORM: "ResizeKeepAspectRatio Tensorize Normalize"
+SOLVER:
+  OPTIMIZER: "SGDW"
+  START_EPOCH: 1
+  MAX_EPOCHS: 120
+  BASE_LR: 0.01
+  BIAS_LR_FACTOR: 1.0
+  WEIGHT_DECAY: 0.0005
+  WEIGHT_DECAY_BIAS_FACTOR: 1.0
+  LR_POLICY: "cosine"
+  T_0: 120
+  # MIN_LR: 1e-6
+  WARMUP: True
+  # GAMMA: 0.1
+  WARMUP_FACTOR: 0.01
+  WARMUP_SIZE: 5.0
+  # PLATEAU_SIZE: 10.0
+COCO:
+  TARGET: 'person'
+
