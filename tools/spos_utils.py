@@ -40,7 +40,7 @@ class Evolution:
         children_pick_ids = list(range(0, children_size, children_pick_interval)) + \
                                  list(reversed(range(0, children_size, children_pick_interval)))
         self.children_pick_ids = [6 if idx == 0 or idx == 3 else idx for idx in children_pick_ids]
-        self.sample_counts = cfg.SOLVER.ITERATIONS_PER_EPOCH // len(self.flops_ranges) // len(self.children_pick_ids)
+        self.sample_counts = cfg.SOLVER.ITERATIONS_PER_EPOCH // (self.flops_cuts * 2) // len(self.children_pick_ids)
         self.cur_step = 0
         p = next(iter(self.graph.model.parameters()))
         if p.is_cuda:
@@ -180,13 +180,15 @@ class Evolution:
         channel_candidates = self.graph.generate_channel_candidates(epoch_after_search)
         self.adjust_flops_params_range(min(channel_candidates[0]))
         logger.info("Evolution Starts")
+        logger.info(self.flops_ranges)
+        logger.info(self.param_range)
         while not finished_flag.value:
             if len(pool) < self.pool_target_size:
                 max_flops, pick_id, range_id, find_max_param = self.get_cur_evolve_state()
                 if find_max_param:
-                    info = f"[Evolution] Find max params   Max Flops [{max_flops:.2f}]   Child Pick ID [{pick_id}]   Upper model size [{self.param_range[range_id]:.2f}]   Bottom model size [{self.param_range[-1]:.2f}]" 
-                    if logger and self.cur_step % self.sample_counts == 0 and epoch_after_search > 0:
-                        logger.info('-' * 40 + '\n' + info)
+                    #  info = f"[Evolution] Find max params   Max Flops [{max_flops:.2f}]   Child Pick ID [{pick_id}]   Upper model size [{self.param_range[range_id]:.2f}]   Bottom model size [{self.param_range[-1]:.2f}]" 
+                    #  if logger and self.cur_step % self.sample_counts == 0 and epoch_after_search > 0:
+                        #  logger.info('-' * 40 + '\n' + info)
                     candidate = self.evolve(
                         block_candidates,
                         channel_candidates,
@@ -199,9 +201,9 @@ class Evolution:
                         logger=logger
                     )
                 else:
-                    info = f"[Evolution] Find min params   Max Flops [{max_flops:.2f}]   Child Pick ID [{pick_id}]   Upper model size [{self.param_range[range_id]:.2f}]   Bottom model size [{self.param_range[-1]:.2f}]" 
-                    if logger and self.cur_step % self.sample_counts == 0 and epoch_after_search > 0:
-                        logger.info('-' * 40 + '\n' + info)
+                    #  info = f"[Evolution] Find min params   Max Flops [{max_flops:.2f}]   Child Pick ID [{pick_id}]   Upper model size [{self.param_range[range_id]:.2f}]   Bottom model size [{self.param_range[-1]:.2f}]" 
+                    #  if logger and self.cur_step % self.sample_counts == 0 and epoch_after_search > 0:
+                        #  logger.info('-' * 40 + '\n' + info)
                     candidate = self.evolve(
                         block_candidates,
                         channel_candidates,

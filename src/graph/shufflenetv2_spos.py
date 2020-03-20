@@ -51,7 +51,7 @@ class ShuffleNetv2SPOS(BaseGraph):
                     block_candidates.append([1,2])
                 else:
                     if epoch_after_search is None or epoch_after_search >= 0:
-                        block_candidates.append([0, 1, 2])
+                        block_candidates.append([1, 2])
                     else:
                         block_candidates.append([1, 2])
         return block_candidates

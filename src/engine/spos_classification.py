@@ -35,8 +35,8 @@ class SPOSClassificationEngine(BaseEngine):
 
             channel_choices = cand['channel_choices']
             block_choices = cand['block_choices']     
-            self.visualizer.add_histogram('train/evolution/block_choices', self._choice2hist(block_choices), self.iter)
-            self.visualizer.add_histogram('train/evolution/channel_choices', self._choice2hist(channel_choices), self.iter)
+            self.visualizer.add_histogram('train/evolution/block_choices', self._choice2hist(block_choices), self.iter, np.arange(len(block_choices)))
+            self.visualizer.add_histogram('train/evolution/channel_choices', self._choice2hist(channel_choices), self.iter, np.arange(len(channel_choices)))
             self.visualizer.add_scalar('train/evolution/flops', cand['flops'], self.iter)              
             self.visualizer.add_scalar('train/evolution/params', cand['param'], self.iter)                      
             outputs = self.graph.model(batch['inp'], block_choices, channel_choices)
@@ -51,7 +51,7 @@ class SPOSClassificationEngine(BaseEngine):
         while self.epoch < self.max_epoch:
             self._train_epoch_start()
             self.finished.value = False
-            if self.epoch - self.cfg.SPOS.EPOCH_TO_SEARCH == 0:
+            if self.epoch - self.cfg.SPOS.EPOCH_TO_SEARCH == 1:
                 self._copy_weight()
             pool_process = multiprocessing.Process(target=self.evolution.maintain,
                 args=[self.epoch - self.cfg.SPOS.EPOCH_TO_SEARCH, self.cand_pool, self.lock, self.finished, logger])
@@ -71,10 +71,9 @@ class SPOSClassificationEngine(BaseEngine):
     def _evaluate(self, eval=False):
         logger.info("Epoch {} evaluation start".format(self.epoch))
         title = "EVALUATE" if eval else f"TEST[{self.epoch}/{self.cfg.SOLVER.MAX_EPOCHS}]"
-        self._copy_weight()
         accus = []        
-        block_choices = self.graph.random_block_choices()
-        channel_choices = self.graph.random_channel_choices()
+        block_choices = self.graph.random_block_choices(self.epoch - self.cfg.SPOS.EPOCH_TO_SEARCH)
+        channel_choices = self.graph.random_channel_choices(self.epoch - self.cfg.SPOS.EPOCH_TO_SEARCH)
         raw_model_state = deepcopy(self.graph.model.state_dict())
         recalc_bn(self.graph, block_choices, channel_choices, self.tdata, True)
 
