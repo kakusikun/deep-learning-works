@@ -68,8 +68,8 @@ class ShuffleNetCSBlock(nn.Module):
 
     def copy_weight(self):
         src_weight = self.block[-1].state_dict()
-        for trt_module in self.block[:-1]:
-            trt_weight = trt_module.state_dict()
+        for i in range(len(self.block[:-1])):
+            trt_weight = self.block[i].state_dict()
             for w_name in trt_weight:
                 if trt_weight[w_name].dim() == 0:
                     trt_weight[w_name] = src_weight[w_name]
@@ -79,7 +79,7 @@ class ShuffleNetCSBlock(nn.Module):
                 elif trt_weight[w_name].dim() == 4:
                     n, c, _, _ = trt_weight[w_name].size()
                     trt_weight[w_name] = src_weight[w_name][:n, :c, ...]
-            trt_module.load_state_dict(trt_weight)
+            self.block[i].load_state_dict(trt_weight)
 
 class ShuffleNasBlock(nn.Module):
     def __init__(self, 

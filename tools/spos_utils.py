@@ -33,11 +33,6 @@ class Evolution:
         self.children = []       
 
         self.lookup_table = self.graph.lookup_table
-        max_flops, min_flops, max_params, min_params = self.set_flops_params_bound()
-        # [top to bottom then bottom to top] 
-        self.flops_interval = (max_flops - min_flops) / flops_cuts
-        self.flops_ranges = [max(max_flops - i * self.flops_interval, 0) for i in range(flops_cuts)] + \
-                            [max(max_flops - i * self.flops_interval, 0) for i in range(flops_cuts)][::-1]
 
         # Use worse children of the good parents
         # If the children are too outstanding, the distribution coverage ratio will be low
@@ -45,22 +40,24 @@ class Evolution:
         children_pick_ids = list(range(0, children_size, children_pick_interval)) + \
                                  list(reversed(range(0, children_size, children_pick_interval)))
         self.children_pick_ids = [6 if idx == 0 or idx == 3 else idx for idx in children_pick_ids]
-
         self.sample_counts = cfg.SOLVER.ITERATIONS_PER_EPOCH // len(self.flops_ranges) // len(self.children_pick_ids)
-
-        self.param_interval = (max_params - min_params) / (len(self.children_pick_ids) - 1)
-        # [top to bottom] 
-        self.param_range = [max_params - i * self.param_interval for i in range(len(self.children_pick_ids))]
-
         self.cur_step = 0
-        
         p = next(iter(self.graph.model.parameters()))
         if p.is_cuda:
             self.use_gpu = True
 
         self.bad_generations = []
 
-    def evolve(self, epoch_after_search, pick_id, find_max_param, max_flops, max_params, min_params, logger=None):
+    def evolve(self, 
+        block_candidates,
+        channel_candidates,
+        epoch_after_search, 
+        pick_id, 
+        find_max_param, 
+        max_flops, 
+        max_params, 
+        min_params, 
+        logger=None):
         '''
         Returns:
             selected_child(dict):
@@ -71,8 +68,6 @@ class Evolution:
             pick_id, find_max_param, max_flops, max_params, min_params = self.forced_evolution() 
             g = f"{find_max_param}, {max_flops:.2f}, {max_params:.2f}, {min_params:.2f}"
         # Prepare random parents for the initial evolution
-        block_candidates = self.graph.generate_block_candidates(epoch_after_search)
-        channel_candidates = self.graph.generate_channel_candidates(epoch_after_search)
         while len(self.parents) < self.parent_size:
             block_choices = self.graph.random_block_choices(epoch_after_search)
             channel_choices = self.graph.random_channel_choices(epoch_after_search)
@@ -133,7 +128,6 @@ class Evolution:
                             g = f"{find_max_param}, {max_flops:.2f}, {max_params:.2f}, {min_params:.2f}"
                         duration = 0.0
                     start = time.time()    
-                    print(f"\r Evolving {int(duration)}s", end = '')
                     continue
 
             candidate['block_choices'] = block_choices
@@ -182,6 +176,9 @@ class Evolution:
 
     def maintain(self, epoch_after_search, pool, lock, finished_flag, logger=None):
         self._read_bad_generation()
+        block_candidates = self.graph.generate_block_candidates(epoch_after_search)
+        channel_candidates = self.graph.generate_channel_candidates(epoch_after_search)
+        self.adjust_flops_params_range(min(channel_candidates[0]))
         logger.info("Evolution Starts")
         while not finished_flag.value:
             if len(pool) < self.pool_target_size:
@@ -191,6 +188,8 @@ class Evolution:
                     if logger and self.cur_step % self.sample_counts == 0 and epoch_after_search > 0:
                         logger.info('-' * 40 + '\n' + info)
                     candidate = self.evolve(
+                        block_candidates,
+                        channel_candidates,
                         epoch_after_search,
                         pick_id, 
                         find_max_param, 
@@ -204,6 +203,8 @@ class Evolution:
                     if logger and self.cur_step % self.sample_counts == 0 and epoch_after_search > 0:
                         logger.info('-' * 40 + '\n' + info)
                     candidate = self.evolve(
+                        block_candidates,
+                        channel_candidates,
                         epoch_after_search,
                         pick_id, 
                         find_max_param, 
@@ -216,18 +217,31 @@ class Evolution:
                     pool.append(candidate)
         logger.info("[Evolution] Ends")
 
-    def set_flops_params_bound(self):
+    def set_flops_params_upperbound(self):
         block_choices = [2] * sum(self.graph.stage_repeats)
         channel_choices = [7] * sum(self.graph.stage_repeats)
         max_flops, max_params = get_flop_params(block_choices, channel_choices, self.lookup_table)
+        return max_flops, max_params
+
+    def set_flops_params_lowerbound(self, clb):
         block_choices = [0] * sum(self.graph.stage_repeats)
         cum_repeats = 0
         for repeats in self.graph.stage_repeats:
             block_choices[cum_repeats] = 1
             cum_repeats += repeats
-        channel_choices = [3] * sum(self.graph.stage_repeats)     
+        channel_choices = [clb] * sum(self.graph.stage_repeats)     
         min_flops, min_params = get_flop_params(block_choices, channel_choices, self.lookup_table)
-        return max_flops, min_flops, max_params, min_params
+        return min_flops, min_params
+    
+    def adjust_flops_params_range(self, clb):
+        max_flops, max_params = self.set_flops_params_upperbound()
+        min_flops, min_params = self.set_flops_params_lowerbound(clb)
+        # [top to bottom then bottom to top] 
+        self.flops_interval = (max_flops - min_flops) / self.flops_cuts
+        self.flops_ranges = [max(max_flops - i * self.flops_interval, 0) for i in range(self.flops_cuts)] + \
+                            [max(max_flops - i * self.flops_interval, 0) for i in range(self.flops_cuts)][::-1]
+        self.param_interval = (max_params - min_params) / (len(self.children_pick_ids) - 1)
+        self.param_range = [max_params - i * self.param_interval for i in range(len(self.children_pick_ids))]
 
     def _record_bad_generation(self):
         root = os.path.join(os.getcwd(), "external")

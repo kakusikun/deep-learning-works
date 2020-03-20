@@ -65,7 +65,7 @@ class ShuffleNetv2SPOS(BaseGraph):
                     channel_candidates.append(choice)
                 else:
                     if epoch_after_search >= 0:
-                        channel_candidates.append(choice[(-1*(epoch_after_search//self.cfg.SPOS.CANDIDATE_RELAX_EPOCHS+2)):])
+                        channel_candidates.append(choice[(-1*((epoch_after_search//self.cfg.SPOS.CANDIDATE_RELAX_EPOCHS)+2)):])
                     else:
                         channel_candidates.append(choice[-1:])
         return channel_candidates

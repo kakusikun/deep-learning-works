@@ -34,7 +34,9 @@ class SPOSClassificationEngine(BaseEngine):
                     time.sleep(1)
 
             channel_choices = cand['channel_choices']
-            block_choices = cand['block_choices']        
+            block_choices = cand['block_choices']     
+            self.visualizer.add_histogram('train/evolution/block_choices', self._choice2hist(block_choices), self.iter)
+            self.visualizer.add_histogram('train/evolution/channel_choices', self._choice2hist(channel_choices), self.iter)
             self.visualizer.add_scalar('train/evolution/flops', cand['flops'], self.iter)              
             self.visualizer.add_scalar('train/evolution/params', cand['param'], self.iter)                      
             outputs = self.graph.model(batch['inp'], block_choices, channel_choices)
@@ -50,23 +52,7 @@ class SPOSClassificationEngine(BaseEngine):
             self._train_epoch_start()
             self.finished.value = False
             if self.epoch - self.cfg.SPOS.EPOCH_TO_SEARCH == 0:
-                logger.info("Copy Weights from Nas Blocks")
-                if isinstance(self.graph.model, nn.DataParallel):
-                    for m in self.graph.model.module.modules():
-                        if hasattr(m, 'copy_weight'):
-                            before_p = deepcopy(next(iter(m.parameters())))
-                            m.copy_weight()
-                            after_p = next(iter(m.parameters()))
-                            assert (after_p == before_p).sum() == 0
-                else:
-                    for m in self.graph.model.modules():
-                        if hasattr(m, 'copy_weight'):
-                            before_p = deepcopy(next(iter(m.parameters())))
-                            m.copy_weight()
-                            after_p = next(iter(m.parameters()))
-                            assert (after_p == before_p).sum() == 0
-
-
+                self._copy_weight()
             pool_process = multiprocessing.Process(target=self.evolution.maintain,
                 args=[self.epoch - self.cfg.SPOS.EPOCH_TO_SEARCH, self.cand_pool, self.lock, self.finished, logger])
 
@@ -85,6 +71,7 @@ class SPOSClassificationEngine(BaseEngine):
     def _evaluate(self, eval=False):
         logger.info("Epoch {} evaluation start".format(self.epoch))
         title = "EVALUATE" if eval else f"TEST[{self.epoch}/{self.cfg.SOLVER.MAX_EPOCHS}]"
+        self._copy_weight()
         accus = []        
         block_choices = self.graph.random_block_choices()
         channel_choices = self.graph.random_channel_choices()
@@ -108,3 +95,26 @@ class SPOSClassificationEngine(BaseEngine):
         self._evaluate(eval=True)
         logger.info(self.accu)
         
+    def _copy_weight(self):
+        logger.info("Copy Weights from Nas Blocks")
+        if isinstance(self.graph.model, nn.DataParallel):
+            for m in self.graph.model.module.modules():
+                if hasattr(m, 'copy_weight'):
+                    # before_p = deepcopy(next(iter(m.parameters())))
+                    m.copy_weight()
+                    # after_p = next(iter(m.parameters()))
+                    # assert (after_p == before_p).sum() == 0
+        else:
+            for m in self.graph.model.modules():
+                if hasattr(m, 'copy_weight'):
+                    # before_p = deepcopy(next(iter(m.parameters())))
+                    m.copy_weight()
+                    # after_p = next(iter(m.parameters()))
+                    # assert (after_p == before_p).sum() == 0
+
+    def _choice2hist(self, choice):
+        hist = []
+        for i, c in enumerate(choice, 1):
+            for _ in range(c):
+                hist.append(i)
+        return np.array(hist)
