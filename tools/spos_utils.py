@@ -81,6 +81,7 @@ class Evolution:
 
         # Breed children
         duration = 0.0
+        temp_channel_choices = [0] * len(channel_candidates)
         while len(self.children) < self.children_size:
             start = time.time()
             candidate = dict()
@@ -105,12 +106,12 @@ class Evolution:
             for i in range(len(channel_choices)):
                 channel_choices[i] = random.choice([mother['channel_choices'][i], father['channel_choices'][i]])
                 # Mutation: randomly mutate some of the children after all channel is warming up.
-                if random.random() < self.mutate_ratio and epoch_after_search > 0:
+                if random.random() < self.mutate_ratio:
                     channel_choices[i] = random.choice(channel_candidates[i])
 
             flops, param = get_flop_params(block_choices, channel_choices, self.lookup_table)
 
-            if epoch_after_search > 0:
+            if epoch_after_search >= 0:
                 # if flops > max_flop or model_size > upper_params:
                 if flops < (max_flops-self.flops_interval) or flops > max_flops \
                         or param < min_params or param > max_params:
@@ -130,11 +131,16 @@ class Evolution:
                     start = time.time()    
                     continue
 
+                check = np.array(temp_channel_choices) == np.array(channel_choices)
+                if check.sum() == len(channel_choices):
+                    continue
+
             candidate['block_choices'] = block_choices
             candidate['channel_choices'] = channel_choices
             candidate['flops'] = flops
             candidate['param'] = param
             self.children.append(candidate)
+            temp_channel_choices = channel_choices
         # Set target and select
         self.children.sort(key=lambda cand: cand['param'], reverse=find_max_param)
         selected_child = self.children[pick_id]
@@ -182,6 +188,8 @@ class Evolution:
         logger.info("Evolution Starts")
         logger.info(self.flops_ranges)
         logger.info(self.param_range)
+        logger.info(block_candidates)
+        logger.info(channel_candidates)
         while not finished_flag.value:
             if len(pool) < self.pool_target_size:
                 max_flops, pick_id, range_id, find_max_param = self.get_cur_evolve_state()

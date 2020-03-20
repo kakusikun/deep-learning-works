@@ -51,7 +51,7 @@ class SPOSClassificationEngine(BaseEngine):
         while self.epoch < self.max_epoch:
             self._train_epoch_start()
             self.finished.value = False
-            if self.epoch - self.cfg.SPOS.EPOCH_TO_SEARCH == 1:
+            if self.epoch - self.cfg.SPOS.EPOCH_TO_SEARCH == 0:
                 self._copy_weight()
             pool_process = multiprocessing.Process(target=self.evolution.maintain,
                 args=[self.epoch - self.cfg.SPOS.EPOCH_TO_SEARCH, self.cand_pool, self.lock, self.finished, logger])

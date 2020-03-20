@@ -151,7 +151,6 @@ class ShuffleNetv2SPOS(BaseGraph):
         channel_choices = []
         for i in range(sum(self.stage_repeats)):
             channel_choices.append(random.choice(channel_candidates[i]))
-
         return channel_choices
 
 
