@@ -39,3 +39,11 @@ class TrickReIDTrainer(BaseTrainer):
             )
         self.graph.to_gpu()
         self.activate()
+
+class HarmAttnReIDTrainer(BaseTrainer):
+    def __init__(self, cfg):
+        super(HarmAttnReIDTrainer, self).__init__(cfg)
+        self.solvers['main'] = Solver(
+            cfg, [self.graph.model.named_parameters()])
+        self.graph.to_gpu()
+        self.activate()

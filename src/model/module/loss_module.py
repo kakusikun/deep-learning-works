@@ -216,3 +216,52 @@ class CenterLoss(nn.Module):
         center_loss = cdist[p==1].clamp(min = 1e-12, max = 1e+12).mean()
         
         return center_loss
+
+class SoftTripletLoss(nn.Module):
+    """
+    Implement Attention Network Robustification for Person ReID (https://arxiv.org/abs/1910.07038)
+    Eq(5).
+    """
+    def __init__(self):
+        super(SoftTripletLoss, self).__init__()
+
+    def forward(self, norm_feats, labels):
+        dist_mat = self._euclidean_dist(norm_feats, norm_feats)
+        N = dist_mat.size(0)
+        pos_mask = labels.expand(N, N).eq(labels.expand(N, N).t())
+        neg_mask = labels.expand(N, N).ne(labels.expand(N, N).t())
+        d_ap = dist_mat[pos_mask]
+        d_np = dist_mat[neg_mask]
+        pos_w = F.softmax(d_ap, dim=0)
+        neg_w = F.softmax(-1*d_np, dim=0)
+        loss = self.softplus(torch.dot(pos_w, d_ap) - torch.dot(neg_w, d_np))
+        return loss
+
+    def _euclidean_dist(self, x, y):
+        """
+        Args:
+        x: pytorch Variable, with shape [m, d]
+        y: pytorch Variable, with shape [n, d]
+        Returns:
+        dist: pytorch Variable, with shape [m, n]
+        """
+        m, n = x.size(0), y.size(0)
+        xx = torch.pow(x, 2).sum(1, keepdim=True).expand(m, n)
+        yy = torch.pow(y, 2).sum(1, keepdim=True).expand(n, m).t()
+        dist = xx + yy
+        dist.addmm_(1, -2, x, y.t())
+        dist = dist.clamp(min=1e-12).sqrt()  # for numerical stability
+        return dist
+
+    @staticmethod
+    def softplus(x):
+        return torch.log(1+torch.exp(x))
+
+
+if __name__ == "__main__":
+    feats = torch.rand(16, 10)
+    labels = torch.Tensor([0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3])
+    norm_feats = F.normalize(feats)
+    loss = SoftTripletLoss()
+    output = loss(norm_feats, labels)
+    print(output)

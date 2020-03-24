@@ -172,3 +172,22 @@ class ReIDTrickHead(nn.Module):
                 if m.bias is not None:
                     nn.init.constant_(m.bias, 0.0)
             
+class ReIDL2Head(nn.Module):
+    def __init__(self, in_channels, n_pids):
+        super(ReIDL2Head, self).__init__()
+        self.id_fc = nn.Linear(in_channels, n_pids, bias=False)        
+        self.id_fc.apply(self.weights_init_classifier)
+
+    def forward(self, x):
+        l2_feat = F.normalize(x)
+        if self.training:
+            id_feat = self.id_fc(x)
+            return l2_feat, id_feat
+        return l2_feat, None
+    
+    def weights_init_classifier(self, module):
+        for m in module.modules():
+            if isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
+                nn.init.normal_(m.weight, std=0.001)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0.0)

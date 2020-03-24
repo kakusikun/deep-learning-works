@@ -393,6 +393,123 @@ class HSwish(nn.Module):
 		clip = torch.clamp(inputs + 3, 0, 6) / 6
 		return inputs * clip
 
+class GeM(nn.Module):
+    def __init__(self, p=3, eps=1e-6):
+        super(GeM, self).__init__()
+        self.gem = nn.AdaptiveAvgPool2d(1)
+        self.p = p
+        self.eps = eps
+    def forward(self, x):
+        return self.gem(x.clamp(min=self.eps).pow(self.p)).pow(1./self.p)
+
+class HarmAttn(nn.Module):
+    '''
+    Harmonious Attention : Soft + Hard attention
+
+    Soft(CxHxW) = Spatial(SpatialAttn, 1xHxW) x Channel(ChannelAttn, Cx1x1)
+        Channel : GAP -> Conv 1x1xCx(C/r) -> Conv 1x1x(C/r)xC
+        Spatial : channel-wise AP -> Conv 3x3 s2 -> Upx2 -> Conv 1x1
+
+    Hard(HardAttn) (tx, ty) = entry of affine transform for feature map
+        affine transform = 
+            [[a, b, tx],
+             [c, d, ty]]
+        [tx, ty] = GAP -> fc -> tanh
+
+    HarmAttn =
+        theta -> STN
+        soft -> STN -> Bilinear Interpolate (->  sum with last harmattn) -> block
+    Args:
+        block (nn.Module): module shared in all parallel branch
+        n_stream (int): number of parallel branch
+        channels (list): channels of module
+            [inc, c1, c2, c3, ..., ouc(feat_dim)]
+        shape: predefined shape of intermediate feature map
+    '''
+    def __init__(self, 
+        block, 
+        n_stream, 
+        channels, 
+        shape=(24, 28)):
+        super(HarmAttn, self).__init__()
+        self.n_stream = n_stream
+        self.init_scale_factors()
+        self.local = nn.ModuleList()
+        self.shape = shape
+
+        in_channel = channels[0]
+        for out_channel in channels[1:-1]:
+            self.local.append(block(in_channel, out_channel, 2))
+            in_channel = out_channel
+
+        feat_dim = channels[-1]
+        self.local_fc = nn.Sequential(
+            nn.Linear(out_channel * 4, feat_dim),
+            nn.BatchNorm1d(feat_dim),
+            nn.ReLU(),
+        )
+
+        self.pooling = GeM()
+
+    def forward(self, stages):
+        x_hatts = [None for _ in range(self.n_stream)]
+        for stage_i, (x, theta) in enumerate(stages):
+            for stream in range(self.n_stream):
+                x_hatt = self.stn(
+                    x, self.transform_theta(theta[:, stream, :], stream)
+                )
+                x_hatt = F.interpolate(
+                    x_hatt, 
+                    size=(self.shape[0]//(2**stage_i), self.shape[1]//(2**stage_i)),
+                    mode='bilinear',
+                    align_corners=True
+                )
+                if stage_i > 1:
+                    x_hatt += x_hatts[stream]
+                x_hatts[stream] = self.local[stage_i](x_hatt)
+        
+        for stream in range(self.n_stream):
+            x_hatts[stream] = self.pooling(x_hatts[stream]).view(x_hatts[stream].size(0), -1)
+        
+        x_local = torch.cat(x_hatts, 1)
+        x_local = self.local_fc(x_local)
+        return x_local
+
+    def init_scale_factors(self):
+        # initialize scale factors (s_w, s_h) for four regions
+        self.scale_factors = []
+        self.scale_factors.append(
+            torch.tensor([[1, 0], [0, 0.25]], dtype=torch.float)
+        )
+        self.scale_factors.append(
+            torch.tensor([[1, 0], [0, 0.25]], dtype=torch.float)
+        )
+        self.scale_factors.append(
+            torch.tensor([[1, 0], [0, 0.25]], dtype=torch.float)
+        )
+        self.scale_factors.append(
+            torch.tensor([[1, 0], [0, 0.25]], dtype=torch.float)
+        )
+
+    def stn(self, x, theta):
+        """Performs spatial transform
+        
+        x: (batch, channel, height, width)
+        theta: (batch, 2, 3)
+        """
+        grid = F.affine_grid(theta, x.size(), align_corners=True)
+        x = F.grid_sample(x, grid, align_corners=True)
+        return x
+
+    def transform_theta(self, theta_i, region_idx):
+        """Transforms theta to include (s_w, s_h), resulting in (batch, 2, 3)"""
+        scale_factors = self.scale_factors[region_idx]
+        theta = torch.zeros(theta_i.size(0), 2, 3)
+        theta[:, :, :2] = scale_factors
+        theta[:, :, -1] = theta_i
+        if theta_i.is_cuda: theta = theta.cuda()
+        return theta
+
 if __name__ == '__main__':
     # a = torch.rand([1,2,16,16])
     # b = torch.rand([1,3,8,8])
