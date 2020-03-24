@@ -37,7 +37,7 @@ class LoaderFactory:
         if cfg.DB.LOADER not in cls.products:
             raise KeyError
         else:
-            return cls.products[cfg.DB.LOADER if loader_name is None else loader_name](
+            loader = cls.products[cfg.DB.LOADER if loader_name is None else loader_name](
                         cfg, 
                         target_format=cfg.DB.TARGET_FORMAT,
                         use_train=cfg.DB.USE_TRAIN, 
@@ -49,3 +49,6 @@ class LoaderFactory:
                         num_workers=cfg.NUM_WORKERS,
                         num_people_per_batch=cfg.REID.SIZE_PERSON,
                     )
+            if cfg.DB.USE_TRAIN:
+                cfg.SOLVER.ITERATIONS_PER_EPOCH = len(loader['train'])
+            return loader

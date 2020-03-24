@@ -6,10 +6,8 @@ import sys
 from src.factory.config_factory import _C as cfg
 from src.factory.config_factory import build_output, show_products, show_configs
 from src.factory.trainer_factory import TrainerFactory
-
+from tools.utils import deploy_macro
 from tools.logger import setup_logger
-from tools.utils import deploy_macro, print_config
-
 
 def main():
     parser = argparse.ArgumentParser(description="PyTorch Deep Learning")
@@ -38,7 +36,6 @@ def main():
     trainer = TrainerFactory.produce(cfg)
 
     logger.info("Running with config")
-    print_config(cfg, args.config)
     
     if cfg.EVALUATE:
         trainer.test()

@@ -3,7 +3,7 @@ import torch
 import math
 import numpy as np 
 import src.solver.optimizers as opts
-import src.solver.lr_schedulers as lr_schedulers
+from src.solver.lr_schedulers import LRScheduler
 import logging
 logger = logging.getLogger("logger")
 
@@ -23,16 +23,7 @@ class Solver():
         self.wd_factor = cfg.SOLVER.WEIGHT_DECAY_BIAS_FACTOR
         self.lr_policy = cfg.SOLVER.LR_POLICY if lr_policy is None else lr_policy
         self.opt_name = cfg.SOLVER.OPTIMIZER if opt_name is None else opt_name
-
-        # cosine annealing
-        self.T_0 = cfg.SOLVER.T_0
-        self.T_mult = cfg.SOLVER.T_MULT
         self.num_iter_per_epoch = cfg.SOLVER.ITERATIONS_PER_EPOCH
-
-        # warmup
-        self.warmup = cfg.SOLVER.WARMUP
-        self.warmup_factor = cfg.SOLVER.WARMUP_FACTOR
-        self.warmup_iters = cfg.SOLVER.WARMUP_SIZE * self.num_iter_per_epoch
 
         # plateau
         self.gamma = cfg.SOLVER.GAMMA
@@ -50,33 +41,14 @@ class Solver():
         elif self.opt_name == 'SGDW':
             self.opt = opts.SGDW(self.params, momentum=self.momentum, nesterov=cfg.SOLVER.NESTEROV)
 
-        if not self.warmup:
-            self.warmup_iters = 0
-
-        if self.lr_policy == "plateau":
-            self.scheduler = lr_schedulers.WarmupReduceLROnPlateau(
-                optimizer=self.opt, 
-                mode="min",
-                gamma=self.gamma,
-                patience=self.patience,
-                warmup_factor=1.0/3,#self.warmup_factor,
-                warmup_iters=self.warmup_iters,
-            )
-        elif self.lr_policy == "cosine":
-            self.scheduler = lr_schedulers.WarmupCosineLR(
-                optimizer=self.opt,
-                num_iter_per_epoch=self.num_iter_per_epoch,
-                warmup_factor=1.0/3,
-                warmup_iters=self.warmup_iters,
-                anneal_mult=self.T_mult,
-                anneal_period=self.T_0,
-            )
-        elif self.lr_policy == "none":
-            self.scheduler = None
-            logger.info("LR policy is not used")
-        else:
-            logger.info("LR policy is not specified")
-            sys.exit(1)    
+        self.scheduler = LRScheduler(
+            optimizer=self.opt,
+            raw_policy=self.lr_policy,
+            num_iter_per_epoch=self.num_iter_per_epoch,
+        )
+        
+        if cfg.DB.USE_TRAIN:
+            cfg.SOLVER.MAX_EPOCHS = max(list(self.scheduler.policy_schedule.keys()))
 
     def _model_analysis(self, params_groups, custom=[]):
         self.params = []

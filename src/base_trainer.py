@@ -9,6 +9,8 @@ from src.factory.graph_factory import GraphFactory
 from src.solver.solver import Solver
 from src.factory.engine_factory import EngineFactory
 from tools.tensorboard import Tensorboard
+from tools.utils import print_config
+
 
 class BaseTrainer():
     def __init__(self, cfg):
@@ -16,7 +18,6 @@ class BaseTrainer():
         self.cfg = cfg
         self.loader = LoaderFactory.produce(cfg)
         # must be checked after the loader is built
-        self._check_config()
         self.graph = GraphFactory.produce(cfg)                
         self.acc = 0.0
         self.solvers = {}          
@@ -43,6 +44,7 @@ class BaseTrainer():
         self.engine = EngineFactory.produce(
             self.cfg, self.graph, self.loader, self.solvers, self.visualizer
         )
+        print_config(self.cfg)        
     
     def train(self):
         self.engine.Train()
@@ -62,14 +64,6 @@ class BaseTrainer():
         else:
             logger.info("Training model from scratch")
     
-    def _check_config(self):
-        if self.cfg.SOLVER.LR_POLICY == 'cosine':
-            adjusted_epochs, num_restart = self.calc_restart_maxepochs(self.cfg.SOLVER.T_MULT, self.cfg.SOLVER.T_0, self.cfg.SOLVER.MAX_EPOCHS)
-            logger.info(f"Max epochs is adjusted : {self.cfg.SOLVER.MAX_EPOCHS} => {adjusted_epochs} with {num_restart} restarts")
-            self.cfg.SOLVER.MAX_EPOCHS = adjusted_epochs
-        if self.cfg.DB.USE_TRAIN:
-            self.cfg.SOLVER.ITERATIONS_PER_EPOCH = len(self.loader['train'])
-            assert self.cfg.ORACLE is False
 
     @staticmethod
     def calc_restart_maxepochs(base, period, epochs):
