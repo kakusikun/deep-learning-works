@@ -234,7 +234,7 @@ class Evolution:
         return max_flops, max_params
 
     def set_flops_params_lowerbound(self, clb):
-        block_choices = [0] * sum(self.graph.stage_repeats)
+        block_choices = [1] * sum(self.graph.stage_repeats)
         cum_repeats = 0
         for repeats in self.graph.stage_repeats:
             block_choices[cum_repeats] = 1
@@ -332,7 +332,7 @@ class SearchEvolution:
             with torch.no_grad():
                 for key in batch:
                     batch[key] = batch[key].cuda()
-                outputs = self.graph.model(batch['inp'], block_choices, channel_choices)
+                outputs = self.graph.run(batch['inp'], block_choices, channel_choices)
             accus.append((outputs.max(1)[1] == batch['target']).float().mean())
             print("\r  ------------------ " + f"{msg:<20} [{time.time()-start:.2f}]s    [{time.time()-iter_start:.2f}]s/iter                      ", end='')
         accu = tensor_to_scalar(torch.stack(accus).mean())
@@ -507,7 +507,7 @@ def get_flop_params(all_block_choice, all_channel_choice, lookup_table):
 if __name__ == "__main__":
     import torch
     from src.factory.config_factory import _C as cfg
-    from src.graph.spos import SPOS
+    from src.graph.shufflenetv2_spos import ShuffleNetv2SPOS
 
     cfg.INPUT.RESIZE = (112, 112)
     cfg.DB.NUM_CLASSES = 10
@@ -515,17 +515,21 @@ if __name__ == "__main__":
     cfg.SPOS.LAST_CONV_AFTER_POOLING = True
     cfg.SPOS.CHANNELS_LAYOUT = "OneShot"
     cfg.SPOS.DURATION = 5
-    graph = SPOS(cfg)
+    cfg.MODEL.FEATSIZE = 464
+    graph = ShuffleNetv2SPOS(cfg)
 
     evolution = Evolution(cfg, graph)
+    evolution.adjust_flops_params_range(8)
+    evolution.adjust_flops_params_range(6)
+    evolution.adjust_flops_params_range(4)
+    evolution.adjust_flops_params_range(2)
+    # max_flops, pick_id, range_id, find_max_param = evolution.get_cur_evolve_state()
 
-    max_flops, pick_id, range_id, find_max_param = evolution.get_cur_evolve_state()
-
-    if find_max_param:    
-        candidate = evolution.evolve(50, pick_id, find_max_param, max_flops,
-                                max_params=evolution.param_range[range_id],
-                                min_params=evolution.param_range[-1])
-    else:   
-        candidate = evolution.evolve(50, pick_id, find_max_param, max_flops,
-                                max_params=evolution.param_range[0],
-                                min_params=evolution.param_range[range_id])
+    # if find_max_param:    
+    #     candidate = evolution.evolve(50, pick_id, find_max_param, max_flops,
+    #                             max_params=evolution.param_range[range_id],
+    #                             min_params=evolution.param_range[-1])
+    # else:   
+    #     candidate = evolution.evolve(50, pick_id, find_max_param, max_flops,
+    #                             max_params=evolution.param_range[0],
+    #                             min_params=evolution.param_range[range_id])
