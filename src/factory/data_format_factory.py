@@ -27,9 +27,12 @@ class DataFormatFactory:
         if cfg.DB.DATA_FORMAT not in cls.products:
             raise KeyError
         else:
-            return cls.products[cfg.DB.DATA_FORMAT if data_format is None else data_format](
+            data_format = cls.products[cfg.DB.DATA_FORMAT if data_format is None else data_format](
                         data=data,
                         transform=transform if transform is not None else None,
                         build_func=build_func if build_func is not None else None,          # coco
                         return_indice=return_indice     # reid
                     )
+            if cfg.DB.USE_TRAIN:
+                assert cfg.ORACLE is False
+            return data_format
