@@ -39,7 +39,7 @@ class SPOSClassificationEngine(BaseEngine):
             self.visualizer.add_histogram('train/evolution/channel_choices', self._choice2hist(channel_choices), self.iter, np.arange(len(channel_choices)))
             self.visualizer.add_scalar('train/evolution/flops', cand['flops'], self.iter)              
             self.visualizer.add_scalar('train/evolution/params', cand['param'], self.iter)                      
-            outputs = self.graph.model(batch['inp'], block_choices, channel_choices)
+            outputs = self.graph.run(batch['inp'], block_choices, channel_choices)
             self.loss, self.losses = self.graph.loss_head(outputs, batch)
             accus.append((outputs.max(1)[1] == batch['target']).float().mean())        
             self._train_iter_end()    
@@ -82,7 +82,7 @@ class SPOSClassificationEngine(BaseEngine):
             for batch in tqdm(self.vdata, desc=title): 
                 for key in batch:
                     batch[key] = batch[key].cuda()
-                outputs = self.graph.model(batch['inp'], block_choices, channel_choices)
+                outputs = self.graph.run(batch['inp'], block_choices, channel_choices)
                 accus.append((outputs.max(1)[1] == batch['target']).float().mean())
           
         self.accu = self.tensor_to_scalar(torch.stack(accus).mean())   

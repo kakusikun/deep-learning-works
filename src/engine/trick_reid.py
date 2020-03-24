@@ -29,7 +29,7 @@ class TrickReIDEngine(BaseEngine):
             if self.use_gpu:
                 for key in batch:
                     batch[key] = batch[key].cuda()
-            outputs = self.graph.model(batch['inp']) 
+            outputs = self.graph.run(batch['inp']) 
             self.loss, self.losses = self.graph.loss_head(outputs, batch)
             accus.append((outputs['global'].max(1)[1] == batch['pid']).float().mean())        
             self._train_iter_end()
@@ -50,7 +50,7 @@ class TrickReIDEngine(BaseEngine):
             qf, q_pids, q_camids = [], [], []
             for batch in tqdm(self.qdata, desc=title): 
                 imgs, pids, camids = batch['inp'], batch['pid'], batch['camid']
-                features = self.graph.model(imgs.cuda() if self.use_gpu else imgs)['neck']
+                features = self.graph.run(imgs.cuda() if self.use_gpu else imgs)['neck']
                 features = F.normalize(features)
                 qf.append(features.cpu())
                 q_pids.extend(pids)
@@ -64,7 +64,7 @@ class TrickReIDEngine(BaseEngine):
             gf, g_pids, g_camids = [], [], []
             for batch in tqdm(self.gdata, desc=title): 
                 imgs, pids, camids = batch['inp'], batch['pid'], batch['camid']
-                features = self.graph.model(imgs.cuda() if self.use_gpu else imgs)['neck']
+                features = self.graph.run(imgs.cuda() if self.use_gpu else imgs)['neck']
                 features = F.normalize(features)
                 gf.append(features.cpu())
                 g_pids.extend(pids)

@@ -12,7 +12,7 @@ class ClassificationEngine(BaseEngine):
             for key in batch:
                 batch[key] = batch[key].cuda()
             images = batch['inp']
-            outputs = self.graph.model(images)
+            outputs = self.graph.run(images)
             self.loss, self.losses = self.graph.loss_head(outputs, batch)
             accus.append((outputs.max(1)[1] == batch['target']).float().mean())        
             self._train_iter_end()    
@@ -30,7 +30,7 @@ class ClassificationEngine(BaseEngine):
                     batch[key] = batch[key].cuda()
                 images = batch['inp']      
                 
-                outputs = self.graph.model(images)
+                outputs = self.graph.run(images)
 
                 accus.append((outputs.max(1)[1] == batch['target']).float().mean())
           

@@ -20,6 +20,7 @@ class BaseGraph:
         '''
         self.cfg = cfg
         self.model = None
+        self.parallel_model = None
         self.loss_head = None
         self.use_gpu = False
         self.sub_models = {}
@@ -29,6 +30,12 @@ class BaseGraph:
 
     def build(self):        
         raise NotImplementedError
+
+    def run(self, x):
+        if self.parallel_model is not None:
+            return self.parallel_model(x)
+        else:
+            return self.model(x)
         
     @staticmethod
     def save(path, model, sub_models=None, solvers=None, epoch=-1,  metric=-1):
@@ -39,10 +46,7 @@ class BaseGraph:
                 opt_state = solvers[solver].opt.state_dict()
                 state[f"{solver}"] = opt_state
 
-        if isinstance(model, torch.nn.DataParallel): 
-            model_state = model.module.state_dict()
-        else:
-            model_state = model.state_dict()
+        model_state = model.state_dict()
             
         state['model'] = model_state 
         if sub_models is not None:
@@ -125,7 +129,7 @@ class BaseGraph:
             if num_gpus > 1 and torch.cuda.device_count() > 1:
                 if self.use_gpu:
                     logger.info("Use GPUs: {}{}{}{}".format(bcolors.RESET, bcolors.OKGREEN, gpu, bcolors.RESET))
-                    self.model = torch.nn.DataParallel(self.model)
+                    self.parallel_model = torch.nn.DataParallel(self.model)
                 else:
                     logger.info("Use .cuda() first")
             elif self.use_gpu:

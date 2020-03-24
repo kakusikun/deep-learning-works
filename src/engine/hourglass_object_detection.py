@@ -15,7 +15,7 @@ class HourglassODEngine(BaseEngine):
             self._train_iter_start()
             for key in batch:
                 batch[key] = batch[key].cuda()
-            outputs = self.graph.model(batch['inp'])
+            outputs = self.graph.run(batch['inp'])
             self.loss, self.losses = self.graph.loss_head(outputs, batch)
             self._train_iter_end()
 
@@ -50,7 +50,7 @@ class HourglassODEngine(BaseEngine):
                         )
                     ).cuda()
                 else:               
-                    feat = self.graph.model(batch['inp'])[-1]
+                    feat = self.graph.run(batch['inp'])[-1]
                     feat['hm'].sigmoid_()
                     
                 if self.cfg.DB.TARGET_FORMAT == 'centerface_bbox':
