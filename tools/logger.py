@@ -10,7 +10,7 @@ def setup_logger(save_dir, log_name="log"):
         # don't log results for the non-master process
         ch = logging.StreamHandler(stream=sys.stdout)
         ch.setLevel(logging.DEBUG)
-        formatter = logging.Formatter("%(asctime)s %(name)s %(levelname)s: %(message)s")
+        formatter = logging.Formatter("%(asctime)s p%(process)s {%(filename)s:%(lineno)d} %(levelname)s: %(message)s")
         ch.setFormatter(formatter)
         logger.addHandler(ch)
 
