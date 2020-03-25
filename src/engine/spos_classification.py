@@ -35,8 +35,6 @@ class SPOSClassificationEngine(BaseEngine):
 
             channel_choices = cand['channel_choices']
             block_choices = cand['block_choices']     
-            self.visualizer.add_histogram('train/evolution/block_choices', self._choice2hist(block_choices), self.iter, np.arange(len(block_choices)))
-            self.visualizer.add_histogram('train/evolution/channel_choices', self._choice2hist(channel_choices), self.iter, np.arange(len(channel_choices)))
             self.visualizer.add_scalar('train/evolution/flops', cand['flops'], self.iter)              
             self.visualizer.add_scalar('train/evolution/params', cand['param'], self.iter)                      
             outputs = self.graph.run(batch['inp'], block_choices, channel_choices)
@@ -74,6 +72,8 @@ class SPOSClassificationEngine(BaseEngine):
         accus = []        
         block_choices = self.graph.random_block_choices(self.epoch - self.cfg.SPOS.EPOCH_TO_SEARCH)
         channel_choices = self.graph.random_channel_choices(self.epoch - self.cfg.SPOS.EPOCH_TO_SEARCH)
+        self.visualizer.add_histogram('val/evolution/block_choices', self._choice2hist(block_choices), self.iter, np.arange(len(block_choices)))
+        self.visualizer.add_histogram('val/evolution/channel_choices', self._choice2hist(channel_choices), self.iter, np.arange(len(channel_choices)))
         raw_model_state = deepcopy(self.graph.model.state_dict())
         recalc_bn(self.graph, block_choices, channel_choices, self.tdata, True)
 

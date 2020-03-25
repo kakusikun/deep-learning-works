@@ -235,10 +235,10 @@ class Evolution:
 
     def set_flops_params_lowerbound(self, clb):
         block_choices = [1] * sum(self.graph.stage_repeats)
-        cum_repeats = 0
-        for repeats in self.graph.stage_repeats:
-            block_choices[cum_repeats] = 1
-            cum_repeats += repeats
+        # cum_repeats = 0
+        # for repeats in self.graph.stage_repeats:
+        #     block_choices[cum_repeats] = 1
+        #     cum_repeats += repeats
         channel_choices = [clb] * sum(self.graph.stage_repeats)     
         min_flops, min_params = get_flop_params(block_choices, channel_choices, self.lookup_table)
         return min_flops, min_params
