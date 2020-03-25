@@ -45,7 +45,7 @@ class SWAG(nn.Module):
         return self.model(*args, **kwargs)
     
     def save(self, path, epoch=-1):
-        torch.save(self.model.state_dict(), os.path.join(path,f"swag_{self.n:03}.pth"))
+        torch.save(self.model.state_dict(), os.path.join(path,f"swag_{self.n.item():03}.pth"))
 
     def sample(self, scale=1.0, block=False):
         if not block:
@@ -69,7 +69,7 @@ class SWAG(nn.Module):
                 cov_diag_sqrt = torch.sqrt(cov_diag) * z1
 
                 cov_sqrt = m.__getattr__(f"{name}_cov_sqrt")
-                z2 = torch.randn(cov_sqrt.size(0), 1)
+                z2 = cov_sqrt.new_empty((cov_sqrt.size(0), 1)).normal_()
                 cov_low_rank_sqrt = cov_sqrt.t().matmul(z2).view_as(mean) / ((self.K - 1) ** 0.5)
 
                 # eq(1)
