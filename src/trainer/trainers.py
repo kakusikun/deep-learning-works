@@ -27,8 +27,6 @@ class SPOSClassificationTrainer(BaseTrainer):
 class TrickReIDTrainer(BaseTrainer):
     def __init__(self, cfg):
         super(TrickReIDTrainer, self).__init__(cfg)
-        self.solvers['main'] = Solver(
-            cfg, [self.graph.model.named_parameters()])
         for sub_model in self.graph.sub_models:
             self.solvers[sub_model] = Solver(
                 cfg, 
@@ -37,6 +35,8 @@ class TrickReIDTrainer(BaseTrainer):
                 lr_policy="none",
                 opt_name="SGDW"
             )
+        self.solvers['main'] = Solver(
+            cfg, [self.graph.model.named_parameters()])
         self.graph.to_gpu()
         self.activate()
 

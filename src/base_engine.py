@@ -98,7 +98,7 @@ class BaseEngine():
                 if self.accu > self.best_accu:
                     if self.cfg.SAVE:
                         logger.info(f"Save checkpoint, with {self.accu - self.best_accu:.4f} improvement")
-                        self.graph.save(self.graph.save_path, self.graph.model, self.graph.sub_models, self.solvers, self.epoch, self.best_accu)                    
+                        self.graph.save(self.graph.save_path, self.graph.model, self.graph.sub_models, self.solvers, self.epoch, self.accu)                    
                     self.best_accu = self.accu
                 self.visualizer.add_scalar('val/accuracy', self.accu, self.epoch)
 

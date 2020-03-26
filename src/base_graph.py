@@ -51,7 +51,7 @@ class BaseGraph:
         state['model'] = model_state 
         if sub_models is not None:
             assert isinstance(sub_models, dict)
-            for sub_model in enumerate(sub_models):
+            for sub_model in sub_models:
                 sub_model_state = sub_models[sub_model].state_dict()
                 state[f"{sub_model}"] = sub_model_state
 

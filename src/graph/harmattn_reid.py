@@ -24,7 +24,7 @@ class _Model(nn.Module):
             'g_id': id_global_feat,
             'l_l2': l2_local_feat,
             'l_id': id_local_feat,
-            'embb': torch.cat([l2_local_feat, l2_global_feat], dim=1)
+            'embb': torch.cat([l2_local_feat, l2_global_feat], dim=1) if not self.training else None
         }
         return outputs
         
@@ -40,10 +40,6 @@ class HarmAttenReID(BaseGraph):
         self.crit['g_triplet'] = SoftTripletLoss()
         self.crit['l_cels'] = CrossEntropyLossLS(self.cfg.DB.NUM_CLASSES)
         self.crit['l_triplet'] = SoftTripletLoss()
-        # self.crit['g_center'] = CenterLoss(self.cfg.MODEL.FEATSIZE, self.cfg.DB.NUM_CLASSES) 
-        # self.crit['l_center'] = CenterLoss(self.cfg.MODEL.FEATSIZE, self.cfg.DB.NUM_CLASSES) 
-        # self.sub_models['g_center'] = self.crit['g_center']
-        # self.sub_models['l_center'] = self.crit['l_center']
 
         def loss_head(outputs, batch):
             assert outputs['g_id'] is not None and outputs['l_id'] is not None
@@ -52,8 +48,6 @@ class HarmAttenReID(BaseGraph):
                 'g_triplet':self.crit['g_triplet'](outputs['g_l2'], batch['pid']), 
                 'l_cels':self.crit['l_cels'](outputs['l_id'], batch['pid']), 
                 'l_triplet':self.crit['l_triplet'](outputs['l_l2'], batch['pid']), 
-                # 'g_center':self.crit['g_center'](outputs['local'], batch['pid'])
-                # 'l_center':self.crit['l_center'](outputs['local'], batch['pid'])
             }
             loss = losses['g_cels'] + losses['g_triplet'] + losses['l_cels'] + losses['l_triplet']
             return loss, losses
