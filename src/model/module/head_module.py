@@ -133,9 +133,9 @@ class HourGlassHead(nn.Module):
         return self.head(x)
 
 class ReIDTrickHead(nn.Module):
-    def __init__(self, in_channels, n_dim):
+    def __init__(self, in_channels, n_dim, use_gap=True):
         super(ReIDTrickHead, self).__init__()
-        self.gap = nn.AdaptiveAvgPool2d(1)        
+        self.gap = nn.AdaptiveAvgPool2d(1) if use_gap else None        
         self.BNNeck = nn.BatchNorm1d(in_channels)
         self.BNNeck.bias.requires_grad_(False)  # no shift
         self.BNNeck.apply(self.weights_init_kaiming)
@@ -143,8 +143,11 @@ class ReIDTrickHead(nn.Module):
         self.id_fc.apply(self.weights_init_classifier)
 
     def forward(self, x):
-        x = self.gap(x)
-        local_feat = x.view(x.size(0), -1)
+        if self.gap:
+            x = self.gap(x)
+            local_feat = x.view(x.size(0), -1)
+        else:
+            local_feat = x
         x = self.BNNeck(local_feat)
         global_feat = None
         if self.training:
