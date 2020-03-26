@@ -257,6 +257,45 @@ class SoftTripletLoss(nn.Module):
     def softplus(x):
         return torch.log(1+torch.exp(x))
 
+class AMSoftmaxWithLoss(nn.Module):
+    r"""Implement of large margin cosine distance in cross entropy with label smoothing: :
+    Args:
+        in_features: size of each input sample
+        num_classes: number of identity in dataset
+        s: norm of input feature
+        m: margin
+        cos(theta) - m
+    """
+
+    def __init__(self, in_features, num_classes, s=30.0, m=0.30):
+        super(AMSoftmaxWithLoss, self).__init__()
+        self.s = s
+        self.m = m
+        self.ce = nn.CrossEntropyLoss()
+
+        self.weight = nn.Parameter(torch.FloatTensor(num_classes, in_features))
+        nn.init.xavier_uniform_(self.weight)
+
+    def forward(self, inputs, labels):
+        device = inputs.get_device()
+
+        cosine = F.linear(inputs, F.normalize(self.weight))
+        phi = cosine - self.m
+
+        one_hot = torch.zeros(cosine.size())
+        target = labels.view(-1,1).long()
+
+        if device > -1:
+            one_hot = one_hot.to(device)
+            target = target.to(device)
+           
+        one_hot.scatter_(1, target, 1)
+
+        output = (one_hot * phi) + ((1.0 - one_hot) * cosine)
+        output *= self.s
+        loss = self.ce(output, labels)
+
+        return loss
 
 if __name__ == "__main__":
     feats = torch.rand(16, 10)
