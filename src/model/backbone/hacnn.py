@@ -133,7 +133,7 @@ class HACNN(nn.Module):
         )
 
         self.pooling = GeM()
-
+        self._init_params()
 
     def forward(self, x):
         assert x.size(2) == 160 and x.size(3) == 64, \
@@ -151,11 +151,25 @@ class HACNN(nn.Module):
         x_global = self.global_fc(x_global)
         stages.append((x_global, None))
         return stages
+
+    def _initialize_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
+                if m.bias is not None:
+                    m.bias.data.zero_()
+            elif isinstance(m, nn.BatchNorm2d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
+            elif isinstance(m, nn.Linear):
+                n = m.weight.size(1)
+                m.weight.data.normal_(0, 0.01)
+                m.bias.data.zero_()
     
 def hacnn():
     model = HACNN([7, 10, 7], [32, 128, 256, 384, 512])
     return model
-
     
 
 if __name__ == "__main__":
