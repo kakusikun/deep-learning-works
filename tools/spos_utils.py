@@ -304,7 +304,6 @@ class SearchEvolution:
 
     def build_population(self):
         population = []
-        start = time.time()
         while len(population) < self.population_size:
             block_choices = self.graph.random_block_choices()
             channel_choices = self.graph.random_channel_choices()
@@ -315,29 +314,9 @@ class SearchEvolution:
             instance['flops'] = flops
             instance['param'] = param
             population.append(instance)
-            print("\r Building Population" + f"{int(time.time()-start)}s", end='')
         if self.logger:
             self.logger.info("Population Built")
         return population
-
-    def _get_choice_accuracy(self, block_choices, channel_choices):
-        self.graph.model.train()
-        recalc_bn(self.graph, block_choices, channel_choices, self.bndata, True, self.bn_recalc_imgs)
-        self.graph.model.eval()
-        accus = []
-        start = time.time()
-        msg = "Testing"
-        for batch in self.vdata:
-            iter_start = time.time()
-            with torch.no_grad():
-                for key in batch:
-                    batch[key] = batch[key].cuda()
-                outputs = self.graph.run(batch['inp'], block_choices, channel_choices)
-            accus.append((outputs.max(1)[1] == batch['target']).float().mean())
-            print("\r  ------------------ " + f"{msg:<20} [{time.time()-start:.2f}]s    [{time.time()-iter_start:.2f}]s/iter                      ", end='')
-        accu = tensor_to_scalar(torch.stack(accus).mean())
-        print(f"  ------------------ {accu:.4f}")
-        return accu
 
     def born(self, father, mother):
         children = []
@@ -355,8 +334,8 @@ class SearchEvolution:
                 if self.logger and i % 50 == 0:
                     self.logger.info(f"Growing    Search [{search_iter:03}]    Step [{i:03}]    Duration [{(time.time()-start)/60:.2f}]s")
 
-                acc = self._get_choice_accuracy(instance['block'], instance['channel'])
-                instance['error'] = 1 - acc
+                err = 1 - self._get_choice_accuracy(instance['block'], instance['channel'])
+                instance['error'] = err
                 temp = (
                     deepcopy(instance['error']), 
                     deepcopy(instance['block']),
@@ -365,7 +344,7 @@ class SearchEvolution:
                     deepcopy(instance['param']),
                 )
                 leader_board.push(temp)
-                self.history[f"{acc:.3f}"].append(instance)
+                self.history[f"{err:.3f}"].append(instance)
 
         population.sort(key=lambda x: x['error'])
         parents = population[:self.retain_length]
@@ -412,6 +391,7 @@ class SearchEvolution:
             if 'error' not in instance:
                 acc = self._get_choice_accuracy(instance['block'], instance['channel'])
                 instance['error'] = 1 - acc
+
                 temp = (
                     1 - deepcopy(instance['error']), 
                     deepcopy(instance['block']),
@@ -471,6 +451,25 @@ class SearchEvolution:
         with open(path, 'w') as f:
             json.dump(self.history, f)
 
+    def _get_choice_accuracy(self, block_choices, channel_choices):
+        self.graph.model.train()
+        recalc_bn(self.graph, block_choices, channel_choices, self.bndata, True, self.bn_recalc_imgs)
+        self.graph.model.eval()
+        accus = []
+        start = time.time()
+        msg = "Testing"
+        for batch in self.vdata:
+            iter_start = time.time()
+            with torch.no_grad():
+                for key in batch:
+                    batch[key] = batch[key].cuda()
+                outputs = self.graph.run(batch['inp'], block_choices, channel_choices)
+            accus.append((outputs.max(1)[1] == batch['target']).float().mean())
+            print("\r  ------------------ " + f"{msg:<20} [{time.time()-start:.2f}]s    [{time.time()-iter_start:.2f}]s/iter                      ", end='')
+        accu = tensor_to_scalar(torch.stack(accus).mean())
+        print(f"  ------------------ {accu:.4f}")
+        return accu
+
     @staticmethod
     def crossover_mutate(a, b, choices, prob):
         c = [0] * len(a)
@@ -488,7 +487,8 @@ def recalc_bn(graph, block_choices, channel_choices, bndata, use_gpu, bn_recalc_
         iter_start = time.time()
         if use_gpu:
             img = batch['inp'].cuda()
-        graph.model(img, block_choices, channel_choices)
+        with torch.no_grad():
+            graph.model(img, block_choices, channel_choices)
 
         count += img.size(0)        
         print("\r  ------------------ " + f"{msg:<20} [{time.time()-start:.2f}]s    [{time.time()-iter_start:.2f}]s/iter    [{count / bn_recalc_imgs * 100:.2f}]%", end='')

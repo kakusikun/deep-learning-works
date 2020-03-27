@@ -22,7 +22,10 @@ class IAPReID(BaseGraph):
     def build(self):
         self.model = _Model(self.cfg)
         self.crit = {}
-        self.crit['amsoftmax'] = AMSoftmaxWithLoss(256, self.cfg.DB.NUM_CLASSES, relax=0.3).cuda()
+        if self.use_gpu:
+            self.crit['amsoftmax'] = AMSoftmaxWithLoss(256, self.cfg.DB.NUM_CLASSES, relax=0.3).cuda()
+        else:
+            self.crit['amsoftmax'] = AMSoftmaxWithLoss(256, self.cfg.DB.NUM_CLASSES, relax=0.3)
 
         def loss_head(outputs, batch):
             _loss, logit = self.crit['amsoftmax'](outputs['embb'], batch['pid'])
