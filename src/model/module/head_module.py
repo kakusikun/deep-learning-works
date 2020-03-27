@@ -194,3 +194,30 @@ class ReIDL2Head(nn.Module):
                 nn.init.normal_(m.weight, std=0.001)
                 if m.bias is not None:
                     nn.init.constant_(m.bias, 0.0)
+
+class IAPHead(nn.Module):
+    def __init__(self, in_channels, kernal_size, feat_dim):
+        super(IAPHead, self).__init__()
+        self.iap_GDConv = ConvModule(
+            in_channels,
+            in_channels,
+            kernal_size,
+            groups=in_channels,
+            activation='linear',
+            use_bn=False
+        )
+        self.iap_fc = nn.Linear(in_channels, feat_dim, bias=False)   
+        self.iap_fc.apply(self.weights_init_classifier)    
+
+    def forward(self, x):
+        x = self.iap_GDConv(x).view(x.size(0), -1)
+        x = self.iap_fc(x)
+        x = F.normalize(x)
+        return x
+    
+    def weights_init_classifier(self, module):
+        for m in module.modules():
+            if isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
+                nn.init.normal_(m.weight, std=0.001)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0.0)
