@@ -4,6 +4,7 @@ from src.trainer.trainers import (
     SPOSClassificationTrainer,
     TrickReIDTrainer,
     HarmAttnReIDTrainer,
+    IAPReIDTrainer,
 )
 
 class TrainerFactory:
@@ -13,6 +14,7 @@ class TrainerFactory:
         'spos_classification': SPOSClassificationTrainer,
         'trick_reid': TrickReIDTrainer,
         'ha_reid': HarmAttnReIDTrainer,
+        'iap_reid': IAPReIDTrainer,
     }
 
     @classmethod

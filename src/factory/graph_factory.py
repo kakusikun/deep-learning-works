@@ -5,6 +5,7 @@ from src.graph.hourglass_object_detection import HourglassObjectDetection
 from src.graph.shufflenetv2_spos import ShuffleNetv2SPOS
 from src.graph.trick_reid import TrickReID
 from src.graph.harmattn_reid import HarmAttenReID
+from src.graph.iap_reid import IAPReID
 
 class GraphFactory:
     products = {
@@ -15,6 +16,7 @@ class GraphFactory:
         'shufflenetv2_spos_classification': ShuffleNetv2SPOS,
         'trick_reid': TrickReID,
         'ha_reid': HarmAttenReID,
+        'iap_reid': IAPReID,
     }
 
     @classmethod

@@ -1,5 +1,7 @@
 from src.trainer import *
 from src.solver.solver import Solver
+import logging
+logger = logging.getLogger("logger")
 
 class CenternetODTrainer(BaseTrainer):
     def __init__(self, cfg):
@@ -46,4 +48,18 @@ class HarmAttnReIDTrainer(BaseTrainer):
         self.solvers['main'] = Solver(
             cfg, [self.graph.model.named_parameters()])
         self.graph.to_gpu()
+        self.activate()
+
+class IAPReIDTrainer(BaseTrainer):
+    def __init__(self, cfg):
+        super(IAPReIDTrainer, self).__init__(cfg)
+        self.solvers['main'] = Solver(
+            cfg, [self.graph.model.named_parameters()])
+        self.graph.to_gpu()
+        if cfg.SOLVER.MODEL_FREEZE_PEROID > 0:
+            for n, p in self.graph.model.named_parameters():
+                if 'iap' not in n:
+                    p.requires_grad_(False)
+                if p.requires_grad:
+                    logger.info(f"{n} is trainable")
         self.activate()

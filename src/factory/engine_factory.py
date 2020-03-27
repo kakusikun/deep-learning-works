@@ -4,6 +4,7 @@ from src.engine.hourglass_object_detection import HourglassODEngine
 from src.engine.spos_classification import SPOSClassificationEngine
 from src.engine.trick_reid import TrickReIDEngine
 from src.engine.harmattn_reid import HarmAttnReIDEngine
+from src.engine.iap_reid import IAPReIDEngine
 
 class EngineFactory():
     products = {
@@ -13,6 +14,7 @@ class EngineFactory():
         'spos_classification': SPOSClassificationEngine,
         'trick_reid': TrickReIDEngine,
         'ha_reid': HarmAttnReIDEngine,
+        'iap_reid': IAPReIDEngine,
     }
 
     @classmethod
