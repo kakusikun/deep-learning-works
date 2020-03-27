@@ -35,9 +35,9 @@ class Solver():
         if self.opt_name == 'SGD':
             self.opt = torch.optim.SGD(self.params, momentum=self.momentum, nesterov=cfg.SOLVER.NESTEROV)
         elif self.opt_name == 'Adam':
-            self.opt = torch.optim.Adam(self.params)
+            self.opt = torch.optim.Adam(self.params, amsgrad=cfg.SOLVER.AMSGRAD)
         elif self.opt_name == 'AdamW':
-            self.opt = torch.optim.AdamW(self.params)
+            self.opt = torch.optim.AdamW(self.params, amsgrad=cfg.SOLVER.AMSGRAD)
         elif self.opt_name == 'SGDW':
             self.opt = opts.SGDW(self.params, momentum=self.momentum, nesterov=cfg.SOLVER.NESTEROV)
 
