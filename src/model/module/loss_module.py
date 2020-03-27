@@ -267,10 +267,11 @@ class AMSoftmaxWithLoss(nn.Module):
         cos(theta) - m
     """
 
-    def __init__(self, in_features, num_classes, s=30.0, m=0.30):
+    def __init__(self, in_features, num_classes, s=0.3, m=0.35, relax=0.0):
         super(AMSoftmaxWithLoss, self).__init__()
         self.s = s
         self.m = m
+        self.relax = relax
         self.ce = nn.CrossEntropyLoss()
 
         self.weight = nn.Parameter(torch.FloatTensor(num_classes, in_features))
@@ -293,9 +294,14 @@ class AMSoftmaxWithLoss(nn.Module):
 
         output = (one_hot * phi) + ((1.0 - one_hot) * cosine)
         output *= self.s
+        logit = F.softmax(output, dim=1)
         loss = self.ce(output, labels)
+        if self.relax > 0.0:
+            loglogit = F.log_softmax(output, dim=1)
+            loss += self.relax * (logit * loglogit).mean()
+            return F.relu(loss), logit
 
-        return loss
+        return loss, logit
 
 if __name__ == "__main__":
     feats = torch.rand(16, 10)

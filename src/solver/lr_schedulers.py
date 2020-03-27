@@ -170,7 +170,7 @@ class LRScheduler():
         if curr_schedule['policy'] == 'warm':
             factor = self.warmlr.get_factor(iters, target_epoch, last_epoch)
         elif curr_schedule['policy'] == 'cosine':
-            factor = self.consielr.get_factor(curr_schedule, iters, last_epoch)
+            factor = self.cosinelr.get_factor(curr_schedule, iters, last_epoch)
         elif curr_schedule['policy'] == 'step':
             factor = self.steplr.get_factor(curr_schedule, iters)
             self.permanent_factor = factor
