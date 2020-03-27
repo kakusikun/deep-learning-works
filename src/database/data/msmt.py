@@ -19,7 +19,7 @@ class MSMT17(BaseData):
     # cameras: 15
     """
 
-    def __init__(self, path="", branch="", use_train=False, use_test=False, is_merge=False, **kwargs):
+    def __init__(self, path="", branch="", use_train=False, use_test=False, use_all=False, **kwargs):
         super().__init__()
         self.dataset_dir = osp.join(path, branch)
         self.train_dir = osp.join(self.dataset_dir, 'bounding_box_train')
@@ -27,11 +27,12 @@ class MSMT17(BaseData):
         self.gallery_dir = osp.join(self.dataset_dir, 'bounding_box_test')
         self._check_before_run()
 
-        if use_train:
-            train, num_train_pids, num_train_imgs = self._process_dir(self.train_dir, relabel=True)
-            if is_merge:
-                train, num_train_pids, num_train_imgs = self._process_dir([self.train_dir, self.query_dir], relabel=True)
-                train, num_train_pids, num_train_imgs = self.clean_dataset(train, relabel=True)
+        if use_all:
+            train, num_train_pids, num_train_imgs, train_stats = self._process_dir(self.train_dir, relabel=True)
+            extra, num_extra_pids, num_extra_imgs, extra_stats = self._process_dir([self.query_dir, self.gallery_dir], relabel=True, offset=num_train_pids)
+            train.extend(extra)
+            num_train_pids += num_extra_pids
+            num_train_imgs += num_extra_imgs
             self.train['indice'] = train
             self.train['n_samples'] = num_train_pids
             logger.info("=> {} TRAIN loaded".format(branch.upper()))
@@ -39,26 +40,45 @@ class MSMT17(BaseData):
             logger.info("  ------------------------------")
             logger.info("  subset   | # ids | # images")
             logger.info("  ------------------------------")
-            logger.info("  train    | {:5d} | {:8d}".format(num_train_pids, num_train_imgs))
+            for pid in train_stats:
+                logger.info(f"  train    | {pid:7d} | {train_stats[pid]:8d}")
+            logger.info(f"  train    | {len(train_stats):7d} | {num_train_imgs:8d}")            
             logger.info("  ------------------------------")
+        else:
+            if use_train:
+                train, num_train_pids, num_train_imgs, train_stats = self._process_dir(self.train_dir, relabel=True)
+                self.train['indice'] = train
+                self.train['n_samples'] = num_train_pids
+                logger.info("=> {} TRAIN loaded".format(branch.upper()))
+                logger.info("Dataset statistics:")
+                logger.info("  ------------------------------")
+                logger.info("  subset   | # ids | # images")
+                logger.info("  ------------------------------")
+                for pid in train_stats:
+                    logger.info(f"  train    | {pid:7d} | {train_stats[pid]:8d}")
+                logger.info(f"  train    | {len(train_stats):7d} | {num_train_imgs:8d}")            
+                logger.info("  ------------------------------")
 
-        if use_test:
-            query, num_query_pids, num_query_imgs = self._process_dir(self.query_dir, relabel=False)
-            if is_merge:
-                query, num_query_pids, num_query_imgs = self.clean_dataset(query, method='gt')
-            gallery, num_gallery_pids, num_gallery_imgs = self._process_dir(self.gallery_dir, relabel=False)
-            self.query['indice'] = query
-            self.gallery['indice'] = gallery
-            self.query['n_samples'] = num_query_pids
-            self.gallery['n_samples'] = num_gallery_pids            
-            logger.info("=> {} VAL loaded".format(branch.upper()))
-            logger.info("Dataset statistics:")
-            logger.info("  ------------------------------")
-            logger.info("  subset   | # ids | # images")
-            logger.info("  ------------------------------")
-            logger.info("  query    | {:5d} | {:8d}".format(num_query_pids, num_query_imgs))
-            logger.info("  gallery  | {:5d} | {:8d}".format(num_gallery_pids, num_gallery_imgs))
-            logger.info("  ------------------------------")
+            if use_test:
+                query, num_query_pids, num_query_imgs, query_stats = self._process_dir(self.query_dir, relabel=False)
+                gallery, num_gallery_pids, num_gallery_imgs, gallery_stats = self._process_dir(self.gallery_dir, relabel=False)
+                self.query['indice'] = query
+                self.gallery['indice'] = gallery
+                self.query['n_samples'] = num_query_pids
+                self.gallery['n_samples'] = num_gallery_pids            
+                logger.info("=> {} VAL loaded".format(branch.upper()))
+                logger.info("Dataset statistics:")
+                logger.info("  ------------------------------")
+                logger.info("  subset   | # ids | # images")
+                logger.info("  ------------------------------")
+                for pid in query_stats:
+                    logger.info(f"  query    | {pid:7d} | {query_stats[pid]:8d}")
+                logger.info(f"  query    | {len(query_stats):7d} | {num_query_imgs:8d}")            
+                for pid in gallery_stats:
+                    logger.info(f"  gallery    | {pid:7d} | {gallery_stats[pid]:8d}")
+                logger.info(f"  gallery    | {len(gallery_stats):7d} | {num_gallery_imgs:8d}")            
+                logger.info("  ------------------------------")
+        
 
 
     def _check_before_run(self):
@@ -72,7 +92,7 @@ class MSMT17(BaseData):
         if not osp.exists(self.gallery_dir):
             raise RuntimeError("'{}' is not available".format(self.gallery_dir))
 
-    def _process_dir(self, dir_path, relabel=False):
+    def _process_dir(self, dir_path, relabel=False, offset=0):
         if isinstance(dir_path, list):
             img_paths = [] 
             for _dir_path in dir_path:
@@ -86,19 +106,21 @@ class MSMT17(BaseData):
             pid, _ = map(int, pattern.search(img_path).groups())
             if pid == -1: continue  # junk images are just ignored
             pid_container.add(pid)
-        pid2label = {pid:label for label, pid in enumerate(pid_container)}
+        pid2label = {pid:label+offset for label, pid in enumerate(pid_container)}
 
         dataset = []
+        stats = defaultdict(int)
         for img_path in img_paths:
             pid, camid = map(int, pattern.search(img_path).groups())
             if pid == -1: continue  # junk images are just ignored
             camid -= 1 # index starts from 0
             if relabel: pid = pid2label[pid]
             dataset.append((img_path, pid, camid))
+            stats[pid] += 1
 
         num_pids = len(pid_container)
         num_imgs = len(dataset)
-        return dataset, num_pids, num_imgs
+        return dataset, num_pids, num_imgs, stats
     
     def clean_dataset(self, dataset, method='lt', relabel=False):
         count = defaultdict(int)

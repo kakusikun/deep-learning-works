@@ -124,7 +124,7 @@ _C.FACEID.GALLERY_TYPE = ""
 # -----------------------------------------------------------------------------
 _C.REID = CN()
 _C.REID.SIZE_PERSON = 4
-_C.REID.MERGE = False
+_C.REID.MSMT_ALL = False
 _C.REID.CENTER_LOSS_LR = 0.5
 _C.REID.CENTER_LOSS_WEIGHT = 0.0005
 

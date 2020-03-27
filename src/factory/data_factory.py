@@ -42,7 +42,7 @@ class DataFactory:
                         num_keypoints=cfg.DB.NUM_KEYPOINTS,
                         num_classes=cfg.DB.NUM_CLASSES,
                         output_stride=cfg.MODEL.STRIDE,
-                        is_merge=cfg.REID.MERGE,
+                        use_all=cfg.REID.MSMT_ALL,
                         use_train=cfg.DB.USE_TRAIN,
                         use_test=cfg.DB.USE_TEST,
                     )
