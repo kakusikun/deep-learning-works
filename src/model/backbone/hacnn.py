@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from src.model.module.base_module import ConvModule, GeM, SEModule
 from src.model.module.hacnn_module import HABlock
+import math
 
 class ShuffleBlock(nn.Module):
     def __init__(self, inc, midc, ouc, ksize, stride, activation, useSE, mode, affine=True):
@@ -133,7 +134,7 @@ class HACNN(nn.Module):
         )
 
         self.pooling = GeM()
-        self._init_params()
+        self._initialize_weights()
 
     def forward(self, x):
         assert x.size(2) == 160 and x.size(3) == 64, \
