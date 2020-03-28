@@ -28,8 +28,7 @@ def translate_x_A(level, **kwargs):
 def translate_y_A(level, **kwargs):
     return np.array([1, 0, 0, 0, 1, -level]).reshape(2, 3).astype(np.float)
 
-def rotate_A(level, **kwargs):
-    shape = kwargs['shape']
+def rotate_A(level, shape, **kwargs):
     # copy from https://pillow.readthedocs.io/en/stable/_modules/PIL/Image.html#Image.rotate
     angle = level % 360.0
 

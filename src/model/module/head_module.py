@@ -207,7 +207,8 @@ class IAPHead(nn.Module):
             use_bn=False
         )
         self.iap_fc = nn.Linear(in_channels, feat_dim, bias=False)   
-        self.iap_fc.apply(self.weights_init_classifier)    
+
+        self._init_params()
 
     def forward(self, x):
         x = self.iap_GDConv(x).view(x.size(0), -1)
@@ -215,9 +216,16 @@ class IAPHead(nn.Module):
         x = F.normalize(x)
         return x
     
-    def weights_init_classifier(self, module):
-        for m in module.modules():
-            if isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
-                nn.init.normal_(m.weight, std=0.001)
+    def _init_params(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(
+                    m.weight, mode='fan_out', nonlinearity='relu'
+                )
                 if m.bias is not None:
-                    nn.init.constant_(m.bias, 0.0)
+                    nn.init.constant_(m.bias, 0)
+
+            elif isinstance(m, nn.Linear):
+                nn.init.normal_(m.weight, 0, 0.01)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)

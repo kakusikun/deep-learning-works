@@ -272,15 +272,15 @@ class AMSoftmaxWithLoss(nn.Module):
         self.s = s
         self.m = m
         self.relax = relax
-        self.ce = nn.CrossEntropyLoss()
+        self.ce = nn.CrossEntropyLoss(reduction='none')
 
         self.weight = nn.Parameter(torch.FloatTensor(num_classes, in_features))
-        nn.init.xavier_uniform_(self.weight)
+        self.weight.data.uniform_(-1, 1).renorm_(2, 0, 1e-5).mul_(1e5)
 
     def forward(self, inputs, labels):
         device = inputs.get_device()
 
-        cosine = F.linear(inputs, F.normalize(self.weight))
+        cosine = F.linear(inputs, F.normalize(self.weight)).clamp(-1, 1)
         phi = cosine - self.m
 
         one_hot = torch.zeros(cosine.size())
@@ -294,14 +294,16 @@ class AMSoftmaxWithLoss(nn.Module):
 
         output = (one_hot * phi) + ((1.0 - one_hot) * cosine)
         output *= self.s
-        logit = F.softmax(output, dim=1)
+        log_logit = F.log_softmax(output, dim=1)
+        logit = torch.exp(log_logit)
         loss = self.ce(output, labels)
         if self.relax > 0.0:
-            loglogit = F.log_softmax(output, dim=1)
-            loss += self.relax * (logit * loglogit).mean()
-            return F.relu(loss), logit
+            loss = F.relu(loss + self.relax * (logit * log_logit).sum(1))
+            with torch.no_grad():
+                nonzero_count = loss.nonzero().size(0)
+            return loss.sum() / nonzero_count, logit
 
-        return loss, logit
+        return loss.mean(), logit
 
 if __name__ == "__main__":
     feats = torch.rand(16, 10)
