@@ -262,9 +262,7 @@ class OSNet(nn.Module):
     """Omni-Scale Network.
     
     Reference:
-        - Zhou et al. Omni-Scale Feature Learning for Person Re-Identification. ICCV, 2019.
-        - Zhou et al. Learning Generalisable Omni-Scale Representations
-          for Person Re-Identification. arXiv preprint, 2019.
+        https://github.com/opencv/openvino_training_extensions/blob/fc329219858c3771734cc1779b6b1bd742c24e07/pytorch_toolkit/person_reidentification/models/osnet_fpn.py
     """
 
     def __init__(
@@ -272,16 +270,18 @@ class OSNet(nn.Module):
         blocks,
         layers,
         channels,
-        IN=False,
+        IN_first=False,
         **kwargs
     ):
         super(OSNet, self).__init__()
         num_blocks = len(blocks)
         assert num_blocks == len(layers)
         assert num_blocks == len(channels) - 1
-
+        self.in_first = None
         # convolutional backbone
-        self.conv1 = ConvLayer(3, channels[0], 7, stride=2, padding=3, IN=IN)
+        if IN_first:
+            self.in_first = nn.InstanceNorm2d(3, affine=True)
+        self.conv1 = ConvLayer(3, channels[0], 7, stride=2, padding=3, IN=IN_first)
         self.maxpool = nn.MaxPool2d(3, stride=2, padding=1)
         self.conv2 = self._make_layer(
             blocks[0],
@@ -289,7 +289,6 @@ class OSNet(nn.Module):
             channels[0],
             channels[1],
             reduce_spatial_size=True,
-            IN=IN
         )
         self.conv3 = self._make_layer(
             blocks[1],
@@ -307,6 +306,8 @@ class OSNet(nn.Module):
         )
         self.conv5 = Conv1x1(channels[3], channels[3])
 
+        self._init_params()
+
     def _make_layer(
         self,
         block,
@@ -314,13 +315,12 @@ class OSNet(nn.Module):
         in_channels,
         out_channels,
         reduce_spatial_size,
-        IN=False
     ):
         layers = []
 
-        layers.append(block(in_channels, out_channels, IN=IN))
+        layers.append(block(in_channels, out_channels))
         for i in range(1, layer):
-            layers.append(block(out_channels, out_channels, IN=IN))
+            layers.append(block(out_channels, out_channels))
 
         if reduce_spatial_size:
             layers.append(
@@ -331,9 +331,12 @@ class OSNet(nn.Module):
             )
 
         return nn.Sequential(*layers)
+    
 
     def forward(self, x):
         stages = []
+        if self.in_first is not None:
+            x = self.in_first(x)
         x = self.conv1(x)
         x = self.maxpool(x)
         x = self.conv2(x)
@@ -346,13 +349,35 @@ class OSNet(nn.Module):
         stages.append(x)
         return stages
 
+    def _init_params(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(
+                    m.weight, mode='fan_out', nonlinearity='relu'
+                )
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+
+            elif isinstance(m, nn.BatchNorm1d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+
+            elif isinstance(m, nn.Linear):
+                nn.init.normal_(m.weight, 0, 0.01)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+
 def osnet_iap_x1_0(**kwargs):
     # standard size (width x1.0)
     model = OSNet(
         blocks=[OSBlock, OSBlock, OSBlock],
         layers=[2, 2, 2],
         channels=[64, 256, 384, 512],
-        IN=True,
+        IN_first=True,
         **kwargs
     )
     return model
