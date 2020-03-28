@@ -1,8 +1,11 @@
 from database.transform import *
 import random
 import math
+from PIL import Image
+from src.database.transform import *
 
-class RandomErasing(object):
+
+class RandomErasing(BaseTransform):
     """ Randomly selects a rectangle region in an image and erases its pixels.
         'Random Erasing Data Augmentation' by Zhong et al.
         See https://arxiv.org/pdf/1708.04896.pdf
@@ -14,16 +17,16 @@ class RandomErasing(object):
          mean: Erasing value.
     """
 
-    def __init__(self, probability=0.5, sl=0.02, sh=0.4, r1=0.3, mean=(0.4914, 0.4822, 0.4465)):
-        self.probability = probability
+    def __init__(self, p=0.5, sl=0.02, sh=0.4, r1=0.3, mean=(0.4914, 0.4822, 0.4465)):
+        self.p = p
         self.mean = mean
         self.sl = sl
         self.sh = sh
         self.r1 = r1
 
-    def __call__(self, img):
+    def apply_image(self, img):
 
-        if random.uniform(0, 1) >= self.probability:
+        if random.uniform(0, 1) >= self.p:
             return img
 
         for _ in range(100):
