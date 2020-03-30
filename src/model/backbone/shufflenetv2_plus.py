@@ -193,10 +193,10 @@ def shufflenetv2_plus(model_size='Medium', **kwargs):
         channel_choice=channel_choice)
     return model
 
-def shufflenetv2():
-    block_choice = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    channel_choice = [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
-
+def shufflenetv2(
+        block_choice=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        channel_choice=[4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
+    ):
     model = ShuffleNetV2_Plus(
         strides=[1, 1, 2, 2, 2],
         stage_repeats=[4, 8, 4],
