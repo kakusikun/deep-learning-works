@@ -32,12 +32,12 @@ class ConvLayer(nn.Module):
             self.bn = nn.InstanceNorm2d(out_channels, affine=True)
         else:
             self.bn = nn.BatchNorm2d(out_channels)
-        self.iap_prelu = nn.PReLU()
+        self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
         x = self.conv(x)
         x = self.bn(x)
-        x = self.iap_prelu(x)
+        x = self.relu(x)
         return x
 
 
@@ -56,12 +56,12 @@ class Conv1x1(nn.Module):
             groups=groups
         )
         self.bn = nn.BatchNorm2d(out_channels)
-        self.iap_prelu = nn.PReLU()
+        self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
         x = self.conv(x)
         x = self.bn(x)
-        x = self.iap_prelu(x)
+        x = self.relu(x)
         return x
 
 
@@ -96,12 +96,12 @@ class Conv3x3(nn.Module):
             groups=groups
         )
         self.bn = nn.BatchNorm2d(out_channels)
-        self.iap_prelu = nn.PReLU()
+        self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
         x = self.conv(x)
         x = self.bn(x)
-        x = self.iap_prelu(x)
+        x = self.relu(x)
         return x
 
 
@@ -125,13 +125,13 @@ class LightConv3x3(nn.Module):
             groups=out_channels
         )
         self.bn = nn.BatchNorm2d(out_channels)
-        self.iap_prelu = nn.PReLU()
+        self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
         x = self.conv1(x)
         x = self.conv2(x)
         x = self.bn(x)
-        x = self.iap_prelu(x)
+        x = self.relu(x)
         return x
 
 
@@ -165,7 +165,7 @@ class ChannelGate(nn.Module):
         self.norm1 = None
         if layer_norm:
             self.norm1 = nn.LayerNorm((in_channels // reduction, 1, 1))
-        self.iap_prelu = nn.PReLU()
+        self.relu = nn.ReLU(inplace=True)
         self.fc2 = nn.Conv2d(
             in_channels // reduction,
             num_gates,
@@ -176,7 +176,7 @@ class ChannelGate(nn.Module):
         if gate_activation == 'sigmoid':
             self.gate_activation = nn.Sigmoid()
         elif gate_activation == 'relu':
-            self.gate_activation = nn.PReLU()
+            self.gate_activation = nn.ReLU(inplace=True)
         elif gate_activation == 'linear':
             self.gate_activation = None
         else:
@@ -190,7 +190,7 @@ class ChannelGate(nn.Module):
         x = self.fc1(x)
         if self.norm1 is not None:
             x = self.norm1(x)
-        x = self.iap_prelu(x)
+        x = self.relu(x)
         x = self.fc2(x)
         if self.gate_activation is not None:
             x = self.gate_activation(x)

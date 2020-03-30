@@ -11,7 +11,8 @@ class RandomGrayScale(BaseTransform):
         self.p = p
 
     def apply_image(self, img):
+        s = {'state': None}
         if random.uniform(0, 1) > self.p:
-            return img
-        return TF.to_grayscale(img, num_output_channels=3)
+            return img, s
+        return TF.to_grayscale(img, num_output_channels=3), s
    

@@ -1,4 +1,3 @@
-from database.transform import *
 import random
 import math
 from PIL import Image
@@ -25,9 +24,9 @@ class RandomErasing(BaseTransform):
         self.r1 = r1
 
     def apply_image(self, img):
-
+        s = {'state': None}
         if random.uniform(0, 1) >= self.p:
-            return img
+            return img, s
 
         for _ in range(100):
             area = img.size()[1] * img.size()[2]
@@ -47,9 +46,9 @@ class RandomErasing(BaseTransform):
                     img[2, x1:x1 + h, y1:y1 + w] = self.mean[2]
                 else:
                     img[0, x1:x1 + h, y1:y1 + w] = self.mean[0]
-                return img
+                return img, s
 
-        return img
+        return img, s
     
     def by_param(self, img, x1, y1, h, w):
         img[0, x1:x1 + h, y1:y1 + w] = 0

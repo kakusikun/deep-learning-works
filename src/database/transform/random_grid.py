@@ -17,8 +17,9 @@ class RandomGrid(BaseTransform):
         self.angle = angle
 
     def apply_image(self, img):
+        s = {'state': None}
         if random.uniform(0, 1) > self.p:
-            return img
+            return img, s
         if self.color == (-1, -1, -1):  # Random color
             color = tuple([random.randint(0, 256) for _ in range(3)])
         else:
@@ -26,7 +27,7 @@ class RandomGrid(BaseTransform):
         grid_size = random.randint(*self.grid_size)
         thickness = random.randint(*self.thickness)
         angle = random.randint(*self.angle)
-        return self.draw_grid(img, grid_size, color, thickness, angle)
+        return self.draw_grid(img, grid_size, color, thickness, angle), s
 
     @staticmethod
     def draw_grid(image, grid_size, color, thickness, angle):

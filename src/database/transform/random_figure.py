@@ -21,8 +21,9 @@ class RandomFigures(BaseTransform):
         self.figure_prob = figure_prob
 
     def apply_image(self, img):
+        s = {'state': None}
         if random.uniform(0, 1) > self.p:
-            return img
+            return img, s
         if self.always_single_figure:
             figure = [self.figures[random.randint(0, len(self.figures) - 1)]]
         else:
@@ -43,6 +44,6 @@ class RandomFigures(BaseTransform):
                 r = random.randint(*self.circle_radiuses)
                 cv_image = f(cv_image, p1, r, color, thickness)
         img = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
-        return Image.fromarray(img)
+        return Image.fromarray(img), s
 
    

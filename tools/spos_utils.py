@@ -301,6 +301,7 @@ class SearchEvolution:
         self.graph.to_gpus()
         self.block_candidates = self.graph.generate_block_candidates()
         self.channel_candidates = self.graph.generate_channel_candidates()
+        self.set_baseline()
 
     def build_population(self):
         population = []
@@ -308,6 +309,8 @@ class SearchEvolution:
             block_choices = self.graph.random_block_choices()
             channel_choices = self.graph.random_channel_choices()
             flops, param = get_flop_params(block_choices, channel_choices, self.lookup_table)
+            if flops > self.baseline * 1.5:
+                continue
             instance = {}
             instance['block'] = block_choices
             instance['channel'] = channel_choices
@@ -358,6 +361,7 @@ class SearchEvolution:
         children_to_be_grown = []
         
         # Add children, which are bred from two remaining networks.
+        n_failure = 0
         while len(children_to_be_grown) < desired_length:
             # Get a random mom and dad.
             father = random.randint(0, parents_length-1)
@@ -379,7 +383,13 @@ class SearchEvolution:
                     flops, param = get_flop_params(child['block'], child['channel'], self.lookup_table)
                     child['flops'] = flops
                     child['param'] = param
+                    if flops > self.baseline * 1.5:
+                        n_failure += 1
+                        if n_failure > 5000:
+                            return None
+                        continue
                     children_to_be_grown.append(child)
+
         if self.logger:
             self.logger.info(f"Evolved    Search [{search_iter:03}]")
         parents.extend(children_to_be_grown)
@@ -442,6 +452,13 @@ class SearchEvolution:
             instance['param'] = param
             alien.append(instance)
         return alien
+
+    def set_baseline(self):
+        self.baseline = get_flop_params(
+            all_block_choice=[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,],
+            all_channel_choice=[4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,],
+            lookup_table=self.lookup_table
+        )
 
     def _record_search_history(self, search_iter):
         root = os.path.join(os.getcwd(), "external")
