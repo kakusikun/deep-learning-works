@@ -17,13 +17,14 @@ class RandomColorJitter(BaseTransform):
 
 
     def apply_image(self, img):
+        s = {'state': None}
         if random.uniform(0, 1) > self.p:
-            return img
+            return img, s
         transform = self.color_jitter.get_params(
             self.color_jitter.brightness, 
             self.color_jitter.contrast,
             self.color_jitter.saturation, 
             self.color_jitter.hue)
-        return transform(img)
+        return transform(img), s
 
    

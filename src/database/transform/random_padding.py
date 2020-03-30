@@ -14,10 +14,11 @@ class RandomPadding(BaseTransform):
         self.padding_limits = padding
 
     def apply_image(self, img, *args, **kwargs):
+        s = {'state': None}
         if random.uniform(0, 1) > self.p:
-            return img
+            return img, s
         rnd_padding = [random.randint(self.padding_limits[0], self.padding_limits[1]) for _ in range(4)]
         rnd_fill = random.randint(0, 255)
-        return F.pad(img, tuple(rnd_padding), fill=rnd_fill, padding_mode='constant')
+        return TF.pad(img, tuple(rnd_padding), fill=rnd_fill, padding_mode='constant'), s
 
    

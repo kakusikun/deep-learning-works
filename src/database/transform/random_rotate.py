@@ -20,9 +20,9 @@ class RandomRotate(BaseTransform):
         Returns:
             mixed (numpy.ndarray): Augmented and mixed image.
         '''
+        s = {'level':0, 'shape':img.size}
         if random.uniform(0, 1) > self.p:
-            return img
-        s = {} 
+            return img, s
         mag = np.random.uniform(low=0, high=10)
         level = aug.AUG_LEVELS[self.op_name](mag, size = img.size)
         img = aug.AUG_OPS[self.op_name](img, level)
