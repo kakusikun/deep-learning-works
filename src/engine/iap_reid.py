@@ -16,9 +16,22 @@ class IAPReIDEngine(BaseEngine):
             for sub_model in self.graph.sub_models:
                 self.graph.sub_models[sub_model].train()
         
-        if self.epoch - self.cfg.SOLVER.MODEL_FREEZE_PEROID == 1:
-            for p in self.graph.model.parameters():
-                p.requires_grad_(True)
+        if self.cfg.SOLVER.MODEL_FREEZE_PEROID > 0:
+            if self.epoch - 1 < self.cfg.SOLVER.MODEL_FREEZE_PEROID:
+                for n, m in self.graph.model.named_modules():
+                    if 'iap' in n:
+                        m.train()
+                        for p in m.parameters():
+                            p.requires_grad = True
+                        logger.info(f"{n} is trainable")
+                    else:
+                        m.eval()
+                        for p in m.parameters():
+                            p.requires_grad = False
+            elif self.epoch - 1 == self.cfg.SOLVER.MODEL_FREEZE_PEROID:
+                logger.info("Model is unfreezed")
+                for p in self.graph.model.parameters():
+                    p.requires_grad = True
                 
     def _train_once(self):
         accus = []   

@@ -45,10 +45,13 @@ def genetic_search(cfg, graph, vdata, bndata, logger, search_iters=20):
     evolver = SearchEvolution(cfg, graph, vdata, bndata, logger=logger,
         population_size=100, 
         retain_length=50, 
-        )
+    )
     population = evolver.build_population()
     for i in range(search_iters):
         population = evolver.evolve(population, leader_board, i)
+        while population is not None:
+            population = evolver.build_population()
+            population = evolver.evolve(population, leader_board, i)
     leader_board.save()
 
 def test_genetic_search(cfg, graph, vdata, bndata, logger, search_iters=5):

@@ -5,13 +5,15 @@ class _Model(nn.Module):
         super(_Model, self).__init__()
         self.backbone = BackboneFactory.produce(cfg) 
         self.head = IAPHead(cfg.MODEL.FEATSIZE, (16, 8), 256)
+        self.iap_cosine_head = AMSoftmaxClassiferHead(256, cfg.DB.NUM_CLASSES)
     
     def forward(self, x):
         # use trick: BNNeck, feature before BNNeck to triplet GAP and feature w/o fc forward in backbone
         x = self.backbone(x)[-1]
-        x = self.head(x)
+        embb = self.head(x)
         outputs = {
-            'embb': x,
+            'embb': embb,
+            'cosine': self.iap_cosine_head(embb) if self.iap_cosine_head.training else None,
         }
         return outputs
 
@@ -22,13 +24,10 @@ class IAPReID(BaseGraph):
     def build(self):
         self.model = _Model(self.cfg)
         self.crit = {}
-        if self.use_gpu:
-            self.crit['amsoftmax'] = AMSoftmaxWithLoss(256, self.cfg.DB.NUM_CLASSES, relax=0.3).cuda()
-        else:
-            self.crit['amsoftmax'] = AMSoftmaxWithLoss(256, self.cfg.DB.NUM_CLASSES, relax=0.3)
+        self.crit['amsoftmax'] = AMSoftmaxWithLoss(relax=0.3)
 
         def loss_head(outputs, batch):
-            _loss, logit = self.crit['amsoftmax'](outputs['embb'], batch['pid'])
+            _loss, logit = self.crit['amsoftmax'](outputs['cosine'], batch['pid'])
             losses = {
                 'amsoftmax':_loss, 
             }
