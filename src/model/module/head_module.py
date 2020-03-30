@@ -195,6 +195,16 @@ class ReIDL2Head(nn.Module):
                 if m.bias is not None:
                     nn.init.constant_(m.bias, 0.0)
 
+class AMSoftmaxClassiferHead(nn.Module):
+    def __init__(self, in_features, num_classes):   
+        super(AMSoftmaxClassiferHead, self).__init__()
+        self.weight = nn.Parameter(torch.FloatTensor(num_classes, in_features))
+        self.weight.data.uniform_(-1, 1).renorm_(2, 0, 1e-5).mul_(1e5)
+    
+    def forward(self, x):
+        cosine = F.linear(x, F.normalize(self.weight)).clamp(-1, 1)
+        return cosine
+
 class IAPHead(nn.Module):
     def __init__(self, in_channels, kernal_size, feat_dim):
         super(IAPHead, self).__init__()
