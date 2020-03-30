@@ -10,30 +10,30 @@ GRAPH: "centernet_object_detection"
 ORACLE: False
 EVALUATE_FREQ: 10
 # EVALUATE: True
-NUM_WORKERS: 32
+NUM_WORKERS: 1  
 MODEL:
-  GPU: [0,1,2]
+  GPU: [1]
   BACKBONE: "shufflenetv2+"
   STRIDE: 8
 
 INPUT:
   SIZE: (512,512)
-  TRAIN_BS: 64
+  TRAIN_BS: 4
   TEST_BS: 1
   MEAN: [0.5, 0.5, 0.5]
   STD: [0.5, 0.5, 0.5]
 
 COCO:
-  TARGET: 'original'
+  TARGET: 'person'
 
 DB:
-  PATH: "/home/agent/deep-learning-works/data"
-  NUM_CLASSES: 80
+  PATH: "/media/allen/mass/DB"
+  NUM_CLASSES: 1
   DATA: "coco"
   DATA_FORMAT: "coco"
   TARGET_FORMAT: "centerface_bbox" 
   LOADER: "coco"
-  USE_TRAIN: True
+  USE_TRAIN: False
   USE_TEST: True
   TRAIN_TRANSFORM: "RandScale AugMix Tensorize Normalize"
   TEST_TRANSFORM: "ResizeKeepAspectRatio Tensorize Normalize"

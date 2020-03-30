@@ -1,0 +1,43 @@
+# [modelname]_[task]_[loss]_[opt]_[pretrain]
+EXPERIMENT: "HACNN_market_cels-softmargin_SGDW-SWAG-lr-0.03-warmup-step-cosine_scratch"
+# EVALUATE: True
+SAVE: True
+IO: True
+SEED: 42
+ENGINE: "ha_reid"
+GRAPH: "ha_reid"
+TRAINER: "ha_reid"
+NUM_WORKERS: 16
+EVALUATE_FREQ: 5
+MODEL:
+  GPU: [1]
+  BACKBONE: "hacnn"
+  FEATSIZE: 512
+INPUT:
+  SIZE: (160, 64)
+  TRAIN_BS: 32
+  TEST_BS: 32
+  MEAN: [0.5, 0.5, 0.5]
+  STD: [0.5, 0.5, 0.5]
+DB:
+  PATH: "/media/allen/mass/DB"
+  DATA: "market"
+  DATA_FORMAT: "reid"
+  LOADER: "reid"
+  USE_TRAIN: True
+  USE_TEST: True
+  TRAIN_TRANSFORM: "Resize RandomHFlip AugMix Tensorize Normalize"
+  TEST_TRANSFORM: "Resize Tensorize Normalize"
+SOLVER:
+  OPTIMIZER: "SGDW"
+  START_EPOCH: 1
+  BASE_LR: 0.03
+  BIAS_LR_FACTOR: 1.0
+  WEIGHT_DECAY: 0.0005
+  WEIGHT_DECAY_BIAS_FACTOR: 1.0
+  LR_POLICY: "warm-10 step-140-0-0.1 step-75-1-0.1 step-125-2-0.1 cosine-15-0.7-35-1"
+  SWAG_RANK: 15
+  SWAG_EPOCH_TO_COLLECT: 350
+  SWAG_COLLECT_FREQ: 35
+REID:
+  SIZE_PERSON: 4
