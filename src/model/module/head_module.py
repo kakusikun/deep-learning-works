@@ -216,7 +216,11 @@ class IAPHead(nn.Module):
             activation='linear',
             use_bn=False
         )
-        self.iap_fc = nn.Linear(in_channels, feat_dim, bias=False)   
+        self.iap_fc = nn.Sequential(
+            nn.Linear(in_channels, feat_dim),
+            nn.BatchNorm1d(feat_dim),
+            nn.PReLU(),
+        )
 
         self._init_params()
 
@@ -234,6 +238,10 @@ class IAPHead(nn.Module):
                 )
                 if m.bias is not None:
                     nn.init.constant_(m.bias, 0)
+
+            elif isinstance(m, nn.BatchNorm1d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
 
             elif isinstance(m, nn.Linear):
                 nn.init.normal_(m.weight, 0, 0.01)

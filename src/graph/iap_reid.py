@@ -24,7 +24,7 @@ class IAPReID(BaseGraph):
     def build(self):
         self.model = _Model(self.cfg)
         self.crit = {}
-        self.crit['amsoftmax'] = AMSoftmaxWithLoss(relax=0.3)
+        self.crit['amsoftmax'] = AMSoftmaxWithLoss(s=30, m=0.35, relax=0.3)
 
         def loss_head(outputs, batch):
             _loss, logit = self.crit['amsoftmax'](outputs['cosine'], batch['pid'])

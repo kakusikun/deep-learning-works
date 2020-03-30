@@ -267,7 +267,7 @@ class AMSoftmaxWithLoss(nn.Module):
         cos(theta) - m
     """
 
-    def __init__(self, s=0.3, m=0.35, relax=0.0):
+    def __init__(self, s=30, m=0.35, relax=0.0):
         super(AMSoftmaxWithLoss, self).__init__()
         self.s = s
         self.m = m
