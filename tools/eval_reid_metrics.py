@@ -174,13 +174,26 @@ def eval_single_query(distmat, q_pids, g_pids, q_camids, g_camids):
 
 def eval_recall(distmat, q_pids, g_pids, q_camids, g_camids):
     """Evaluation with market1501 metric
-    Key: for each query identity, its gallery images from the same camera view are discarded.
-
     Return:
-        number of people 
-        confidence 
-        number of target in gallery
-    to retrieved all images of target in gallery
+        rs:
+            Number of necessary candidate to achieve recall 1.0, for example,
+
+            orig_cmc = [1, 1, 1, 0, 1]
+            cmc = [1, 2, 3, 3, 4]
+            num_gt = 4
+
+            This means that if we want to recall all TP we need to check candidate until the fifth,
+            which means that rs is 5
+        
+        conf:
+            the minimum distance to achieve recall 1.0
+
+        gts:
+            Number of ground truth for the id of query
+
+        filtered_gallery;
+            the gallery has same id of query of same cam id removed
+        
     """
     num_q, num_g = distmat.shape
     indices = np.argsort(distmat, axis=1)
@@ -211,7 +224,7 @@ def eval_recall(distmat, q_pids, g_pids, q_camids, g_camids):
 
         cmc = orig_cmc.cumsum()
         num_r = (cmc == num_gt).argmax()+1
-        conf = np.max((1 - distmat[q_idx][order][~remove][num_r-1], 0))
+        conf = np.min((distmat[q_idx][order][~remove][num_r-1], 0))
         
         num_rs.append(num_r)
         confs.append(conf)
@@ -252,9 +265,14 @@ def evaluate(distmat, q_pids, g_pids, q_camids, g_camids, max_rank=50, use_metri
         return eval_market1501(distmat, q_pids, g_pids, q_camids, g_camids, max_rank)
 
 if __name__ == '__main__':
-    distmat = np.load("./dismat.npy")
-    q_pids = np.load("./q_pids.npy")
-    g_pids = np.load("./g_pids.npy")
-    q_camids = np.load("./q_camids.npy")
-    g_camids = np.load("./g_camids.npy")
-    evaluate(distmat, q_pids, g_pids, q_camids, g_camids)
+    import os
+    import os.path as osp
+    root = os.getcwd()
+    distmat = np.load(osp.join(root, "external/dismat.npy"))
+    q_pids = np.load(osp.join(root, "external/q_pids.npy"))
+    g_pids = np.load(osp.join(root, "external/g_pids.npy"))
+    q_camids = np.load(osp.join(root, "external/q_camids.npy"))
+    g_camids = np.load(osp.join(root, "external/g_camids.npy"))
+    # evaluate(distmat, q_pids, g_pids, q_camids, g_camids)
+    eval_recall(distmat, q_pids, g_pids, q_camids, g_camids)
+

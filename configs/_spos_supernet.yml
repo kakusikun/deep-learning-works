@@ -1,0 +1,52 @@
+# [modelname]_[task]_[loss]_[opt]_[lr]_[trick]_[pretrain]
+EXPERIMENT: "SPOS-supernetv2_emotion_augmix-cels_SGDW-nesterov_cosine-0.01-noRestart-warmup_scratch"
+SAVE: True
+IO: True
+ENGINE: "spos_classification"
+GRAPH: "shufflenetv2_spos_classification"
+TRAINER: "spos_classification"
+NUM_WORKERS: 1
+EVALUATE_FREQ: 1
+MODEL:
+  GPU: []
+  BACKBONE: ''
+  FEATSIZE: 464
+INPUT:
+  SIZE: (64, 64)
+  TRAIN_BS: 32
+  TEST_BS: 32
+  MEAN: [0.5, 0.5, 0.5]
+  STD: [0.5, 0.5, 0.5]  
+DB:
+  PATH: "/path/to/data"
+  DATA: "tinyimagenet"
+  DATA_FORMAT: "imagenet"
+  LOADER: "classification"
+  NUM_CLASSES: 200
+  USE_TRAIN: True
+  USE_TEST: True
+  TRAIN_TRANSFORM: "AugMix Tensorize Normalize"
+  TEST_TRANSFORM: "Tensorize Normalize"
+SOLVER:
+  OPTIMIZER: "SGDW"
+  START_EPOCH: 1
+  MAX_EPOCHS: 120
+  BASE_LR: 0.01
+  BIAS_LR_FACTOR: 1.0
+  WEIGHT_DECAY: 0.00004
+  MOMENTUM: 0.9
+  WEIGHT_DECAY_BIAS_FACTOR: 1.0
+  NESTEROV: True
+  LR_POLICY: "cosine"
+  T_0: 120
+  # CUSTOM: [['bn', 'wd', 0.0]]
+  # MIN_LR: 1e-5
+  # WARMUP: True
+  # GAMMA: 0.1
+  # WARMUP_FACTOR: 0.01
+  # WARMUP_SIZE: 5.0
+  # PLATEAU_SIZE: 100.0
+SPOS:
+  EPOCH_TO_SEARCH: 2
+  CANDIDATE_RELAX_EPOCHS: 20 
+  DURATION: 120

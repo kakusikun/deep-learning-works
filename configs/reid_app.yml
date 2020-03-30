@@ -1,0 +1,66 @@
+EXPERIMENT: "OSNet_merge_cels_triplet_center_Adam_lr_0.003_warmup_10_0.01_plateau_10_flip_crop_erase_imagenet"
+# [modelname]_[task]_[loss]_[opt]_[lr]_[trick]_[pretrain]
+
+TASK: "reid"
+
+MODEL:
+  GPU: [1]
+  NUM_CLASSES: 5297 #D:702, M:751 MSMT:2012(merge)
+  NAME: "osnet"
+  PRETRAIN: "outside"
+  TASK: "trick"
+
+INPUT:
+  IMAGE_PAD: 10
+  IMAGE_SIZE: (256, 128) #(320, 160)
+  IMAGE_CROP_SIZE: (256, 128)
+  TRAIN_BS: 512
+  TEST_BS: 256
+  MEAN: [0.485, 0.456, 0.406]
+  STD: [0.229, 0.224, 0.225]
+
+REID:
+  # CYCLE: 30
+  SIZE_PERSON: 4
+  # MERGE: True
+  TRT: "market1501"
+  
+DATALOADER:
+  NUM_WORKERS: 30
+
+DATASET:
+  NAME: "merge msmt17 cuhk01 cuhk02 cuhk03 dukemtmcreid"
+  TRAIN_PATH: "/home/allen.jc.lin/reid"
+
+TRANSFORM:
+  HFLIP: True
+  RANDOMCROP: True
+  NORMALIZE: True
+  RESIZE: True 
+  RANDOMERASING: True
+  AUGMENT: True
+
+SOLVER:
+  OPTIMIZER: "Adam"
+  START_EPOCH: 0
+  MAX_EPOCHS: 400
+  BASE_LR: 0.003
+  BIAS_LR_FACTOR: 1.0
+  CENTER_LOSS_LR: 0.5
+  CENTER_LOSS_WEIGHT: 0.0005
+  WEIGHT_DECAY: 0.0005
+  WEIGHT_DECAY_BIAS_FACTOR: 1.0
+  CUSTOM: [["bn", "wd", 0.0]]
+  EVALUATE_FREQ: 5
+
+  LR_POLICY: "plateau"
+  MIN_LR: 1e-6
+  WARMUP: True
+  GAMMA: 0.1
+  WARMUP_FACTOR: 0.01
+  WARMUP_SIZE: 10.0
+  PLATEAU_SIZE: 10.0
+
+
+
+RESUME: "/media/allen/mass/deep-learning-works/caffe_models/OSNet_merge_cels_triplet_center_Adam_lr_0.003_warmup_10_0.01_plateau_10_flip_crop_erase_imagenet_0.7096.pth"

@@ -1,0 +1,55 @@
+EXPERIMENT: "[OSNet]_[cifar10]_[augmix_ce]_[SGDW_nesterov]_[cosine_tune_result]_[scratch]"
+# [modelname]_[task]_[loss]_[opt]_[lr]_[trick]_[pretrain]
+IO: True
+SAVE: True
+SEED: 42
+TASK: "cifar10"
+MANAGER: "imagenet"
+ENGINE: "imagenet"
+TRAINER: "imagenet"
+NUM_WORKERS: 8
+MODEL:
+  GPU: [1]
+  NAME: 'osnet_cifar10'
+INPUT:
+  RESIZE: (32, 32)
+  PAD: 4
+  TRAIN_BS: 128
+  TEST_BS: 256
+  MEAN: [0.4914, 0.4822, 0.4465]
+  STD: [0.2470, 0.2435, 0.2616]  
+  RAND_AUG_N: 2
+  RAND_AUG_M: 10
+DB:
+  NUM_CLASSES: 10 #D:702, M:751 MSMT:2012(merge)
+  DATA: "cifar10"
+  DATASET: "cifar10"
+  LOADER: "cifar10"
+  USE_TRAIN: True
+  USE_TEST: True
+  PATH: "/media/allen/mass/DB/"
+TRAIN_TRANSFORM: "RandCrop RandomHFlip AugMix Tensorize Normalize"
+TEST_TRANSFORM: "Tensorize Normalize"
+SOLVER:
+  OPTIMIZER: "SGDW"
+  START_EPOCH: 1
+  MAX_EPOCHS: 165
+  BASE_LR: 0.3727344602443372
+  BIAS_LR_FACTOR: 1.0
+  WEIGHT_DECAY: 0.0005
+  MOMENTUM: 0.6207107783590823
+  WEIGHT_DECAY_BIAS_FACTOR: 1.0
+  NESTEROV: True
+  EVALUATE_FREQ: 1
+  LR_POLICY: "cosine"
+  T_0: 11
+  NUM_RESTART: 2
+  # MIN_LR: 1e-5
+  # WARMUP: True
+  # GAMMA: 0.1
+  # WARMUP_FACTOR: 0.01
+  # WARMUP_SIZE: 10.0
+  PLATEAU_SIZE: 100.0
+# RESUME: "/media/allen/mass/deep-learning-works/result/cifar10/[OSNet]_[cifar10]_[augmix_ce]_[SGD]_[cosine_lr_0.1_period_15]_[scratch]/2020-02-07_11-46-38/weights/model_218_0.9436.pth"
+# EVALUATE: ["main", "/media/allen/mass/deep-learning-works/result_2019-06-28_18:09:28/weights/model_main_277_92.4000.pth", "fc", "/media/allen/mass/deep-learning-works/result_2019-06-28_18:09:28/weights/model_fc_277_92.4000.pth"]
+

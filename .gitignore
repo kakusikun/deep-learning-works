@@ -1,11 +1,10 @@
-result*
+result/
 __pycache__
 evaluation/
 external/
 weights/
 notebook/.ipynb_checkpoints/
 .ipynb_checkpoints/
-caffe_models/
 *.json
 *.swp
 *.txt
