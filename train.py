@@ -3,7 +3,7 @@ import shutil
 import logging
 import sys
 
-from src.factory.config_factory import _C as cfg
+from src.factory.config_factory import cfg
 from src.factory.config_factory import build_output, show_products, show_configs
 from src.factory.trainer_factory import TrainerFactory
 from tools.utils import deploy_macro

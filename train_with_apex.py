@@ -1,7 +1,7 @@
 import argparse
 
 from tools.logger import setup_logger
-from src.factory.config_factory import _C as cfg
+from src.factory.config_factory import cfg
 from src.factory.config_factory import build_output, show_products
 from tools.utils import deploy_macro, print_config
 

@@ -523,7 +523,7 @@ def get_flop_params(all_block_choice, all_channel_choice, lookup_table):
     
 if __name__ == "__main__":
     import torch
-    from src.factory.config_factory import _C as cfg
+    from src.factory.config_factory import cfg
     from src.graph.shufflenetv2_spos import ShuffleNetv2SPOS
 
     cfg.INPUT.RESIZE = (112, 112)

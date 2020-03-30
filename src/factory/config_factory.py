@@ -20,135 +20,135 @@ from yacs.config import CfgNode as CN
 # Config definition
 # -----------------------------------------------------------------------------
 
-_C = CN()
+cfg = CN()
 
 # ---------------------------------------------------------------------------- #
 # Misc options
 # ---------------------------------------------------------------------------- #
-_C.APEX = False
-_C.OUTPUT_DIR = ""
-_C.RESUME = ""
-_C.EVALUATE = False
-_C.SAVE = True
-_C.IO = True
-_C.SEED = 42
-_C.EXPERIMENT = ""
-_C.ENGINE = ""
-_C.GRAPH = ""
-_C.TRAINER = ""
-_C.NUM_WORKERS = 16
-_C.ORACLE = False
-_C.EVALUATE_FREQ = 1
+cfg.APEX = False
+cfg.OUTPUT_DIR = ""
+cfg.RESUME = ""
+cfg.EVALUATE = False
+cfg.SAVE = True
+cfg.IO = True
+cfg.SEED = 42
+cfg.EXPERIMENT = ""
+cfg.ENGINE = ""
+cfg.GRAPH = ""
+cfg.TRAINER = ""
+cfg.NUM_WORKERS = 16
+cfg.ORACLE = False
+cfg.EVALUATE_FREQ = 1
 
 # -----------------------------------------------------------------------------
 # Model in Graph
 # -----------------------------------------------------------------------------
-_C.MODEL = CN()
-_C.MODEL.GPU = []
-_C.MODEL.BACKBONE = ""
-_C.MODEL.SAVE_CRITERION = "acc"
-_C.MODEL.STRIDE = 1
-_C.MODEL.FEATSIZE = 0
+cfg.MODEL = CN()
+cfg.MODEL.GPU = []
+cfg.MODEL.BACKBONE = ""
+cfg.MODEL.SAVE_CRITERION = "acc"
+cfg.MODEL.STRIDE = 1
+cfg.MODEL.FEATSIZE = 0
 
 # -----------------------------------------------------------------------------
 # INPUT
 # -----------------------------------------------------------------------------
-_C.INPUT = CN()
-_C.INPUT.PAD = 0
-_C.INPUT.SIZE = (0, 0)
-_C.INPUT.TRAIN_BS = 32
-_C.INPUT.TEST_BS = 32
-_C.INPUT.MEAN = []
-_C.INPUT.STD = []
-_C.INPUT.RAND_AUG_N = 2
-_C.INPUT.RAND_AUG_M = 10
+cfg.INPUT = CN()
+cfg.INPUT.PAD = 0
+cfg.INPUT.SIZE = (0, 0)
+cfg.INPUT.TRAIN_BS = 32
+cfg.INPUT.TEST_BS = 32
+cfg.INPUT.MEAN = []
+cfg.INPUT.STD = []
+cfg.INPUT.RAND_AUG_N = 2
+cfg.INPUT.RAND_AUG_M = 10
 
 # -----------------------------------------------------------------------------
 # Dataset
 # -----------------------------------------------------------------------------
-_C.DB = CN()
-_C.DB.PATH = ""
-_C.DB.DATA = ""
-_C.DB.DATA_FORMAT = ""
-_C.DB.TARGET_FORMAT = ""
-_C.DB.LOADER = ""
-_C.DB.USE_TRAIN = True
-_C.DB.USE_TEST = True
-_C.DB.TRAIN_TRANSFORM = ""
-_C.DB.TEST_TRANSFORM = ""
-_C.DB.NUM_CLASSES = 0
-_C.DB.NUM_KEYPOINTS = 0
+cfg.DB = CN()
+cfg.DB.PATH = ""
+cfg.DB.DATA = ""
+cfg.DB.DATA_FORMAT = ""
+cfg.DB.TARGET_FORMAT = ""
+cfg.DB.LOADER = ""
+cfg.DB.USE_TRAIN = True
+cfg.DB.USE_TEST = True
+cfg.DB.TRAIN_TRANSFORM = ""
+cfg.DB.TEST_TRANSFORM = ""
+cfg.DB.NUM_CLASSES = 0
+cfg.DB.NUM_KEYPOINTS = 0
 
 # ---------------------------------------------------------------------------- #
 # Solver
 # ---------------------------------------------------------------------------- #
-_C.SOLVER = CN()
-_C.SOLVER.OPTIMIZER = "SGD"
-_C.SOLVER.START_EPOCH = 1
-_C.SOLVER.MAX_EPOCHS = 50
-_C.SOLVER.BASE_LR = 0.001
-_C.SOLVER.BIAS_LR_FACTOR = 1.0
-_C.SOLVER.CUSTOM = [] 
-_C.SOLVER.MOMENTUM = 0.9
-_C.SOLVER.WEIGHT_DECAY = 0.0005
-_C.SOLVER.WEIGHT_DECAY_BIAS_FACTOR = 1.0
-_C.SOLVER.NESTEROV = False
-_C.SOLVER.AMSGRAD = False
-_C.SOLVER.ITERATIONS_PER_EPOCH = 0
-_C.SOLVER.LR_POLICY = ""
+cfg.SOLVER = CN()
+cfg.SOLVER.OPTIMIZER = "SGD"
+cfg.SOLVER.START_EPOCH = 1
+cfg.SOLVER.MAX_EPOCHS = 50
+cfg.SOLVER.BASE_LR = 0.001
+cfg.SOLVER.BIAS_LR_FACTOR = 1.0
+cfg.SOLVER.CUSTOM = [] 
+cfg.SOLVER.MOMENTUM = 0.9
+cfg.SOLVER.WEIGHT_DECAY = 0.0005
+cfg.SOLVER.WEIGHT_DECAY_BIAS_FACTOR = 1.0
+cfg.SOLVER.NESTEROV = False
+cfg.SOLVER.AMSGRAD = False
+cfg.SOLVER.ITERATIONS_PER_EPOCH = 0
+cfg.SOLVER.LR_POLICY = ""
 
 # for plateau
-_C.SOLVER.MIN_LR = 0.0
-_C.SOLVER.PLATEAU_SIZE = 10.0
-_C.SOLVER.GAMMA = 0.1
+cfg.SOLVER.MIN_LR = 0.0
+cfg.SOLVER.PLATEAU_SIZE = 10.0
+cfg.SOLVER.GAMMA = 0.1
 
-_C.SOLVER.MODEL_FREEZE_PEROID = 0
+cfg.SOLVER.MODEL_FREEZE_PEROID = 0
 
 # for SWAG
-_C.SOLVER.SWAG_RANK = 0
-_C.SOLVER.SWAG_EPOCH_TO_COLLECT = 0
-_C.SOLVER.SWAG_COLLECT_FREQ = 0
+cfg.SOLVER.SWAG_RANK = 0
+cfg.SOLVER.SWAG_EPOCH_TOcfgOLLECT = 0
+cfg.SOLVER.SWAGcfgOLLECT_FREQ = 0
 
 # -----------------------------------------------------------------------------
 # FACEID
 # -----------------------------------------------------------------------------
-_C.FACEID = CN()
-_C.FACEID.SIZE_PROBE = 5
-_C.FACEID.LFW_PAIRSFILE_PATH = ""
-_C.FACEID.PROBE_PATH = ""
-_C.FACEID.GALLERY_PATH = ""
-_C.FACEID.PROBE_TYPE = ""
-_C.FACEID.GALLERY_TYPE = ""
+cfg.FACEID = CN()
+cfg.FACEID.SIZE_PROBE = 5
+cfg.FACEID.LFW_PAIRSFILE_PATH = ""
+cfg.FACEID.PROBE_PATH = ""
+cfg.FACEID.GALLERY_PATH = ""
+cfg.FACEID.PROBE_TYPE = ""
+cfg.FACEID.GALLERY_TYPE = ""
 
 # -----------------------------------------------------------------------------
 # REID
 # -----------------------------------------------------------------------------
-_C.REID = CN()
-_C.REID.SIZE_PERSON = 4
-_C.REID.MSMT_ALL = False
-_C.REID.CENTER_LOSS_LR = 0.5
-_C.REID.CENTER_LOSS_WEIGHT = 0.0005
+cfg.REID = CN()
+cfg.REID.SIZE_PERSON = 4
+cfg.REID.MSMT_ALL = False
+cfg.REID.CENTER_LOSS_LR = 0.5
+cfg.REID.CENTER_LOSS_WEIGHT = 0.0005
 
 # -----------------------------------------------------------------------------
 # Pedestrian Attribute Recognition
 # -----------------------------------------------------------------------------
-_C.PAR = CN()
-_C.PAR.SELECT_CAT = -1
-_C.PAR.IGNORE_CAT = []
+cfg.PAR = CN()
+cfg.PAR.SELECTcfgAT = -1
+cfg.PAR.IGNOREcfgAT = []
 
 # -----------------------------------------------------------------------------
 # Pedestrian Attribute Recognition
 # -----------------------------------------------------------------------------
-_C.COCO = CN()
-_C.COCO.TARGET = 'original'
+cfg.COCO = CN()
+cfg.COCO.TARGET = 'original'
 
 # ---------------------------------------------------------------------------- #
 # SPOS
 # ---------------------------------------------------------------------------- #
-_C.SPOS = CN()
-_C.SPOS.EPOCH_TO_SEARCH = 60
-_C.SPOS.CANDIDATE_RELAX_EPOCHS = 10
-_C.SPOS.DURATION = 4
+cfg.SPOS = CN()
+cfg.SPOS.EPOCH_TO_SEARCH = 60
+cfg.SPOS.CANDIDATE_RELAX_EPOCHS = 10
+cfg.SPOS.DURATION = 4
 
 # ---------------------------------------------------------------------------- #
 # ---------------------------------------------------------------------------- #
@@ -189,16 +189,16 @@ def show_products():
     sys.exit(1)
 
 def show_configs():
-    for c in _C:
+    for c in cfg:
         print("="*50)
-        if isinstance(_C[c], CN):
+        if isinstance(cfg[c], CN):
             print(c)
-            for cc in list(_C[c].keys()):
+            for cc in list(cfg[c].keys()):
                 print("-"*50)
-                _type = str(type(_C[c][cc])).split(" ")[-1].split(">")[0].replace("\'", "")
-                print(f"{cc:>30}    {_type:>6}    {_C[c][cc]}")
+                _type = str(type(cfg[c][cc])).split(" ")[-1].split(">")[0].replace("\'", "")
+                print(f"{cc:>30}    {_type:>6}    {cfg[c][cc]}")
         else:
-            _type = str(type(_C[c])).split(" ")[-1].split(">")[0].replace("\'", "")
-            print(f"{c:<30}    {_type:>6}    {_C[c]}")
+            _type = str(type(cfg[c])).split(" ")[-1].split(">")[0].replace("\'", "")
+            print(f"{c:<30}    {_type:>6}    {cfg[c]}")
     print("="*50)
     sys.exit(1)

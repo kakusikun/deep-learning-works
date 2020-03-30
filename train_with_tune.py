@@ -4,7 +4,7 @@ import logging
 import sys
 import numpy as np
 
-from config.config_factory import _C as cfg
+from config.config_factory import cfg
 from config.config_factory import build_output
 from trainer.trainer_factory import get_trainer
 

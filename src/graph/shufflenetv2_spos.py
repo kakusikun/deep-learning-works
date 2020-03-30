@@ -155,7 +155,7 @@ class ShuffleNetv2SPOS(BaseGraph):
 
 
 if __name__ == '__main__':
-    from src.factory.config_factory import _C as cfg
+    from src.factory.config_factory import cfg
     import torch
     import numpy as np
     import random

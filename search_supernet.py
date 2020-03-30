@@ -4,7 +4,7 @@ import argparse
 import heapq
 import json
 
-from src.factory.config_factory import _C as cfg
+from src.factory.config_factory import cfg
 from src.factory.config_factory import build_output
 from tools.logger import setup_logger
 from tools.utils import deploy_macro, print_config

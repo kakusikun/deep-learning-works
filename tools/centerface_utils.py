@@ -218,7 +218,7 @@ def centerface_bbox_target(cls_ids, bboxes, max_objs, num_classes, outsize, **kw
     return ret
 
 if __name__ == '__main__':
-    from config.config_factory import _C as cfg
+    from config.config_factory import cfg
     from database.data_factory import get_data
     from database.transform_factory import get_transform
     from database.dataset_factory import get_dataset
