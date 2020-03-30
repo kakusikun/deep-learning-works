@@ -53,7 +53,7 @@ class TransformFactory:
         bag_of_transforms = []    
 
         for tran in trans:
-            if tran not in cls.products:
+            if tran.split("-")[0] not in cls.products:
                 raise KeyError("Invalid transform, got '{}', but expected to be one of {}".format(tran, cls.products))
             
             if 'RandAugment' in tran:
@@ -96,7 +96,7 @@ class TransformFactory:
                 bag_of_transforms.append(RandomPadding(p=p))
 
             if 'RandomColorJitter' in tran:
-                p, b, c, s, h = list(map(float, tran.split('-')))
+                p, b, c, s, h = list(map(float, tran.split('-')[1:]))
                 bag_of_transforms.append(RandomColorJitter(p=p, brightness=b, contrast=c, saturation=s, hue=h))
 
             if 'RandomRotate' in tran:

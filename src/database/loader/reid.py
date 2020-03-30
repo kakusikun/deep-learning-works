@@ -37,7 +37,7 @@ def build_reid_loader(
         else:
             data = DataFactory.produce(cfg)
             cfg.DB.NUM_CLASSES = data.train['n_samples']
-        train_trans = TransformFactory.produce(cfg, test_transformation)
+        train_trans = TransformFactory.produce(cfg, train_transformation)
         train_dataset = DataFormatFactory.produce(
             cfg, 
             data=data.train, 
@@ -65,7 +65,7 @@ def build_reid_loader(
             )
     if use_test:
         data = DataFactory.produce(cfg, data_name=data_names[-1])      
-        val_trans = TransformFactory.produce(cfg, train_transformation)      
+        val_trans = TransformFactory.produce(cfg, test_transformation)      
         query_dataset = DataFormatFactory.produce(cfg, data=data.query, transform=val_trans)
         gallery_dataset = DataFormatFactory.produce(cfg, data=data.gallery, transform=val_trans)
 
