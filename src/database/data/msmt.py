@@ -112,24 +112,146 @@ class MSMT17(BaseData):
         num_imgs = len(dataset)
         return dataset, num_pids, num_imgs
     
-    def clean_dataset(self, dataset, method='lt', relabel=False):
-        count = defaultdict(int)
-        for _, pid, _ in dataset:
-            count[pid] += 1 
-            
-        delete_pids = []
-        pid_container = set()
-        for pid in count.keys():
-            if method == 'lt' and count[pid] < 4:
-                delete_pids.append(pid)
-            elif method == 'gt' and count[pid] >= 4: 
-                delete_pids.append(pid)
+    def make_lmdb(self, path):
+        lmdb_path = osp.join(path, 'lmdb')
+        train_list = osp.join(path, 'bounding_box_train.txt')
+        query_list = osp.join(path, 'query.txt')
+        gallery_list = osp.join(path, 'bounding_box_test.txt')
+        if not osp.exists(path):
+            os.mkdir(path)
+            os.mkdir(lmdb_path)
+
+        lmdb_env = lmdb.open(lmdb_path, map_size=int(1e12))
+        lmdb_txn = lmdb_env.begin(write=True)
+        for (img_path, _, _) in tqdm(self.train['indice']):
+            f_img = open(img_path, 'rb')
+            img_str = f_img.read()
+            key = img_path.split(self.dataset_dir+"/")[-1]
+            lmdb_txn.put(key.encode(), img_str)
+        for (img_path, _, _) in tqdm(self.query['indice']):
+            f_img = open(img_path, 'rb')
+            img_str = f_img.read()
+            key = img_path.split(self.dataset_dir+"/")[-1]
+            lmdb_txn.put(key.encode(), img_str)
+        for (img_path, _, _) in tqdm(self.gallery['indice']):
+            f_img = open(img_path, 'rb')
+            img_str = f_img.read()
+            key = img_path.split(self.dataset_dir+"/")[-1]
+            lmdb_txn.put(key.encode(), img_str)
+        lmdb_txn.commit()
+
+        with open(train_list, 'w') as f:
+            for (img_path, pid, cid) in tqdm(self.train['indice']):
+                key = img_path.split(self.dataset_dir+"/")[-1]
+                f.write(f"{key},{pid},{cid}\n")
+        with open(query_list, 'w') as f:
+            for (img_path, pid, cid) in tqdm(self.query['indice']):
+                key = img_path.split(self.dataset_dir+"/")[-1]
+                f.write(f"{key},{pid},{cid}\n")
+        with open(gallery_list, 'w') as f:
+            for (img_path, pid, cid) in tqdm(self.gallery['indice']):
+                key = img_path.split(self.dataset_dir+"/")[-1]
+                f.write(f"{key},{pid},{cid}\n")
+        
+    
+class MSMT17LMDB(BaseData):
+    """
+    MSMT17
+
+    Reference:
+    Wei et al. Person Transfer GAN to Bridge Domain Gap for Person Re-Identification. CVPR 2018.
+
+    URL: http://www.pkuvmc.com/publications/msmt17.html
+    
+    Dataset statistics:
+    # identities: 4101
+    # images: 32621 (train) + 11659 (query) + 82161 (gallery)
+    # cameras: 15
+    """
+
+    def __init__(self, path="", branch="", use_train=False, use_test=False, use_all=False, **kwargs):
+        super().__init__()
+        self.data_dir =  osp.join(path, branch)
+        self.lmdb_dir = osp.join(self.data_dir, 'lmdb')
+        self.train_list = osp.join(self.data_dir, 'bounding_box_train.txt')
+        self.query_list = osp.join(self.data_dir, 'query.txt')
+        self.gallery_list = osp.join(self.data_dir, 'bounding_box_test.txt')
+        if not osp.exists(self.lmdb_dir):
+            logger.info("LMDB does not exist, prepare to make one ...")
+            _data = MSMT17(path=path, branch=branch.split('_')[0], use_train=use_train, use_test=use_test)
+            _data.make_lmdb(self.data_dir)
+        env = lmdb.open(self.lmdb_dir)
+        if use_all:
+            train, num_train_pids, num_train_imgs = self._process_list(self.train_list, relabel=True)
+            extra, num_extra_pids, num_extra_imgs = self._process_list([self.query_list, self.gallery_list], relabel=True, offset=num_train_pids)
+            train.extend(extra)
+            num_train_pids += num_extra_pids
+            num_train_imgs += num_extra_imgs
+            self.train['indice'] = train
+            self.train['n_samples'] = num_train_pids
+            logger.info("=> {} TRAIN loaded".format(branch.upper()))
+            logger.info("Dataset statistics:")
+            logger.info("  ------------------------------")
+            logger.info("  subset   | # ids | # images")
+            logger.info("  ------------------------------")
+            logger.info(f"  train    | {num_train_pids:7d} | {num_train_imgs:8d}")            
+            logger.info("  ------------------------------")
+        else:
+            if use_train:
+                train, num_train_pids, num_train_imgs = self._process_list(self.train_list, relabel=True)
+                self.train['indice'] = train
+                self.train['n_samples'] = num_train_pids
+                self.train['handle'] = env.begin()
+                logger.info("=> {} TRAIN loaded".format(branch.upper()))
+                logger.info("Dataset statistics:")
+                logger.info("  ------------------------------")
+                logger.info("  subset   | # ids | # images")
+                logger.info("  ------------------------------")
+                logger.info(f"  train    | {num_train_pids:7d} | {num_train_imgs:8d}")            
+                logger.info("  ------------------------------")
+
+            if use_test:
+                query, num_query_pids, num_query_imgs = self._process_list(self.query_list, relabel=False)
+                gallery, num_gallery_pids, num_gallery_imgs = self._process_list(self.gallery_list, relabel=False)
+                self.query['handle'] = env.begin()
+                self.query['indice'] = query
+                self.query['n_samples'] = num_query_pids
+                self.gallery['handle'] = env.begin()
+                self.gallery['indice'] = gallery
+                self.gallery['n_samples'] = num_gallery_pids
+                logger.info("=> {} VAL loaded".format(branch.upper()))
+                logger.info("Dataset statistics:")
+                logger.info("  ------------------------------")
+                logger.info("  subset   | # ids | # images")
+                logger.info("  ------------------------------")
+                logger.info(f"  query    | {num_query_pids:7d} | {num_query_imgs:8d}")            
+                logger.info(f"  gallery    | {num_gallery_pids:7d} | {num_gallery_imgs:8d}")            
+                logger.info("  ------------------------------")
+        
+    def _process_list(self, list_paths, relabel=False, offset=0):
+        dataset = []
+        pids = set()
+        if not isinstance(list_paths, list):
+            list_paths = [list_paths]
+        for list_path in list_paths:
+            if relabel:
+                with open(list_path, 'r') as f:
+                    for line in f.readlines():
+                        _, pid, _ = line.strip().split(",")
+                        pids.add(pid)
+                pid2label = {pid:label for label, pid in enumerate(pids)}
+                with open(list_path, 'r') as f:
+                    for line in f.readlines():
+                        img_path, pid, cid = line.strip().split(",")
+                        pids.add(pid)
+                        dataset.append((img_path.encode(), pid2label[pid] + offset, int(cid)))
             else:
-                pid_container.add(pid)
-        pid2label = {pid:label for label, pid in enumerate(pid_container)}
-        new_dataset = []
-        for img_path, pid, camid in dataset:
-            if pid not in delete_pids:
-                if relabel: pid = pid2label[pid]
-                new_dataset.append((img_path, pid, camid))
-        return new_dataset, len(count) - len(delete_pids), len(new_dataset)
+                with open(list_path, 'r') as f:
+                    for line in f.readlines():
+                        img_path, pid, cid = line.strip().split(",")
+                        pids.add(pid)
+                        dataset.append((img_path.encode(), int(pid) + offset, int(cid)))
+
+        num_pids = len(pids)
+        num_imgs = len(dataset)
+        return dataset, num_pids, num_imgs

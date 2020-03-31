@@ -3,7 +3,7 @@ import os.path as osp
 import h5py
 import cv2
 from scipy.io import loadmat
-from src.database.data.market1501 import Market1501
+from src.database.data.market1501 import Market1501, Market1501LMDB
 from tools.utils import mkdir_if_missing, write_json, read_json
 
 class CUHK01(Market1501):
@@ -27,6 +27,30 @@ class CUHK02(Market1501):
     # images: 7264 (train) + 0 (query) + 0 (gallery)
     """
 
+    def __init__(self, path="", branch="", use_train=False, use_test=False, **kwargs):
+        super().__init__(path=path, branch=branch, use_train=use_train, use_test=use_test)
+
+class CUHK01LMDB(Market1501LMDB):
+    """
+    using market1501 data arrangement
+    
+    Dataset statistics:
+    # identities: 971
+    # images: 3884 (train) + 0 (query) + 0 (gallery)
+    """
+    Source = CUHK01
+    def __init__(self, path="", branch="", use_train=False, use_test=False, **kwargs):
+        super().__init__(path=path, branch=branch, use_train=use_train, use_test=use_test)
+
+class CUHK02LMDB(Market1501LMDB):
+    """
+    using market1501 data arrangement
+    
+    Dataset statistics:
+    # identities: 1816
+    # images: 7264 (train) + 0 (query) + 0 (gallery)
+    """
+    Source = CUHK02
     def __init__(self, path="", branch="", use_train=False, use_test=False, **kwargs):
         super().__init__(path=path, branch=branch, use_train=use_train, use_test=use_test)
 
