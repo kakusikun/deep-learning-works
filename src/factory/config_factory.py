@@ -47,7 +47,7 @@ cfg.MODEL = CN()
 cfg.MODEL.GPU = []
 cfg.MODEL.BACKBONE = ""
 cfg.MODEL.SAVE_CRITERION = "acc"
-cfg.MODEL.STRIDE = 1
+cfg.MODEL.STRIDES = [1]
 cfg.MODEL.FEATSIZE = 0
 
 # -----------------------------------------------------------------------------

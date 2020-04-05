@@ -57,16 +57,16 @@ class TransformFactory:
                 raise KeyError("Invalid transform, got '{}', but expected to be one of {}".format(tran, cls.products))
             
             if 'RandAugment' in tran:
-                bag_of_transforms.append(RandAugment(cfg.INPUT.RAND_AUG_N, cfg.INPUT.RAND_AUG_M, size=cfg.INPUT.SIZE, stride=cfg.MODEL.STRIDE))
+                bag_of_transforms.append(RandAugment(cfg.INPUT.RAND_AUG_N, cfg.INPUT.RAND_AUG_M, size=cfg.INPUT.SIZE, stride=cfg.MODEL.strides[0]))
 
             if 'Resize' in tran:
-                bag_of_transforms.append(Resize(size=cfg.INPUT.SIZE, stride=cfg.MODEL.STRIDE))
+                bag_of_transforms.append(Resize(size=cfg.INPUT.SIZE, stride=cfg.MODEL.strides[0]))
 
             if 'ResizeKeepAspectRatio' in tran:
-                bag_of_transforms.append(ResizeKeepAspectRatio(size=cfg.INPUT.SIZE, stride=cfg.MODEL.STRIDE))
+                bag_of_transforms.append(ResizeKeepAspectRatio(size=cfg.INPUT.SIZE, stride=cfg.MODEL.strides[0]))
 
             if 'RandomHFlip' in tran:
-                bag_of_transforms.append(RandomHFlip(stride=cfg.MODEL.STRIDE, num_keypoints=cfg.DB.NUM_KEYPOINTS))
+                bag_of_transforms.append(RandomHFlip(stride=cfg.MODEL.strides[0], num_keypoints=cfg.DB.NUM_KEYPOINTS))
                 
             if 'Tensorize' in tran:
                 bag_of_transforms.append(Tensorize())
@@ -75,10 +75,10 @@ class TransformFactory:
                 bag_of_transforms.append(Normalize(mean=cfg.INPUT.MEAN, std=cfg.INPUT.STD))
             
             if 'RandScale' in tran:
-                bag_of_transforms.append(RandScale(size=cfg.INPUT.SIZE, stride=cfg.MODEL.STRIDE))
+                bag_of_transforms.append(RandScale(size=cfg.INPUT.SIZE, stride=cfg.MODEL.strides[0]))
 
             if 'AugMix' in tran:
-                bag_of_transforms.append(AugMix(size=cfg.INPUT.SIZE, stride=cfg.MODEL.STRIDE))
+                bag_of_transforms.append(AugMix(size=cfg.INPUT.SIZE, stride=cfg.MODEL.strides[0]))
 
             if 'RandCrop' in tran:
                 bag_of_transforms.append(RandCrop(size=cfg.INPUT.SIZE, pad=cfg.INPUT.PAD))
@@ -101,7 +101,7 @@ class TransformFactory:
 
             if 'RandomRotate' in tran:
                 p = float(tran.split('-')[-1])
-                bag_of_transforms.append(RandomRotate(p=p, size=cfg.INPUT.SIZE, stride=cfg.MODEL.STRIDE))
+                bag_of_transforms.append(RandomRotate(p=p, size=cfg.INPUT.SIZE, stride=cfg.MODEL.strides[0]))
 
             if 'RandomGrayScale' in tran:
                 p = float(tran.split('-')[-1])

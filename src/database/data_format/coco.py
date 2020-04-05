@@ -7,7 +7,7 @@ class build_coco_dataset(Dataset):
         self.coco = data['handle']
         self.num_classes = data['num_classes']
         self.num_keypoints = data['num_keypoints']
-        self.stride = data['stride']
+        self.strides = data['strides']
         self.max_objs = 32
         self.indice = data['indice']
         self.cat_ids = {v: i for i, v in enumerate(self.coco.getCatIds())}
@@ -18,7 +18,7 @@ class build_coco_dataset(Dataset):
     def _coco_box_to_bbox(self, box):
         bbox = np.array([box[0], box[1], box[0] + box[2], box[1] + box[3]], dtype=np.float32)
         return bbox
-   
+    
     def __len__(self):
         return len(self.indice)
         
@@ -59,8 +59,17 @@ class build_coco_dataset(Dataset):
             in_w, in_h = img.size    
         else:
             in_w, in_h = img.shape[2], img.shape[1]
-        outsize = (in_w // self.stride, in_h // self.stride)
 
+        for i in range(len(bboxes)):
+            bboxes[i][[0, 2]] /= (in_w // self.strides[0])
+            bboxes[i][[1, 3]] /= (in_h // self.strides[0])
+        if self.use_kp:
+            for i in range(len(ptss)):
+                for j in range(len(ptss[i])):
+                    ptss[i][j][0] /= (in_w // self.strides[0])
+                    ptss[i][j][1] /= (in_h // self.strides[0])
+
+        outsizes = [(in_w // stride, in_h // stride) for stride in self.strides]
 
         if self.build_func is not None:
             ret = self.build_func(
@@ -70,15 +79,14 @@ class build_coco_dataset(Dataset):
                 max_objs=self.max_objs,
                 num_classes=self.num_classes, 
                 num_keypoints=self.num_keypoints,
-                outsize=outsize
+                outsizes=outsizes
             )
-        else:            
-            ret['bboxes'] = bboxes
-            if self.use_kp:
-                ret['ptss'] = ptss
-
+                      
         ret['inp'] = img
         ret['img_id'] = img_id
+        ret['bboxes'] = bboxes
+        if self.use_kp:
+            ret['ptss'] = ptss
 
         if 'RandScale' in ss:
             ret['c'] = ss['RandScale']['c']

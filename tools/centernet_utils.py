@@ -18,7 +18,7 @@ from tools.utils import (
 
 import math
 
-def centernet_keypoints_target(cls_ids, bboxes, ptss, max_objs, num_classes, num_keypoints, outsize, **kwargs):
+def centernet_keypoints_target(cls_ids, bboxes, ptss, max_objs, num_classes, num_keypoints, outsizes, **kwargs):
     '''
     According to CenterNet ( Objects as Points, https://arxiv.org/abs/1904.07850 ), create the target for keypoints detection.
 
@@ -30,7 +30,7 @@ def centernet_keypoints_target(cls_ids, bboxes, ptss, max_objs, num_classes, num
         max_objs (int): the maximum number of objects in a image.
         num_classes (int): number of classes in dataset.
         num_keypoints (int): number of categories of keypoints in dataset.
-        outsize (tuple): tuple of width and height of feature map of model output
+        outsizes (tuple): tuple of width and height of feature map of model output
     
     Returns:
         ret (dict): 
@@ -49,63 +49,73 @@ def centernet_keypoints_target(cls_ids, bboxes, ptss, max_objs, num_classes, num
             kp_mask, kp_ind (numpy.ndarray): (Object x Keypoint), to reduce memory of data usage for training
             kps_mask (numpy.ndarray): (Object x Keypoint) x 2, to reduce memory of data usage for training
     '''
-    output_w, output_h = outsize
+    rets = {}
+    for output_w, output_h in outsizes:
+        # center, object heatmap
+        hm = np.zeros((num_classes, output_h, output_w), dtype=np.float32)
+        # center, keypoint heatmap
+        hm_kp = np.zeros((num_keypoints, output_h, output_w), dtype=np.float32)
 
-    # center, object heatmap
-    hm = np.zeros((num_classes, output_h, output_w), dtype=np.float32)
-    # center, keypoint heatmap
-    hm_kp = np.zeros((num_keypoints, output_h, output_w), dtype=np.float32)
+        # object size
+        wh = np.zeros((max_objs, 2), dtype=np.float32)
+        # keypoint location relative to center
+        kps = np.zeros((max_objs, num_keypoints * 2), dtype=np.float32)
+        # object offset
+        reg = np.zeros((max_objs, 2), dtype=np.float32)       
+        ind = np.zeros((max_objs), dtype=np.int64)
+        reg_mask = np.zeros((max_objs), dtype=np.uint8)                       
+        kps_mask = np.zeros((max_objs, num_keypoints * 2), dtype=np.uint8)
+        kp_reg = np.zeros((max_objs * num_keypoints, 2), dtype=np.float32)
+        kp_ind = np.zeros((max_objs * num_keypoints), dtype=np.int64)
+        kp_mask = np.zeros((max_objs * num_keypoints), dtype=np.int64)
 
-    # object size
-    wh = np.zeros((max_objs, 2), dtype=np.float32)
-    # keypoint location relative to center
-    kps = np.zeros((max_objs, num_keypoints * 2), dtype=np.float32)
-    # object offset
-    reg = np.zeros((max_objs, 2), dtype=np.float32)       
-    ind = np.zeros((max_objs), dtype=np.int64)
-    reg_mask = np.zeros((max_objs), dtype=np.uint8)                       
-    kps_mask = np.zeros((max_objs, num_keypoints * 2), dtype=np.uint8)
-    kp_reg = np.zeros((max_objs * num_keypoints, 2), dtype=np.float32)
-    kp_ind = np.zeros((max_objs * num_keypoints), dtype=np.int64)
-    kp_mask = np.zeros((max_objs * num_keypoints), dtype=np.int64)
+        draw_gaussian = draw_umich_gaussian
 
-    draw_gaussian = draw_umich_gaussian
-
-    for k, (cls_id, bbox, pts, valid_pts) in enumerate(zip(cls_ids, bboxes, ptss, valid_ptss)):
-        h, w = bbox[3] - bbox[1], bbox[2] - bbox[0]            
-        if h > 0 and w > 0:
-            radius = gaussian_radius((math.ceil(h), math.ceil(w)))
-            radius = max(0, int(radius))
-            ct = np.array([(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2], dtype=np.float32)
-            ct_int = ct.astype(np.int32)
-            wh[k] = 1. * w, 1. * h
-            ind[k] = ct_int[1] * output_w + ct_int[0]
-            reg[k] = ct - ct_int
-            reg_mask[k] = 1  
-            num_kpts = pts[:,2].sum()
-            if num_kpts == 0:
-                hm[cls_id, ct_int[1], ct_int[0]] = 0.9999
-                reg_mask[k] = 0
-
-            hp_radius = gaussian_radius((math.ceil(h), math.ceil(w)))
-            hp_radius = max(0, int(hp_radius)) 
-            for j in range(num_keypoints):
-                if pts[j,2] > 0:
-                    if pts[j, 0] >= 0 and pts[j, 0] < output_w and pts[j, 1] >= 0 and pts[j, 1] < output_h:
-                        kps[k, j * 2: j * 2 + 2] = pts[j, :2] - ct_int
-                        kps_mask[k, j * 2: j * 2 + 2] = 1
-                        pt_int = pts[j, :2].astype(np.int32)
-                        kp_reg[k * num_keypoints + j] = pts[j, :2] - pt_int
-                        kp_ind[k * num_keypoints + j] = pt_int[1] * output_w + pt_int[0]
-                        kp_mask[k * num_keypoints + j] = 1
-                        draw_gaussian(hm_kp[j], pt_int, hp_radius)
-            draw_gaussian(hm[cls_id], ct_int, radius)
+        for k, (cls_id, bbox, pts) in enumerate(zip(cls_ids, bboxes, ptss)):
+            bbox[[0, 2]] *= output_w
+            bbox[[1, 3]] *= output_h
+            np.round(bbox, out=bbox)
+            pts[:, 0] *= output_w
+            pts[:, 1] *= output_h
+            np.round(pts, out=pts)
             
-    ret = {'hm': hm, 'wh':wh, 'reg':reg,
-           'reg_mask': reg_mask, 'ind': ind,
-           'hm_kp': hm_kp, 'kps': kps, 'kps_mask': kps_mask, 'kp_reg': kp_reg,
-           'kp_ind': kp_ind, 'kp_mask': kp_mask}
-    return ret
+            h, w = bbox[3] - bbox[1], bbox[2] - bbox[0]            
+            if h > 0 and w > 0:
+                radius = gaussian_radius((math.ceil(h), math.ceil(w)))
+                radius = max(0, int(radius))
+                ct = np.array([(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2], dtype=np.float32)
+                ct_int = ct.astype(np.int32)
+                wh[k] = 1. * w, 1. * h
+                ind[k] = ct_int[1] * output_w + ct_int[0]
+                reg[k] = ct - ct_int
+                reg_mask[k] = 1  
+                num_kpts = pts[:,2].sum()
+                if num_kpts == 0:
+                    hm[cls_id, ct_int[1], ct_int[0]] = 0.9999
+                    reg_mask[k] = 0
+
+                hp_radius = gaussian_radius((math.ceil(h), math.ceil(w)))
+                hp_radius = max(0, int(hp_radius)) 
+                for j in range(num_keypoints):
+                    if pts[j,2] > 0:
+                        if pts[j, 0] >= 0 and pts[j, 0] < output_w and pts[j, 1] >= 0 and pts[j, 1] < output_h:
+                            kps[k, j * 2: j * 2 + 2] = pts[j, :2] - ct_int
+                            kps_mask[k, j * 2: j * 2 + 2] = 1
+                            pt_int = pts[j, :2].astype(np.int32)
+                            kp_reg[k * num_keypoints + j] = pts[j, :2] - pt_int
+                            kp_ind[k * num_keypoints + j] = pt_int[1] * output_w + pt_int[0]
+                            kp_mask[k * num_keypoints + j] = 1
+                            draw_gaussian(hm_kp[j], pt_int, hp_radius)
+                draw_gaussian(hm[cls_id], ct_int, radius)
+                
+            rets[(output_w, output_h)] = {
+                'hm': hm, 'wh':wh, 'reg':reg,
+                'reg_mask': reg_mask, 'ind': ind,
+                'hm_kp': hm_kp, 'kps': kps, 'kps_mask': kps_mask, 'kp_reg': kp_reg,
+                'kp_ind': kp_ind, 'kp_mask': kp_mask
+            }
+
+    return rets
 
 def centernet_pose_decode(heat, wh, kps, reg=None, hm_kp=None, kp_reg=None, K=100):
     batch, cat, height, width = heat.size()

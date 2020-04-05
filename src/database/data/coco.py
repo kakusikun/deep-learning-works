@@ -6,7 +6,7 @@ import json
 
 class coco_data(BaseData):
     def __init__(self, path="", branch="", coco_target="", 
-                num_keypoints=-1, num_classes=-1, output_stride=-1, 
+                num_keypoints=-1, num_classes=-1, output_strides=-1, 
                 use_train=False, use_test=False, **kwargs):
         '''
         COCO type data: image and label stored in coco format json
@@ -31,7 +31,7 @@ class coco_data(BaseData):
             self.train['n_samples'] = train_num_samples
             self.train['num_keypoints'] = num_keypoints
             self.train['num_classes'] = num_classes
-            self.train['stride'] = output_stride                   
+            self.train['strides'] = output_strides                   
             logger.info("=> COCO TRAIN is loaded")
             logger.info("  Dataset statistics:")
             logger.info("  -------------------")
@@ -46,7 +46,7 @@ class coco_data(BaseData):
             self.val['n_samples'] = val_num_samples
             self.val['num_keypoints'] = num_keypoints
             self.val['num_classes'] = num_classes           
-            self.val['stride'] = output_stride                  
+            self.val['strides'] = output_strides                  
             logger.info("=> COCO VAL is loaded")
             logger.info("  Dataset statistics:")
             logger.info("  -------------------")

@@ -37,16 +37,16 @@ class HourglassODEngine(BaseEngine):
                         gen_oracle_map(
                             batch['wh'].detach().cpu().numpy(), 
                             batch['ind'].detach().cpu().numpy(), 
-                            batch['inp'].shape[3] // self.cfg.MODEL.STRIDE, 
-                            batch['inp'].shape[2] // self.cfg.MODEL.STRIDE
+                            batch['inp'].shape[3] // self.cfg.MODEL.STRIDES, 
+                            batch['inp'].shape[2] // self.cfg.MODEL.STRIDES
                         )
                     ).cuda()
                     feat['reg'] = torch.from_numpy(
                         gen_oracle_map(
                             batch['reg'].detach().cpu().numpy(), 
                             batch['ind'].detach().cpu().numpy(), 
-                            batch['inp'].shape[3] // self.cfg.MODEL.STRIDE, 
-                            batch['inp'].shape[2] // self.cfg.MODEL.STRIDE
+                            batch['inp'].shape[3] // self.cfg.MODEL.STRIDES, 
+                            batch['inp'].shape[2] // self.cfg.MODEL.STRIDES
                         )
                     ).cuda()
                 else:               
