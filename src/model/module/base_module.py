@@ -510,6 +510,70 @@ class HarmAttn(nn.Module):
         if theta_i.is_cuda: theta = theta.cuda()
         return theta
 
+class FPN(nn.Module):
+    '''
+    Args:
+        config (list): 
+            list of input feature type to be extracted by 
+            lateral convolutional layer.
+            For example, ["i_0", "i_1", "i_2", "i_2", "p_3"]
+                where A_B,
+                A: either "i" or "p", "i" means the feature is from input and "p" is from 
+                    lateral convolutional  layer.
+                B: the index of inputs or feature of lateral convolutional layer.
+            In this example, 
+            index 0 of input (i) -> lateral conv -> index 0 of lateral feature (p)
+            index 1 of input (i) -> lateral conv -> index 1 of lateral feature (p)
+            index 2 of input (i) -> lateral conv -> index 2 of lateral feature (p)
+            index 2 of input (i) -> lateral conv -> index 3 of lateral feature (p)
+            index 3 of lateral feature (p) -> lateral conv -> index 4 of lateral feature (p)
+
+        incs (list):
+            list of input channels for feature in config with "i" prefixed.
+
+        oss (list):
+            list of output stride for feature in config.
+
+        oucs (list): 
+            list of output channel for lateral convolutional layer that extracts feature from inputs
+
+    '''
+    def __init__(self, configs, incs, oss, oucs):
+        super(FPN, self).__init__()
+        assert len(configs) == len(oss)
+        self.configs = configs
+        self.p_lats = nn.ModuleList()
+        self.p_ups = nn.ModuleList()
+        for i, config in enumerate(self.configs):
+            cat, idx = config.split("_")
+            if cat == "i":
+                self.p_lats.append(nn.Conv2d(incs[int(idx)], oucs[int(idx)], 1, stride=1, padding=0))
+            elif cat == 'p':
+                self.p_lats.append(nn.Conv2d(oucs[-1], oucs[-1], 1, stride=1, padding=0))
+            if i > 0:
+                if oss[i-1] * 2 == oss[i]:
+                    self.p_ups.append(nn.Upsample(scale_factor=2))
+                else:
+                    self.p_ups.append(Identity())
+        
+
+    def forward(self, inputs): # low to high level, e.g., P3 -> P4 -> P5 ...
+        ps = [] # low to high level, e.g., P3 -> P4 -> P5 ...
+        for i, cfg in enumerate(self.configs):
+            cat, idx = cfg.split("_")
+            if cat == "i":
+                x = self.p_lats[i](inputs[int(idx)])
+            elif cat == 'p':
+                x = self.p_lats[i](ps[i-1])
+            ps.append(x)  # low to high level, e.g., P3 -> P4 -> P5 ...
+        
+        # high to low, e.g., P7 -> P6 -> P5 ...
+        for i in range(len(ps)-2, -1, -1):
+            ps[i] += self.p_ups[i](ps[i+1])       
+
+        # low to high level, e.g., P3 -> P4 -> P5 ...      
+        return ps
+        
 if __name__ == '__main__':
     # a = torch.rand([1,2,16,16])
     # b = torch.rand([1,3,8,8])
@@ -524,7 +588,10 @@ if __name__ == '__main__':
 
     # model = biFPNLayer(4, [1,2,4,4], fpn=True)
     # out = model([d,c,b,a])
-    model = biFPN(["i_0", "i_1", "i_2", "i_3"], [4,4,4,4], [1,2,4,4], 2, fpn=True, weighted_resize=True)
+    # model = biFPN(["i_0", "i_1", "i_2", "i_3"], [4,4,4,4], [1,2,4,4], 2, fpn=True, weighted_resize=True)
+    # out = model([a,b,c,d])
+    # print(out.shape)
+    model = FPN(["i_0", "i_1", "i_2", "i_3"], [4,4,4,4], [1,2,4,4], 2)
     out = model([a,b,c,d])
     print(out.shape)
 

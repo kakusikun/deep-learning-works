@@ -247,3 +247,26 @@ class IAPHead(nn.Module):
                 nn.init.normal_(m.weight, 0, 0.01)
                 if m.bias is not None:
                     nn.init.constant_(m.bias, 0)
+
+
+class YOLOv3PredictionHead(nn.Module):
+    def __init__(self, inc, n_location, n_dim):
+        super(YOLOv3PredictionHead, self).__init__()
+        self.extract_feature = nn.ModuleList()
+        for _ in range(3):
+            self.extract_feature.append([
+                ConvModule(inc, inc // 2, 1),
+                ConvModule(inc // 2, inc, 1)
+            ])
+        self.location = ConvModule(inc, n_location, 1)
+        self.embedding = ConvModule(inc, n_dim, 3, 1, 1)
+    
+    def forward(self, x):
+        depth = len(self.extract_feature)
+        for i in range(depth):
+            x = self.extract_feature[i](x)
+            if i - depth + 2 == 0:
+                pre_embb = x
+        location = self.location(x)
+        embedding = self.embedding(pre_embb)
+        return torch.cat([location, embedding], dim=1)
