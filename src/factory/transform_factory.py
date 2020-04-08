@@ -56,58 +56,58 @@ class TransformFactory:
             if tran.split("-")[0] not in cls.products:
                 raise KeyError("Invalid transform, got '{}', but expected to be one of {}".format(tran, cls.products))
             
-            if 'RandAugment' in tran:
-                bag_of_transforms.append(RandAugment(cfg.INPUT.RAND_AUG_N, cfg.INPUT.RAND_AUG_M, size=cfg.INPUT.SIZE, stride=cfg.MODEL.strides[0]))
+            if 'RandAugment' == tran:
+                bag_of_transforms.append(RandAugment(cfg.INPUT.RAND_AUG_N, cfg.INPUT.RAND_AUG_M, size=cfg.INPUT.SIZE, stride=cfg.MODEL.STRIDES[0]))
 
-            if 'Resize' in tran:
-                bag_of_transforms.append(Resize(size=cfg.INPUT.SIZE, stride=cfg.MODEL.strides[0]))
+            if 'Resize' == tran:
+                bag_of_transforms.append(Resize(size=cfg.INPUT.SIZE))
 
-            if 'ResizeKeepAspectRatio' in tran:
-                bag_of_transforms.append(ResizeKeepAspectRatio(size=cfg.INPUT.SIZE, stride=cfg.MODEL.strides[0]))
+            if 'ResizeKeepAspectRatio' == tran:
+                bag_of_transforms.append(ResizeKeepAspectRatio(size=cfg.INPUT.SIZE))
 
-            if 'RandomHFlip' in tran:
-                bag_of_transforms.append(RandomHFlip(stride=cfg.MODEL.strides[0], num_keypoints=cfg.DB.NUM_KEYPOINTS))
+            if 'RandomHFlip' == tran:
+                bag_of_transforms.append(RandomHFlip(num_keypoints=cfg.DB.NUM_KEYPOINTS))
                 
-            if 'Tensorize' in tran:
+            if 'Tensorize' == tran:
                 bag_of_transforms.append(Tensorize())
 
-            if 'Normalize' in tran:
+            if 'Normalize' == tran:
                 bag_of_transforms.append(Normalize(mean=cfg.INPUT.MEAN, std=cfg.INPUT.STD))
             
-            if 'RandScale' in tran:
-                bag_of_transforms.append(RandScale(size=cfg.INPUT.SIZE, stride=cfg.MODEL.strides[0]))
+            if 'RandScale' == tran:
+                bag_of_transforms.append(RandScale(size=cfg.INPUT.SIZE))
 
-            if 'AugMix' in tran:
-                bag_of_transforms.append(AugMix(size=cfg.INPUT.SIZE, stride=cfg.MODEL.strides[0]))
+            if 'AugMix' == tran:
+                bag_of_transforms.append(AugMix(size=cfg.INPUT.SIZE, stride=cfg.MODEL.STRIDES[0]))
 
-            if 'RandCrop' in tran:
+            if 'RandCrop' == tran:
                 bag_of_transforms.append(RandCrop(size=cfg.INPUT.SIZE, pad=cfg.INPUT.PAD))
 
-            if 'RandomErasing' in tran:
+            if 'RandomErasing' == tran:
                 p = float(tran.split('-')[-1])
                 bag_of_transforms.append(RandomErasing(p=p))
 
-            if 'RandomFigures' in tran:
+            if 'RandomFigures' == tran:
                 p = float(tran.split('-')[-1])
                 bag_of_transforms.append(RandomFigures(p=p))
 
-            if 'RandomPadding' in tran:
+            if 'RandomPadding' == tran:
                 p = float(tran.split('-')[-1])
                 bag_of_transforms.append(RandomPadding(p=p))
 
-            if 'RandomColorJitter' in tran:
+            if 'RandomColorJitter' == tran:
                 p, b, c, s, h = list(map(float, tran.split('-')[1:]))
                 bag_of_transforms.append(RandomColorJitter(p=p, brightness=b, contrast=c, saturation=s, hue=h))
 
-            if 'RandomRotate' in tran:
+            if 'RandomRotate' == tran:
                 p = float(tran.split('-')[-1])
-                bag_of_transforms.append(RandomRotate(p=p, size=cfg.INPUT.SIZE, stride=cfg.MODEL.strides[0]))
+                bag_of_transforms.append(RandomRotate(p=p, size=cfg.INPUT.SIZE))
 
-            if 'RandomGrayScale' in tran:
+            if 'RandomGrayScale' == tran:
                 p = float(tran.split('-')[-1])
                 bag_of_transforms.append(RandomGrayScale(p=p))
 
-            if 'RandomGrid' in tran:
+            if 'RandomGrid' == tran:
                 p = float(tran.split('-')[-1])
                 bag_of_transforms.append(RandomGrid(p=p))
 

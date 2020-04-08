@@ -151,7 +151,10 @@ cfg.SPOS.CANDIDATE_RELAX_EPOCHS = 10
 cfg.SPOS.DURATION = 4
 
 # ---------------------------------------------------------------------------- #
+# YOLOv3                                     
 # ---------------------------------------------------------------------------- #
+cfg.YOLO = CN()
+cfg.YOLO.ANCHORS = []
 
 
 def build_output(cfg, config_file=""):

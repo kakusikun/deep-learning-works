@@ -31,8 +31,7 @@ class RandomHFlip(BaseTransform):
                           For keypoint detection, not noly the position of 
                           keypoints changes but the category changes
     '''
-    def __init__(self, stride=1, num_keypoints=0):
-        self.stride = stride
+    def __init__(self, num_keypoints=0):
         if num_keypoints > 0:
             if num_keypoints == 17:
                 self.flip_idx = PERSON_KEYPOINT_INDICE
@@ -59,7 +58,7 @@ class RandomHFlip(BaseTransform):
         if random.random() > 0.5:
             img = TF.hflip(img)
             flipped = True
-        s = {'flipped': flipped, 'w': img.size[0] // self.stride}
+        s = {'flipped': flipped, 'w': img.size[0]}
         return img, s
     
     def apply_bbox(self, bbox, s):

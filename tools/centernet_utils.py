@@ -18,7 +18,7 @@ from tools.utils import (
 
 import math
 
-def centernet_keypoints_target(cls_ids, bboxes, ptss, max_objs, num_classes, num_keypoints, outsizes, **kwargs):
+def centernet_keypoints_target(cls_ids, bboxes, ptss, max_objs, num_classes, num_keypoints, out_sizes, **kwargs):
     '''
     According to CenterNet ( Objects as Points, https://arxiv.org/abs/1904.07850 ), create the target for keypoints detection.
 
@@ -30,7 +30,7 @@ def centernet_keypoints_target(cls_ids, bboxes, ptss, max_objs, num_classes, num
         max_objs (int): the maximum number of objects in a image.
         num_classes (int): number of classes in dataset.
         num_keypoints (int): number of categories of keypoints in dataset.
-        outsizes (tuple): tuple of width and height of feature map of model output
+        out_sizes (tuple): tuple of width and height of feature map of model output
     
     Returns:
         ret (dict): 
@@ -50,7 +50,7 @@ def centernet_keypoints_target(cls_ids, bboxes, ptss, max_objs, num_classes, num
             kps_mask (numpy.ndarray): (Object x Keypoint) x 2, to reduce memory of data usage for training
     '''
     rets = {}
-    for output_w, output_h in outsizes:
+    for output_w, output_h in out_sizes:
         # center, object heatmap
         hm = np.zeros((num_classes, output_h, output_w), dtype=np.float32)
         # center, keypoint heatmap

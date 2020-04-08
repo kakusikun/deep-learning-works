@@ -10,16 +10,13 @@ class Resize(BaseTransform):
 
     Args:
         size (tuple): the output size
-        stride (int): the output stride of image after neural network forwarding
 
     Attributes:
         size (tuple): arg, size
-        stride (int): arg, stride
     '''
 
-    def __init__(self, size, stride):
+    def __init__(self, size):
         self.size = size
-        self.stride = stride
     
     def apply_image(self, img):
         '''
@@ -34,7 +31,7 @@ class Resize(BaseTransform):
         w, h = img.size
         r_w = self.size[0] / float(w)
         r_h = self.size[1] / float(h)
-        img = TF.resize(img, self.size)
+        img = TF.resize(img, (self.size[1], self.size[0]))
         s = {'ratio': (r_w, r_h)}
         return img, s
     
@@ -50,8 +47,6 @@ class Resize(BaseTransform):
         '''
         assert 'ratio' in s
         r_w, r_h = s['ratio']
-        r_w /= self.stride
-        r_h /= self.stride
         bbox[[0, 2]] *= r_w
         bbox[[1, 3]] *= r_h
         return bbox
@@ -69,8 +64,6 @@ class Resize(BaseTransform):
         '''
         assert 'ratio' in s
         r_w, r_h = s['ratio']
-        r_w /= self.stride
-        r_h /= self.stride
         pts[:, 0] *= r_w
         pts[:, 1] *= r_h
         return pts

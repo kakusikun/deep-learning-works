@@ -76,7 +76,7 @@ class ShuffleNetv2SPOS(BaseGraph):
 
         if not os.path.exists(file_path):
             logger.info("FLOPs Table is not found, generating ...")
-            dummy_input = torch.rand(1, 3, *self.cfg.INPUT.SIZE)
+            dummy_input = torch.rand(1, 3, self.cfg.INPUT.SIZE[1], self.cfg.INPUT.SIZE[0])
             lookup_table = self.model.backbone._get_lookup_table(dummy_input)
             with open(file_path, 'w') as f:
                 json.dump(lookup_table, f)

@@ -11,7 +11,7 @@ class RandCrop(BaseTransform):
         pad (int): padding of image
     '''    
     def __init__(self, size, pad):
-        self.handle = T.RandomCrop(size, pad)
+        self.handle = T.RandomCrop((size[1], size[0]), pad)
 
     def apply_image(self, img):
         '''

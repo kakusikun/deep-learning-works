@@ -12,16 +12,13 @@ class ResizeKeepAspectRatio(BaseTransform):
 
     Args:
         size (tuple): the output size
-        stride (int): the output stride of image after neural network forwarding
 
     Attributes:
         size (tuple): arg, size
-        stride (int): arg, stride
     '''
 
-    def __init__(self, size, stride):
+    def __init__(self, size):
         self.size = size
-        self.stride = stride
     
     def apply_image(self, img):
         '''
@@ -36,7 +33,7 @@ class ResizeKeepAspectRatio(BaseTransform):
 
         np_img = np.array(img)
         h, w = np_img.shape[0], np_img.shape[1] 
-        in_h, in_w = self.size
+        in_w, in_h = self.size
         c = np.array([w / 2., h / 2.], dtype=np.float32)
         s = max(h, w) * 1.0
         trans_input = get_affine_transform(c, s, 0, [in_w, in_h])
@@ -58,7 +55,7 @@ class ResizeKeepAspectRatio(BaseTransform):
 
         assert 'c' in s
         assert 's' in s
-        out_h, out_w = (np.array(self.size) // self.stride).astype(int)
+        out_w, out_h = np.array(self.size)
         trans_output = get_affine_transform(s['c'], s['s'], 0, [out_w, out_h])
         bbox[:2] = affine_transform(bbox[:2], trans_output)
         bbox[2:] = affine_transform(bbox[2:], trans_output)
@@ -79,7 +76,7 @@ class ResizeKeepAspectRatio(BaseTransform):
         '''
         assert 'c' in s
         assert 's' in s
-        out_h, out_w = (np.array(self.size) // self.stride).astype(int)
+        out_w, out_h = np.array(self.size)
         trans_output = get_affine_transform(s['c'], s['s'], 0, [out_w, out_h])
         for i in range(pts.shape[0]):
             pts[i,:2] = affine_transform(pts[i,:2], trans_output)

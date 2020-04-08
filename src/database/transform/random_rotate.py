@@ -7,10 +7,9 @@ import src.database.transform.augmentations as aug
 
 class RandomRotate(BaseTransform):
 
-    def __init__(self, p, size=[0, 0], stride=1):
+    def __init__(self, p, size=[0, 0]):
         self.p = p
         self.size = size
-        self.stride = stride
         self.op_name = 'Rotate'
 
     def apply_image(self, img):   
@@ -33,13 +32,13 @@ class RandomRotate(BaseTransform):
         A = aug.AUG_AS[self.op_name](**s[self.op_name])
         bbox[:2] = aug.apply_A(bbox[:2], A)
         bbox[2:] = aug.apply_A(bbox[2:], A)
-        out_h, out_w = (np.array(self.size) // self.stride).astype(int)
+        out_w, out_h = np.array(self.size)
         bbox[[0, 2]] = np.clip(bbox[[0, 2]], 0, out_w - 1)
         bbox[[1, 3]] = np.clip(bbox[[1, 3]], 0, out_h - 1) 
         return bbox
     
     def apply_pts(self, cid, pts, s):
-        out_h, out_w = (np.array(self.size) // self.stride).astype(int)
+        out_w, out_h = np.array(self.size)
         A = aug.AUG_AS[self.op_name](**s[self.op_name])
         for i in range(pts.shape[0]):
             pts[i,:2] = aug.apply_A(pts[i,:2], A)
