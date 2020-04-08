@@ -9,6 +9,7 @@ class DataFormatFactory:
         'reid': build_reid_dataset,
         'imagenet': build_image_dataset,
         'cifar10': build_cifar_dataset,
+        'coco_reid': build_coco_dataset,
     }
 
     @classmethod

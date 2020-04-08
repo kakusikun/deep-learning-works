@@ -3,8 +3,9 @@ import os
 import os.path as osp
 import pycocotools.coco as coco
 import json
+from collections import defaultdict
 
-class coco_data(BaseData):
+class COCO(BaseData):
     def __init__(self, path="", branch="", coco_target="", 
                 num_keypoints=-1, num_classes=-1, output_strides=-1, 
                 use_train=False, use_test=False, **kwargs):
@@ -25,8 +26,9 @@ class coco_data(BaseData):
         self._check_before_run()
          
         if use_train:
-            train_coco, train_images, train_num_samples = self._process_dir(self.train_anno, self.train_dir, split='train')
+            train_coco, train_images, train_num_samples, train_pid2label = self._process_dir(self.train_anno, self.train_dir, split='train')
             self.train['handle'] = train_coco
+            self.train['pid'] = train_pid2label
             self.train['indice'] = train_images
             self.train['n_samples'] = train_num_samples
             self.train['num_keypoints'] = num_keypoints
@@ -40,8 +42,9 @@ class coco_data(BaseData):
             logger.info("  train    | {:8d}".format(train_num_samples))
             logger.info("  -------------------")
         if use_test:
-            val_coco, val_images, val_num_samples = self._process_dir(self.val_anno, self.val_dir, split='val')
-            self.val['handle'] = val_coco        
+            val_coco, val_images, val_num_samples, val_pid2label = self._process_dir(self.val_anno, self.val_dir, split='val')
+            self.val['handle'] = val_coco  
+            self.val['pid'] = val_pid2label      
             self.val['indice'] = val_images
             self.val['n_samples'] = val_num_samples
             self.val['num_keypoints'] = num_keypoints
@@ -77,6 +80,7 @@ class coco_data(BaseData):
     def _process_dir(self, anno_path, img_path, split='train'):
         data_handle = coco.COCO(anno_path)
         image_ids = data_handle.getImgIds()
+        pids = defaultdict(int)
         images = []
         for img_id in image_ids:
             idxs = data_handle.getAnnIds(imgIds=[img_id])
@@ -84,6 +88,11 @@ class coco_data(BaseData):
                 fname = data_handle.loadImgs(ids=[img_id])[0]['file_name']
                 fname = osp.join(img_path, fname)
                 images.append((img_id, fname))
+                anns = data_handle.loadAnns(ids=idxs)
+                for ann in anns:
+                    if 'pid' not in ann or ann['pid'] == '-1':
+                        continue
+                    pids[f"{int(ann['pid']):05}"] += 1
             else:
                 fname = data_handle.loadImgs(ids=[img_id])[0]['file_name']
                 fname = osp.join(img_path, fname)
@@ -91,7 +100,18 @@ class coco_data(BaseData):
      
         num_samples = len(images)
         
-        return data_handle, images, num_samples
+        pid2label = {}
+        label = 0
+        _pids = sorted(list(pids.keys()))
+        for pid in _pids:
+            if pids[pid] >= 4:
+                pid2label[str(int(pid))] = label
+                label += 1
+            else:
+                pid2label[str(int(pid))] = -1
+        pid2label['-1'] = -1
+        
+        return data_handle, images, num_samples, pid2label
     
     def _make_target_coco(self, src, dst, category):
         logger.info("Making target of coco of {} ...".format(dst))

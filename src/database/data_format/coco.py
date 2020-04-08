@@ -5,12 +5,13 @@ from PIL import Image
 class build_coco_dataset(Dataset):
     def __init__(self, data, transform=None, build_func=None, **kwargs):
         self.coco = data['handle']
+        self.pid = data['pid']
         self.num_classes = data['num_classes']
         self.num_keypoints = data['num_keypoints']
         self.strides = data['strides']
         self.max_objs = 32
         self.indice = data['indice']
-        self.cat_ids = {v: i for i, v in enumerate(self.coco.getCatIds())}
+        self.cat_ids = {v: i for i, v in enumerate(self.coco[0].getCatIds())} if len(self.coco) == 1 else {1: 0}
         self.transform = transform
         self.build_func = build_func
         self.use_kp = True if self.num_keypoints > 0 else False
@@ -23,10 +24,10 @@ class build_coco_dataset(Dataset):
         return len(self.indice)
         
     def __getitem__(self, index):
-        img_id, img_path = self.indice[index]        
-        ann_ids = self.coco.getAnnIds(imgIds=[img_id])
-        anns = self.coco.loadAnns(ids=ann_ids)
-        num_objs = min(len(anns), self.max_objs)  
+        img_id, img_path, handle_idx, offset = self.indice[index]        
+        ann_ids = self.coco[handle_idx].getAnnIds(imgIds=[img_id])
+        anns = self.coco[handle_idx].loadAnns(ids=ann_ids)
+        num_objs = len(anns)
         img = Image.open(img_path)
         if img.mode != 'RGB':
             img = img.convert('RGB')
@@ -37,11 +38,18 @@ class build_coco_dataset(Dataset):
         cls_ids = []
         bboxes = []
         ptss = []
+        ids = []
 
         for k in range(num_objs):
             ann = anns[k]
             cls_ids.append(int(self.cat_ids[ann['category_id']]))
-            bboxes.append(self._coco_box_to_bbox(ann['bbox']))            
+            bboxes.append(self._coco_box_to_bbox(ann['bbox']))
+            pid = self.pid[handle_idx][ann['pid']]
+            if pid > 0:
+                ids.append(pid + offset)
+            else:
+                ids.append(pid)
+
             if self.use_kp:
                 pts = np.array(ann['keypoints'], np.float32).reshape(self.num_keypoints, 3)
             else:
@@ -61,15 +69,15 @@ class build_coco_dataset(Dataset):
             in_w, in_h = img.shape[2], img.shape[1]
 
         for i in range(len(bboxes)):
-            bboxes[i][[0, 2]] /= (in_w // self.strides[0])
-            bboxes[i][[1, 3]] /= (in_h // self.strides[0])
+            bboxes[i][[0, 2]] /= in_w
+            bboxes[i][[1, 3]] /= in_h
         if self.use_kp:
             for i in range(len(ptss)):
                 for j in range(len(ptss[i])):
-                    ptss[i][j][0] /= (in_w // self.strides[0])
-                    ptss[i][j][1] /= (in_h // self.strides[0])
+                    ptss[i][j][0] /= in_w
+                    ptss[i][j][1] /= in_h
 
-        outsizes = [(in_w // stride, in_h // stride) for stride in self.strides]
+        out_sizes = [(in_w // stride, in_h // stride) for stride in self.strides]
 
         if self.build_func is not None:
             ret = self.build_func(
@@ -79,7 +87,10 @@ class build_coco_dataset(Dataset):
                 max_objs=self.max_objs,
                 num_classes=self.num_classes, 
                 num_keypoints=self.num_keypoints,
-                outsizes=outsizes
+                out_sizes=out_sizes,
+                wh=(in_w, in_h),
+                strides=self.strides,
+                ids=ids
             )
                       
         ret['inp'] = img

@@ -1,4 +1,5 @@
 from src.database.loader import *
+from src.base_data import BaseData
 from src.database.sampler.sampler import IdBasedSampler
 
 def build_reid_loader(
@@ -15,28 +16,32 @@ def build_reid_loader(
     use_sampler=True,
     **kwargs):
 
-    loader = {}
     data_names = cfg.DB.DATA.split(" ")
+    if len(data_names) == 1:
+        if use_train:
+            train_data_names = data_names
+        if use_test:
+            test_data_name = data_names
+    else:
+        if use_train:
+            train_data_names = data_names[:-1]
+        if use_test:
+            test_data_name = data_names[-1]
 
-    if use_train: 
-        if len(data_names) > 1:
-            #TODO: move to config check in trainer, datafactory argument alias
-            cfg.DB.NUM_CLASSES = 0   
-            cfg.DB.USE_TEST = False         
-            _data = [] 
-            offset = 0
-            for name in data_names[:-1]:
-                data = DataFactory.produce(cfg, data_name=name)
-                cfg.DB.NUM_CLASSES += data.train['n_samples']
-                for path, pid, cam in data.train['indice']:
-                    _data.append((path, pid+offset, cam))
-                offset += data.train['n_samples']
-            data.train['indice'] = _data
-            data.train['n_samples'] = offset
-            cfg.DB.USE_TEST = True         
-        else:
-            data = DataFactory.produce(cfg)
-            cfg.DB.NUM_CLASSES = data.train['n_samples']
+    loader = {}
+    if use_train:         
+        indice = []
+        offset = 0
+        for name in train_data_names:
+            _data = DataFactory.produce(cfg, branch=name, use_test=False)
+            for path, pid, cam in _data.train['indice']:
+                indice.append((path, pid+offset, cam))
+            offset += _data.train['n_samples']
+
+        data = BaseData()
+        data.train['indice'] = indice
+        data.train['n_samples'] = offset
+        cfg.DB.NUM_CLASSES = offset
         train_trans = TransformFactory.produce(cfg, train_transformation)
         train_dataset = DataFormatFactory.produce(
             cfg, 
@@ -64,7 +69,7 @@ def build_reid_loader(
                 drop_last=True
             )
     if use_test:
-        data = DataFactory.produce(cfg, data_name=data_names[-1])      
+        data = DataFactory.produce(cfg, branch=test_data_name, use_train=False)      
         val_trans = TransformFactory.produce(cfg, test_transformation)      
         query_dataset = DataFormatFactory.produce(cfg, data=data.query, transform=val_trans)
         gallery_dataset = DataFormatFactory.produce(cfg, data=data.gallery, transform=val_trans)
