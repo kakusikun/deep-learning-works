@@ -1,7 +1,8 @@
 # [modelname]_[task]_[loss]_[opt]_[pretrain]
 EXPERIMENT: "OSNet_IAP-msmt-amsoftmax-AdamW_amsgrad_lr_0.0015_freeze_step-scratch"
-# EVALUATE: True
-RESUME: "/media/allen/mass/osnet_x1_0_imagenet.pth"
+EVALUATE: True
+RESUME: "/media/allen/mass/deep-learning-works/result/msmt market/OSNet_IAP-msmt-amsoftmax-AdamW_amsgrad_lr_0.0015_freeze_step-scratch/000-2020-03-30_23-19/weights/model_055_0.6129.pth"
+# "/media/allen/mass/osnet_x1_0_imagenet.pth"
 SAVE: True
 IO: True
 SEED: 42
@@ -23,7 +24,7 @@ INPUT:
   STD: [0.229, 0.224, 0.225]
 DB:
   PATH: "/media/allen/mass/DB"
-  DATA: "msmt market"
+  DATA: "msmt duke"
   DATA_FORMAT: "reid"
   LOADER: "reid"
   USE_TRAIN: True

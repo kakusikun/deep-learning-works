@@ -1,0 +1,56 @@
+EXPERIMENT: "SPOS-supernet-shufflenetv2_tinyimagenet_augmix-ce_SGDW-cosine-0.01-noRestart-warmup_scratch"
+# [modelname]_[task]_[loss]_[opt]_[lr]_[trick]_[pretrain]
+IO: True
+SAVE: False
+SEED: 42
+EVALUATE_FREQ: 1
+# EVALUATE: True
+
+GRAPH: "shufflenetv2_spos_classification"
+ENGINE: "spos_classification"
+TRAINER: "spos_classification"
+NUM_WORKERS: 32
+
+MODEL:
+  GPU: [0, 1]
+  BACKBONE: ''
+  FEATSIZE: 464
+
+INPUT:
+  SIZE: (64, 64)
+  TRAIN_BS: 64
+  TEST_BS: 512
+  MEAN: [0.5, 0.5, 0.5]
+  STD: [0.5, 0.5, 0.5]  
+
+DB:
+  PATH: "/home/agent/deep-learning-works/data"
+  NUM_CLASSES: 200
+  DATA: "tinyimagenet"
+  DATA_FORMAT: "imagenet"
+  LOADER: "classification"
+  USE_TRAIN: True
+  USE_TEST: True
+  TRAIN_TRANSFORM: "AugMix Tensorize Normalize"
+  TEST_TRANSFORM: "Tensorize Normalize"
+
+SOLVER:
+  OPTIMIZER: "SGDW"
+  START_EPOCH: 121
+  MAX_EPOCHS: 1000
+  BASE_LR: 0.01
+  BIAS_LR_FACTOR: 1.0
+  WEIGHT_DECAY: 0.00004
+  MOMENTUM: 0.9
+  WEIGHT_DECAY_BIAS_FACTOR: 1.0
+  # NESTEROV: True
+  LR_POLICY: "cosine"
+  T_0: 20
+  T_MULT: 1
+
+  
+SPOS:
+  EPOCH_TO_SEARCH: 121
+  CANDIDATE_RELAX_EPOCHS: 20 
+  DURATION: 120
+RESUME: "/home/agent/deep-learning-works/result/tinyimagenet/SPOS-supernet-shufflenetv2_tinyimagenet_augmix-ce_SGDW-cosine-0.01-noRestart-warmup_scratch/005-2020-03-18_03-49/weights/model_119_0.0000.pth"
