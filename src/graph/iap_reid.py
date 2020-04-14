@@ -5,7 +5,7 @@ class _Model(nn.Module):
         super(_Model, self).__init__()
         self.backbone = BackboneFactory.produce(cfg) 
         self.head = IAPHead(cfg.MODEL.FEATSIZE, (16, 8), 256)
-        self.iap_cosine_head = AMSoftmaxClassiferHead(256, cfg.DB.NUM_CLASSES)
+        self.iap_cosine_head = AMSoftmaxClassiferHead(256, cfg.REID.NUM_PERSON)
     
     def forward(self, x):
         # use trick: BNNeck, feature before BNNeck to triplet GAP and feature w/o fc forward in backbone

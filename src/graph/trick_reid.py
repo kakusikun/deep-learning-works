@@ -4,7 +4,7 @@ class _Model(nn.Module):
     def __init__(self, cfg):
         super(_Model, self).__init__()
         self.backbone = BackboneFactory.produce(cfg) 
-        self.head = ReIDTrickHead(cfg.MODEL.FEATSIZE, cfg.DB.NUM_CLASSES)
+        self.head = ReIDTrickHead(cfg.MODEL.FEATSIZE, cfg.REID.NUM_PERSON)
     
     def forward(self, x):
         # use trick: BNNeck, feature before BNNeck to triplet GAP and feature w/o fc forward in backbone
@@ -24,9 +24,9 @@ class TrickReID(BaseGraph):
     def build(self):
         self.model = _Model(self.cfg)
         self.crit = {}
-        self.crit['cels'] = CrossEntropyLossLS(self.cfg.DB.NUM_CLASSES)
+        self.crit['cels'] = CrossEntropyLossLS(self.cfg.REID.NUM_PERSON)
         self.crit['triplet'] = TripletLoss(0.3)
-        self.crit['center'] = CenterLoss(self.cfg.MODEL.FEATSIZE, self.cfg.DB.NUM_CLASSES) 
+        self.crit['center'] = CenterLoss(self.cfg.MODEL.FEATSIZE, self.cfg.REID.NUM_PERSON) 
         self.sub_models['center'] = self.crit['center']
                         
         def loss_head(outputs, batch):

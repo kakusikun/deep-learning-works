@@ -8,10 +8,11 @@ class build_coco_dataset(Dataset):
         self.pid = data['pid']
         self.num_classes = data['num_classes']
         self.num_keypoints = data['num_keypoints']
+        self.num_person = data['num_person']
         self.strides = data['strides']
         self.max_objs = 32
         self.indice = data['indice']
-        self.cat_ids = {v: i for i, v in enumerate(self.coco[0].getCatIds())} if len(self.coco) == 1 else {1: 0}
+        self.cat_ids = {v: i for i, v in enumerate(self.coco[0].getCatIds())} if isinstance(self.coco, list) else {1: 0}
         self.transform = transform
         self.build_func = build_func
         self.use_kp = True if self.num_keypoints > 0 else False
@@ -85,7 +86,7 @@ class build_coco_dataset(Dataset):
                 bboxes=bboxes, 
                 ptss=ptss, 
                 max_objs=self.max_objs,
-                num_classes=self.num_classes, 
+                num_classes=len(self.cat_ids), 
                 num_keypoints=self.num_keypoints,
                 out_sizes=out_sizes,
                 wh=(in_w, in_h),
@@ -98,7 +99,7 @@ class build_coco_dataset(Dataset):
         ret['bboxes'] = bboxes
         if self.use_kp:
             ret['ptss'] = ptss
-
+    
         if 'RandScale' in ss:
             ret['c'] = ss['RandScale']['c']
             ret['s'] = ss['RandScale']['s']

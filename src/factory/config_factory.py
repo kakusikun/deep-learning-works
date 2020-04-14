@@ -124,6 +124,7 @@ cfg.FACEID.GALLERY_TYPE = ""
 # REID
 # -----------------------------------------------------------------------------
 cfg.REID = CN()
+cfg.REID.NUM_PERSON = 0
 cfg.REID.SIZE_PERSON = 4
 cfg.REID.MSMT_ALL = False
 cfg.REID.CENTER_LOSS_LR = 0.5

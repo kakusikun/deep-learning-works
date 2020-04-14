@@ -60,16 +60,17 @@ def build_coco_loader(
             pids.append(_data.train['pid'])
             for img_id, img_path in _data.train['indice']:
                 indice.append((img_id, img_path, idx, offset))
-            offset += (max(list(_data.train['pid'].values())) + 1)
+            offset += _data.train['num_person']
 
         data = BaseData()
         data.train['handle'] = handles
         data.train['indice'] = indice
         data.train['pid'] = pids
         data.train['strides'] = cfg.MODEL.STRIDES
-        data.train['num_classes'] = offset
+        data.train['num_classes'] = cfg.DB.NUM_CLASSES
         data.train['num_keypoints'] = cfg.DB.NUM_KEYPOINTS
-        cfg.DB.NUM_CLASSES = offset
+        data.train['num_person'] = offset
+        cfg.REID.NUM_PERSON = offset
         train_trans = TransformFactory.produce(cfg, train_transformation)
         train_dataset = DataFormatFactory.produce(
             cfg, 

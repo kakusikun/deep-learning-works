@@ -41,7 +41,7 @@ def build_reid_loader(
         data = BaseData()
         data.train['indice'] = indice
         data.train['n_samples'] = offset
-        cfg.DB.NUM_CLASSES = offset
+        cfg.REID.NUM_PERSON = offset
         train_trans = TransformFactory.produce(cfg, train_transformation)
         train_dataset = DataFormatFactory.produce(
             cfg, 

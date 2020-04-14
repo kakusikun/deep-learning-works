@@ -26,37 +26,39 @@ class COCO(BaseData):
         self._check_before_run()
          
         if use_train:
-            train_coco, train_images, train_num_samples, train_pid2label = self._process_dir(self.train_anno, self.train_dir, split='train')
+            train_coco, train_images, train_num_samples, train_pid2label, train_num_person = self._process_dir(self.train_anno, self.train_dir, split='train')
             self.train['handle'] = train_coco
             self.train['pid'] = train_pid2label
             self.train['indice'] = train_images
             self.train['n_samples'] = train_num_samples
             self.train['num_keypoints'] = num_keypoints
             self.train['num_classes'] = num_classes
+            self.train['num_person'] = train_num_person
             self.train['strides'] = output_strides                   
-            logger.info("=> COCO TRAIN is loaded")
+            logger.info(f"=> {branch.upper()} TRAIN is loaded")
             logger.info("  Dataset statistics:")
-            logger.info("  -------------------")
-            logger.info("  subset   | # images")
-            logger.info("  -------------------")
-            logger.info("  train    | {:8d}".format(train_num_samples))
-            logger.info("  -------------------")
+            logger.info("  -----------------------------")
+            logger.info("  subset   | #id     | # images")
+            logger.info("  -----------------------------")
+            logger.info(f"  train    |{train_num_person:>8} | {train_num_samples:>8}")
+            logger.info("  -----------------------------")
         if use_test:
-            val_coco, val_images, val_num_samples, val_pid2label = self._process_dir(self.val_anno, self.val_dir, split='val')
+            val_coco, val_images, val_num_samples, val_pid2label, val_num_person = self._process_dir(self.val_anno, self.val_dir, split='val')
             self.val['handle'] = val_coco  
             self.val['pid'] = val_pid2label      
             self.val['indice'] = val_images
             self.val['n_samples'] = val_num_samples
             self.val['num_keypoints'] = num_keypoints
             self.val['num_classes'] = num_classes           
+            self.val['num_person'] = val_num_person
             self.val['strides'] = output_strides                  
-            logger.info("=> COCO VAL is loaded")
+            logger.info(f"=> {branch.upper()} VAL is loaded")
             logger.info("  Dataset statistics:")
-            logger.info("  -------------------")
-            logger.info("  subset   | # images")
-            logger.info("  -------------------")
-            logger.info("  val      | {:8d}".format(val_num_samples))
-            logger.info("  -------------------")
+            logger.info("  -----------------------------")
+            logger.info("  subset   | #id     | # images")
+            logger.info("  -----------------------------")
+            logger.info(f"  val    |{val_num_person:>8} | {val_num_samples:>8}")
+            logger.info("  -----------------------------")
         
     def _check_before_run(self):
         """Check if all files are available before going deeper"""
@@ -110,8 +112,9 @@ class COCO(BaseData):
             else:
                 pid2label[str(int(pid))] = -1
         pid2label['-1'] = -1
+        num_person = len(pid2label) - 1
         
-        return data_handle, images, num_samples, pid2label
+        return data_handle, images, num_samples, pid2label, num_person
     
     def _make_target_coco(self, src, dst, category):
         logger.info("Making target of coco of {} ...".format(dst))

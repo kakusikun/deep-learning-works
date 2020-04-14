@@ -10,8 +10,8 @@ class _Model(nn.Module):
             n_stream=4, 
             channels=self.backbone.stage_out_channels
         )
-        self.local_head = ReIDL2Head(cfg.MODEL.FEATSIZE, cfg.DB.NUM_CLASSES)
-        self.global_head = ReIDL2Head(cfg.MODEL.FEATSIZE, cfg.DB.NUM_CLASSES)
+        self.local_head = ReIDL2Head(cfg.MODEL.FEATSIZE, cfg.REID.NUM_PERSON)
+        self.global_head = ReIDL2Head(cfg.MODEL.FEATSIZE, cfg.REID.NUM_PERSON)
 
     def forward(self, x):
         stages = self.backbone(x)
@@ -36,9 +36,9 @@ class HarmAttenReID(BaseGraph):
     def build(self):
         self.model = _Model(self.cfg)
         self.crit = {}
-        self.crit['g_cels'] = CrossEntropyLossLS(self.cfg.DB.NUM_CLASSES)
+        self.crit['g_cels'] = CrossEntropyLossLS(self.cfg.REID.NUM_PERSON)
         self.crit['g_triplet'] = SoftTripletLoss()
-        self.crit['l_cels'] = CrossEntropyLossLS(self.cfg.DB.NUM_CLASSES)
+        self.crit['l_cels'] = CrossEntropyLossLS(self.cfg.REID.NUM_PERSON)
         self.crit['l_triplet'] = SoftTripletLoss()
 
         def loss_head(outputs, batch):
