@@ -106,8 +106,8 @@ cfg.SOLVER.MODEL_FREEZE_PEROID = 0
 
 # for SWAG
 cfg.SOLVER.SWAG_RANK = 0
-cfg.SOLVER.SWAG_EPOCH_TOcfgOLLECT = 0
-cfg.SOLVER.SWAGcfgOLLECT_FREQ = 0
+cfg.SOLVER.SWAG_EPOCH_TO_COLLECT = 0
+cfg.SOLVER.SWAG_COLLECT_FREQ = 0
 
 # -----------------------------------------------------------------------------
 # FACEID
@@ -134,8 +134,8 @@ cfg.REID.CENTER_LOSS_WEIGHT = 0.0005
 # Pedestrian Attribute Recognition
 # -----------------------------------------------------------------------------
 cfg.PAR = CN()
-cfg.PAR.SELECTcfgAT = -1
-cfg.PAR.IGNOREcfgAT = []
+cfg.PAR.SELECT_CAT = -1
+cfg.PAR.IGNORE_CAT = []
 
 # -----------------------------------------------------------------------------
 # Pedestrian Attribute Recognition
