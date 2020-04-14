@@ -7,6 +7,7 @@ import logging
 logger = logging.getLogger("logger")
 from tools import bcolors
 from copy import deepcopy
+from src.factory.transform_factory import TransformFactory
 
 class BaseGraph:
     def __init__(self, cfg):
@@ -22,20 +23,41 @@ class BaseGraph:
         self.model = None
         self.parallel_model = None
         self.loss_head = None
+        self.use_half = False
         self.use_gpu = False
         self.sub_models = {}
+        self.inference_trans = None
         
-        self.set_save_path()
+        if self.cfg.IO:
+            self.set_save_path()
         self.build()
 
     def build(self):        
         raise NotImplementedError
 
-    def run(self, x):
+    def run(self, x, *args, **kwargs):
         if self.parallel_model is not None:
-            return self.parallel_model(x)
+            return self.parallel_model(x, *args, **kwargs)
         else:
-            return self.model(x)
+            return self.model(x, *args, **kwargs)
+
+    def inference(self, x, *args, **kwargs):
+        if not self.inference_trans:
+            self.inference_trans = TransformFactory.produce(self.cfg, self.cfg.DB.TEST_TRANSFORM)
+        x = self.inference_trans(x)
+        x.unsqueeze_(0)
+        if self.use_gpu:
+            x = x.cuda()
+        if self.use_half:
+            x = x.half()
+            
+        self.model.eval()
+        with torch.no_grad():
+            if self.parallel_model is not None:
+                return self.parallel_model(x, *args, **kwargs)
+            else:
+                return self.model(x, *args, **kwargs)
+        
         
     @staticmethod
     def save(path, model, sub_models=None, solvers=None, epoch=-1,  metric=-1):
@@ -102,6 +124,10 @@ class BaseGraph:
                 m.weight.data.normal_(0, 0.01)
                 m.bias.data.zero_()
     
+    def to_half(self):
+        self.use_half = True
+        self.model = self.model.half()
+
     def to_gpu(self):
         gpu = os.environ['CUDA_VISIBLE_DEVICES']
         num_gpus = len(gpu.split(","))        
@@ -214,5 +240,4 @@ class BaseGraph:
                 logger.info("Unknown Layer in Model")
             else:
                 logger.info("Model Loaded Successfully")
-        
         
