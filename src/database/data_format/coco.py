@@ -45,7 +45,11 @@ class build_coco_dataset(Dataset):
             ann = anns[k]
             cls_ids.append(int(self.cat_ids[ann['category_id']]))
             bboxes.append(self._coco_box_to_bbox(ann['bbox']))
-            pid = self.pid[handle_idx][ann['pid']]
+            if 'pid' in ann:
+                pid = self.pid[handle_idx][ann['pid']]
+            else:
+                pid = -1
+                
             if pid > 0:
                 ids.append(pid + offset)
             else:
@@ -99,7 +103,7 @@ class build_coco_dataset(Dataset):
         ret['bboxes'] = bboxes
         if self.use_kp:
             ret['ptss'] = ptss
-    
+
         if 'RandScale' in ss:
             ret['c'] = ss['RandScale']['c']
             ret['s'] = ss['RandScale']['s']

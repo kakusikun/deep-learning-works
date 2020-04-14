@@ -61,7 +61,7 @@ class AugMix(BaseTransform):
             A = aug.AUG_AS[op_name](**s[op_name])
             bbox[:2] = aug.apply_A(bbox[:2], A)
             bbox[2:] = aug.apply_A(bbox[2:], A)
-        out_w, out_h = (np.array(self.size) // self.stride).astype(int)
+        out_w, out_h = np.array(self.size)
         bbox[[0, 2]] = np.clip(bbox[[0, 2]], 0, out_w - 1)
         bbox[[1, 3]] = np.clip(bbox[[1, 3]], 0, out_h - 1) 
         return bbox
