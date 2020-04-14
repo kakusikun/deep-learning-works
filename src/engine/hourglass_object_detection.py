@@ -14,7 +14,13 @@ class HourglassODEngine(BaseEngine):
         for batch in tqdm(self.tdata, desc=f"TRAIN[{self.epoch}/{self.cfg.SOLVER.MAX_EPOCHS}]"):
             self._train_iter_start()
             for key in batch:
-                batch[key] = batch[key].cuda()
+                if isinstance(batch[key], dict):
+                    for sub_key in batch[key]:
+                        batch[key][sub_key] = batch[key][sub_key].cuda()
+                elif not isinstance(batch[key], torch.Tensor):
+                    continue
+                else:
+                    batch[key] = batch[key].cuda()
             outputs = self.graph.run(batch['inp'])
             self.loss, self.losses = self.graph.loss_head(outputs, batch)
             self._train_iter_end()

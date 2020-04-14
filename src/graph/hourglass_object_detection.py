@@ -5,6 +5,8 @@ from tools.utils import _sigmoid
 class _Model(nn.Module):
     def __init__(self, cfg):
         super(_Model, self).__init__()
+        w, h = cfg.INPUT.SIZE
+        self.out_sizes = [(w // s, h // s) for s in cfg.MODEL.STRIDES]
         self.backbone = BackboneFactory.produce(cfg)
         self.heads = nn.ModuleDict({
             'hm': nn.ModuleList([HourGlassHead(256, cfg.DB.NUM_CLASSES), HourGlassHead(256, cfg.DB.NUM_CLASSES)]),
@@ -22,8 +24,10 @@ class _Model(nn.Module):
         outputs = []
         for i, out in enumerate(outs):
             head_out = {}
-            for head in self.heads:
-                head_out[head] = self.heads[head][i](out)
+            for out_size in self.out_sizes:
+                head_out[out_size] = {}
+                for head in self.heads:
+                    head_out[out_size][head] = self.heads[head][i](out)
             outputs.append(head_out)
         return outputs
 
@@ -35,22 +39,23 @@ class _LossHead(nn.Module):
         self.crit['wh'] = L1Loss()
         self.crit['reg'] = L1Loss()
     def forward(self, feats, batch):
-        hm_loss = 0.0
-        wh_loss = 0.0
-        reg_loss = 0.0
+        hm_loss = []
+        wh_loss = []
+        reg_loss = []
         for feat in feats:
-            for head in feat:
-                output = feat[head]
-                if head == 'hm':
-                    output = _sigmoid(output)
-                    hm_loss += self.crit[head](output, batch['hm'])                 
-                elif head == 'wh':
-                    wh_loss += self.crit[head](output, batch['reg_mask'], batch['ind'], batch['wh'])
-                elif head == 'reg':
-                    reg_loss += self.crit[head](output, batch['reg_mask'], batch['ind'], batch['reg'])
-                else:
-                    raise TypeError
-        losses = {'hm':hm_loss, 'wh':wh_loss, 'reg':reg_loss, }
+            for out_size in feat:
+                for head in feat[out_size]:
+                    output = feat[out_size][head]
+                    if head == 'hm':
+                        output = _sigmoid(output)
+                        hm_loss.append(self.crit[head](output, batch[out_size]['hm']).unsqueeze(0))
+                    elif head == 'wh':
+                        wh_loss.append(self.crit[head](output, batch[out_size]['reg_mask'], batch[out_size]['ind'], batch[out_size]['wh']).unsqueeze(0))
+                    elif head == 'reg':
+                        reg_loss.append(self.crit[head](output, batch[out_size]['reg_mask'], batch[out_size]['ind'], batch[out_size]['reg']).unsqueeze(0))
+                    else:
+                        raise TypeError
+        losses = {'hm':torch.cat(hm_loss).mean(), 'wh':torch.cat(wh_loss).mean(), 'reg':torch.cat(reg_loss).mean()}
         loss = losses['hm'] + losses['wh'] * 0.1 + losses['reg']
         return loss, losses
 
@@ -62,4 +67,3 @@ class HourglassObjectDetection(BaseGraph):
         self.model = _Model(self.cfg)     
         self.loss_head = _LossHead()
         self.sub_models['loss'] = self.loss_head
-            

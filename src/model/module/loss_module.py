@@ -35,8 +35,10 @@ class FocalLoss(nn.Module):
         pos_inds = target.eq(1).float()
         neg_inds = target.lt(1).float()
 
+        neg_weights = torch.pow(1 - target, self.b)
+
         pos_loss = pos_inds * torch.log(feat) * torch.pow(1 - feat, self.a)
-        neg_loss = neg_inds * torch.log(1 - feat) * torch.pow(feat, self.a) * torch.pow(1 - target, self.b)
+        neg_loss = neg_inds * torch.log(1 - feat) * torch.pow(feat, self.a) * neg_weights
     
         num_pos  = pos_inds.float().sum()
         pos_loss = pos_loss.sum()
@@ -272,7 +274,7 @@ class AMSoftmaxWithLoss(nn.Module):
         self.s = s
         self.m = m
         self.relax = relax
-        self.ce = nn.CrossEntropyLoss(reduction='none')
+        self.ce = nn.CrossEntropyLoss(reduction='none', ignore_index=-1)
 
     def forward(self, cosine, labels):
         device = cosine.get_device()
@@ -300,6 +302,7 @@ class AMSoftmaxWithLoss(nn.Module):
             return loss.sum() / nonzero_count, logit
 
         return loss.mean(), logit
+
 
 if __name__ == "__main__":
     feats = torch.rand(16, 10)

@@ -10,105 +10,6 @@ from torch.optim import Optimizer
 import logging
 logger = logging.getLogger("logger")
 
-class StepLR():
-    def get_factor(self, schedule, iters):
-        factor = schedule['gamma'] ** schedule['power']
-        return factor
-
-class CosineLR():
-    def __init__(self, num_iter_per_epoch):
-        self.num_iter_per_epoch = num_iter_per_epoch
-    
-    def get_factor(self, schedule, iters, last_epoch):
-        factor, n_cycle = self.cosineLR(
-            iters - last_epoch * self.num_iter_per_epoch, 
-            schedule['T_0'], 
-            schedule['T_MULT'], 
-            self.num_iter_per_epoch
-        ) 
-        factor *= schedule['decay'] ** n_cycle
-        return factor
-
-    @staticmethod
-    def cosineLR(batch_idx, T_0, T_mult, num_iter_per_epoch):      
-        n_cycle = 1
-        restart_period = T_0 * num_iter_per_epoch
-
-        while batch_idx/restart_period > 1.:
-            batch_idx = batch_idx - restart_period
-            restart_period = restart_period * T_mult
-            n_cycle += 1
-
-        radians = math.pi*(batch_idx/restart_period)
-
-        return 0.5*(1.0 + math.cos(radians)), n_cycle
-
-class WarmLR():
-    def __init__(self, num_iter_per_epoch):
-        self.num_iter_per_epoch = num_iter_per_epoch
-    
-    def get_factor(self, iters, target_epoch, last_epoch):
-        factor = (iters - last_epoch * self.num_iter_per_epoch) / ((target_epoch - last_epoch) * self.num_iter_per_epoch)
-        return factor
-
-class PlateauLR():
-    def __init__(self, num_iter_per_epoch):
-        self.num_iter_per_epoch = num_iter_per_epoch
-        self.n_drop = 0
-        self._init_is_better()
-        self._reset()
-
-    def get_factor(self, schedule, metrics, iters):
-        if metrics is None:
-            raise ValueError
-        current = float(metrics)
-        
-        if self.is_better(current, self.best):
-            self.best = current
-            self.num_bad_iters = 0
-        else:
-            self.num_bad_iters += 1
-
-        if self.num_bad_iters > schedule['plateau_size'] * self.num_iter_per_epoch:
-            logger.info(f"Reducing learning rate with {self.num_bad_iters} stagnant")
-            self.n_drop += 1            
-            self.num_bad_iters = 0        
-
-        factor = schedule['gamma'] ** self.n_drop
-        return factor
-
-    def _init_is_better(self, mode='min', threshold=1e-4, threshold_mode='abs'):
-        if mode not in {'min', 'max'}:
-            raise ValueError('mode ' + mode + ' is unknown!')
-        if threshold_mode not in {'rel', 'abs'}:
-            raise ValueError('threshold mode ' + threshold_mode + ' is unknown!')
-
-        if mode == 'min':
-            self.mode_worse = inf
-        else:  # mode == 'max':
-            self.mode_worse = -inf
-
-        self.is_better = partial(self._cmp, mode, threshold_mode, threshold)
-        
-    def _reset(self):
-        """Resets num_bad_iters counter and cooldown counter."""
-        self.best = self.mode_worse
-        self.num_bad_iters = 0
-
-    def _cmp(self, mode, threshold_mode, threshold, a, best):
-        if mode == 'min' and threshold_mode == 'rel':
-            rel_epsilon = 1. - threshold
-            return a < best * rel_epsilon
-
-        elif mode == 'min' and threshold_mode == 'abs':
-            return a < best - threshold
-
-        elif mode == 'max' and threshold_mode == 'rel':
-            rel_epsilon = threshold + 1.
-            return a > best * rel_epsilon
-
-        else:  # mode == 'max' and epsilon_mode == 'abs':
-            return a > best + threshold
 
 
 class LRScheduler():
@@ -252,6 +153,105 @@ class LRScheduler():
             n_epochs += period * (base ** i)
         return n_epochs
     
+class StepLR():
+    def get_factor(self, schedule, iters):
+        factor = schedule['gamma'] ** schedule['power']
+        return factor
+
+class CosineLR():
+    def __init__(self, num_iter_per_epoch):
+        self.num_iter_per_epoch = num_iter_per_epoch
+    
+    def get_factor(self, schedule, iters, last_epoch):
+        factor, n_cycle = self.cosineLR(
+            iters - last_epoch * self.num_iter_per_epoch, 
+            schedule['T_0'], 
+            schedule['T_MULT'], 
+            self.num_iter_per_epoch
+        ) 
+        factor *= schedule['decay'] ** n_cycle
+        return factor
+
+    @staticmethod
+    def cosineLR(batch_idx, T_0, T_mult, num_iter_per_epoch):      
+        n_cycle = 1
+        restart_period = T_0 * num_iter_per_epoch
+
+        while batch_idx/restart_period > 1.:
+            batch_idx = batch_idx - restart_period
+            restart_period = restart_period * T_mult
+            n_cycle += 1
+
+        radians = math.pi*(batch_idx/restart_period)
+
+        return 0.5*(1.0 + math.cos(radians)), n_cycle
+
+class WarmLR():
+    def __init__(self, num_iter_per_epoch):
+        self.num_iter_per_epoch = num_iter_per_epoch
+    
+    def get_factor(self, iters, target_epoch, last_epoch):
+        factor = (iters - last_epoch * self.num_iter_per_epoch) / ((target_epoch - last_epoch) * self.num_iter_per_epoch)
+        return factor
+
+class PlateauLR():
+    def __init__(self, num_iter_per_epoch):
+        self.num_iter_per_epoch = num_iter_per_epoch
+        self.n_drop = 0
+        self._init_is_better()
+        self._reset()
+
+    def get_factor(self, schedule, metrics, iters):
+        if metrics is None:
+            raise ValueError
+        current = float(metrics)
+        
+        if self.is_better(current, self.best):
+            self.best = current
+            self.num_bad_iters = 0
+        else:
+            self.num_bad_iters += 1
+
+        if self.num_bad_iters > schedule['plateau_size'] * self.num_iter_per_epoch:
+            logger.info(f"Reducing learning rate with {self.num_bad_iters} stagnant")
+            self.n_drop += 1            
+            self.num_bad_iters = 0        
+
+        factor = schedule['gamma'] ** self.n_drop
+        return factor
+
+    def _init_is_better(self, mode='min', threshold=1e-4, threshold_mode='abs'):
+        if mode not in {'min', 'max'}:
+            raise ValueError('mode ' + mode + ' is unknown!')
+        if threshold_mode not in {'rel', 'abs'}:
+            raise ValueError('threshold mode ' + threshold_mode + ' is unknown!')
+
+        if mode == 'min':
+            self.mode_worse = inf
+        else:  # mode == 'max':
+            self.mode_worse = -inf
+
+        self.is_better = partial(self._cmp, mode, threshold_mode, threshold)
+        
+    def _reset(self):
+        """Resets num_bad_iters counter and cooldown counter."""
+        self.best = self.mode_worse
+        self.num_bad_iters = 0
+
+    def _cmp(self, mode, threshold_mode, threshold, a, best):
+        if mode == 'min' and threshold_mode == 'rel':
+            rel_epsilon = 1. - threshold
+            return a < best * rel_epsilon
+
+        elif mode == 'min' and threshold_mode == 'abs':
+            return a < best - threshold
+
+        elif mode == 'max' and threshold_mode == 'rel':
+            rel_epsilon = threshold + 1.
+            return a > best * rel_epsilon
+
+        else:  # mode == 'max' and epsilon_mode == 'abs':
+            return a > best + threshold
 
 
 

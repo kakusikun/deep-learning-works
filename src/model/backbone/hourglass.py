@@ -14,7 +14,7 @@ import os
 import numpy as np
 import torch
 import torch.nn as nn
-from src.model.module.base_module import ConvModule
+from src.model.module.base_module import ConvModule, Res2NetStem
 
 def BN(in_channel, only_activation=False, activation='relu'):
     if only_activation:
@@ -125,8 +125,8 @@ def make_merge_layer(dim):
     return merge()
 
 class hg_module(nn.Module):
-    def __init__(
-        self, n, dims, modules, 
+    def __init__(self, 
+        n, dims, modules, 
         make_up_layer,
         make_pool_layer, 
         make_hg_layer,
@@ -179,12 +179,13 @@ class HourglassNet(nn.Module):
         self.stacks = stacks
         # self.heads= heads
 
-        self.pre     = nn.Sequential(
-            ConvModule(3, 128, 7, stride=2, padding=3),
-            # convolution(7, 3, 128, stride=2, Norm=Norm),
-            residual(128, 256, stride=2),
-            residual(256, 256, stride=2)
-        )
+        # self.pre = nn.Sequential(
+        #     ConvModule(3, 128, 7, stride=2, padding=3),
+        #     # convolution(7, 3, 128, stride=2, Norm=Norm),
+        #     residual(128, 256, stride=2),
+        #     residual(256, 256, stride=2)
+        # )
+        self.pre = Res2NetStem(3, 256)
 
         self.hg_mods = nn.ModuleList([
             hg_module(
