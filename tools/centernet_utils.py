@@ -108,12 +108,12 @@ def centernet_keypoints_target(cls_ids, bboxes, ptss, max_objs, num_classes, num
                             draw_gaussian(hm_kp[j], pt_int, hp_radius)
                 draw_gaussian(hm[cls_id], ct_int, radius)
                 
-            rets[(output_w, output_h)] = {
-                'hm': hm, 'wh':wh, 'reg':reg,
-                'reg_mask': reg_mask, 'ind': ind,
-                'hm_kp': hm_kp, 'kps': kps, 'kps_mask': kps_mask, 'kp_reg': kp_reg,
-                'kp_ind': kp_ind, 'kp_mask': kp_mask
-            }
+        rets[(output_w, output_h)] = {
+            'hm': hm, 'wh':wh, 'reg':reg,
+            'reg_mask': reg_mask, 'ind': ind,
+            'hm_kp': hm_kp, 'kps': kps, 'kps_mask': kps_mask, 'kp_reg': kp_reg,
+            'kp_ind': kp_ind, 'kp_mask': kp_mask
+        }
 
     return rets
 
@@ -210,7 +210,7 @@ def centernet_pose_post_process(dets, c, s, h, w, num_classes):
         ret.append(top_preds)
     return ret
 
-def centernet_bbox_target(cls_ids, bboxes, max_objs, num_classes, outsize, **kwargs):
+def centernet_bbox_target(cls_ids, bboxes, ids, max_objs, num_classes, out_sizes, **kwargs):
     '''
     According to CenterNet ( Objects as Points, https://arxiv.org/abs/1904.07850 ), create the target for object detection.
 
@@ -230,36 +230,44 @@ def centernet_bbox_target(cls_ids, bboxes, max_objs, num_classes, outsize, **kwa
                                  since the width and height are integers
             reg_mask, ind (numpy.ndarray): Object, to reduce memory of data usage for training
     '''
-    output_w, output_h = outsize
+    rets = {}
+    for output_w, output_h in out_sizes:
+        # center, object heatmap
+        hm = np.zeros((num_classes, output_h, output_w), dtype=np.float32)
 
-    # center, object heatmap
-    hm = np.zeros((num_classes, output_h, output_w), dtype=np.float32)
+        # object size
+        wh = np.zeros((max_objs, 2), dtype=np.float32)
+        # object offset
+        reg = np.zeros((max_objs, 2), dtype=np.float32)       
+        ind = np.zeros((max_objs), dtype=np.int64)
+        reg_mask = np.zeros((max_objs), dtype=np.uint8)    
+        pids = np.ones((max_objs), dtype=np.int64) * -1
 
-    # object size
-    wh = np.zeros((max_objs, 2), dtype=np.float32)
-    # object offset
-    reg = np.zeros((max_objs, 2), dtype=np.float32)       
-    ind = np.zeros((max_objs), dtype=np.int64)
-    reg_mask = np.zeros((max_objs), dtype=np.uint8)                       
+        draw_gaussian = draw_umich_gaussian
 
-    draw_gaussian = draw_umich_gaussian
+        for k, (cls_id, _bbox, pid) in enumerate(zip(cls_ids, bboxes, ids)):
+            bbox = _bbox.copy()
+            bbox[[0, 2]] *= output_w
+            bbox[[1, 3]] *= output_h
+            np.round(bbox, out=bbox)
 
-    for k, (cls_id, bbox) in enumerate(zip(cls_ids, bboxes)):
-        h, w = bbox[3] - bbox[1], bbox[2] - bbox[0]            
-        if h > 0 and w > 0:
-            radius = gaussian_radius((math.ceil(h), math.ceil(w)))
-            radius = max(0, int(radius))
-            ct = np.array([(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2], dtype=np.float32)
-            ct_int = ct.astype(np.int32)
-            draw_gaussian(hm[cls_id], ct_int, radius)
-            wh[k] = 1. * w, 1. * h
-            ind[k] = ct_int[1] * output_w + ct_int[0]
-            reg[k] = ct - ct_int
-            reg_mask[k] = 1  
-            
-    ret = {'hm': hm, 'wh':wh, 'reg':reg,
-           'reg_mask': reg_mask, 'ind': ind}
-    return ret
+            h, w = bbox[3] - bbox[1], bbox[2] - bbox[0]            
+            if h > 0 and w > 0:
+                radius = gaussian_radius((math.ceil(h), math.ceil(w)))
+                radius = max(0, int(radius))
+                ct = np.array([(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2], dtype=np.float32)
+                ct_int = ct.astype(np.int32)
+                draw_gaussian(hm[cls_id], ct_int, radius)
+                wh[k] = 1. * w, 1. * h
+                ind[k] = ct_int[1] * output_w + ct_int[0]
+                reg[k] = ct - ct_int
+                reg_mask[k] = 1  
+                pids[k] = pid
+                
+        rets[(output_w, output_h)] = {f'hm': hm, 'wh':wh, 'reg':reg,
+            'reg_mask': reg_mask, 'ind': ind, 'pids': pids}
+
+    return rets
 
 def centernet_det_decode(heat, wh, reg=None, cat_spec_wh=False, K=100):
     batch, cat, height, width = heat.size()

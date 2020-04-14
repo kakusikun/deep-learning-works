@@ -57,3 +57,11 @@ class IAPReIDTrainer(BaseTrainer):
             cfg, [self.graph.model.named_parameters()])
         self.graph.to_gpu()
         self.activate()
+
+class JDETrainer(BaseTrainer):
+    def __init__(self, cfg):
+        super(JDETrainer, self).__init__(cfg)
+        self.solvers['main'] = Solver(
+            cfg, [self.graph.model.named_parameters(), self.graph.loss_head.named_parameters()])
+        self.graph.to_gpu()
+        self.activate()   

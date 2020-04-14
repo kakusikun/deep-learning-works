@@ -6,6 +6,7 @@ from src.graph.shufflenetv2_spos import ShuffleNetv2SPOS
 from src.graph.trick_reid import TrickReID
 from src.graph.harmattn_reid import HarmAttenReID
 from src.graph.iap_reid import IAPReID
+from src.graph.hourglass_jde import HourglassJDE
 
 class GraphFactory:
     products = {
@@ -17,6 +18,7 @@ class GraphFactory:
         'trick_reid': TrickReID,
         'ha_reid': HarmAttenReID,
         'iap_reid': IAPReID,
+        'hourglass_jde': HourglassJDE,
     }
 
     @classmethod

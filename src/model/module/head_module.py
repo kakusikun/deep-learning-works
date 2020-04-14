@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from src.model.module.base_module import ConvModule, SEModule, HSwish
+from tools.utils import _tranpose_and_gather_feat
 
 class ClassifierHead(nn.Module):
     def __init__(self, in_channels, num_classes):
@@ -125,7 +126,7 @@ class HourGlassHead(nn.Module):
         super(HourGlassHead, self).__init__()    
 
         self.head = nn.Sequential(
-            ConvModule(in_channels, 256, 1, use_bn=False),
+            ConvModule(in_channels, 256, 3, padding=1, use_bn=False),
             ConvModule(256, n_dim, 1, activation='linear', use_bn=False, bias=True)
         )
     
@@ -270,3 +271,15 @@ class YOLOv3PredictionHead(nn.Module):
         location = self.location(x)
         embedding = self.embedding(pre_embb)
         return torch.cat([location, embedding], dim=1)
+
+
+class AMSoftmaxClassiferHeadForJDE(nn.Module):
+    def __init__(self, in_features, num_classes):   
+        super(AMSoftmaxClassiferHeadForJDE, self).__init__()
+        self.weight = nn.Parameter(torch.FloatTensor(num_classes, in_features))
+        self.weight.data.uniform_(-1, 1).renorm_(2, 0, 1e-5).mul_(1e5)
+    
+    def forward(self, x, mask, ind):
+        x = _tranpose_and_gather_feat(x, ind)[mask > 0]
+        cosine = F.linear(x, F.normalize(self.weight)).clamp(-1, 1)
+        return cosine

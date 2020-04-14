@@ -5,6 +5,7 @@ from src.trainer.trainers import (
     TrickReIDTrainer,
     HarmAttnReIDTrainer,
     IAPReIDTrainer,
+    JDETrainer,
 )
 
 class TrainerFactory:
@@ -15,6 +16,7 @@ class TrainerFactory:
         'trick_reid': TrickReIDTrainer,
         'ha_reid': HarmAttnReIDTrainer,
         'iap_reid': IAPReIDTrainer,
+        'jde': JDETrainer,
     }
 
     @classmethod
