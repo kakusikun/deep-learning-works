@@ -142,18 +142,18 @@ class Transform():
         ss = {}
         for t in self.t_list:
             img, s = t.apply_image(img)
-            ss[t] = s
+            ss[type(t).__name__] = s
 
         if bboxes is not None:
             for t in self.t_list:
                 for i in range(len(bboxes)):
-                    bboxes[i] = t.apply_bbox(bboxes[i], ss[t])
+                    bboxes[i] = t.apply_bbox(bboxes[i], ss[type(t).__name__])
 
         if ptss is not None:
             assert cls_ids is not None
             for t in self.t_list:
                 for i in range(len(ptss)):
-                    ptss[i] = t.apply_pts(cls_ids[i], ptss[i], ss[t])
+                    ptss[i] = t.apply_pts(cls_ids[i], ptss[i], ss[type(t).__name__])
         if bboxes is None:
             return img
         return img, ss
