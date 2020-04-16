@@ -9,14 +9,25 @@ import json
 class HourglassJDE(BaseEngine):
     def __init__(self, cfg, graph, loader, solvers, visualizer):
         super(HourglassJDE, self).__init__(cfg, graph, loader, solvers, visualizer)
-
+        w, h = cfg.INPUT.SIZE
+        self.out_sizes = [(w // s, h // s) for s in cfg.MODEL.STRIDES]
     def _train_once(self):
+        accus = [] 
+        out_size = self.out_sizes[-1]
         for batch in tqdm(self.tdata, desc=f"TRAIN[{self.epoch}/{self.cfg.SOLVER.MAX_EPOCHS}]"):
             self._train_iter_start()
             for key in batch:
-                batch[key] = batch[key].cuda()
+                if isinstance(batch[key], dict):
+                    for sub_key in batch[key]:
+                        batch[key][sub_key] = batch[key][sub_key].cuda()
+                elif not isinstance(batch[key], torch.Tensor):
+                    continue
+                else:
+                    batch[key] = batch[key].cuda()
             outputs = self.graph.run(batch['inp'])
-            self.loss, self.losses = self.graph.loss_head(outputs, batch)
+            self.loss, self.losses, logit = self.graph.loss_head(outputs, batch)
+            if logit is not None:
+                accus.append((logit.max(1)[1] == batch[out_size]['pids'][batch[out_size]['reg_mask'] > 0]).float().mean())
             self._train_iter_end()
 
     def _evaluate(self, eval=False):
@@ -24,33 +35,39 @@ class HourglassJDE(BaseEngine):
         title = "EVALUATE" if eval else f"TEST[{self.epoch}/{self.cfg.SOLVER.MAX_EPOCHS}]"
         results = {}
         self._eval_epoch_start()
+        out_size = self.out_sizes[-1]
         with torch.no_grad():
             self._eval_epoch_start()
             for batch in tqdm(self.vdata, desc=title): 
                 for key in batch:
-                    batch[key] = batch[key].cuda()
-
+                    if isinstance(batch[key], dict):
+                        for sub_key in batch[key]:
+                            batch[key][sub_key] = batch[key][sub_key].cuda()
+                    elif not isinstance(batch[key], torch.Tensor):
+                        continue
+                    else:
+                        batch[key] = batch[key].cuda()
                 if self.cfg.ORACLE:
                     feat = {}
-                    feat['hm']  = batch['hm']
+                    feat['hm']  = batch[out_size]['hm']
                     feat['wh']  = torch.from_numpy(
                         gen_oracle_map(
-                            batch['wh'].detach().cpu().numpy(), 
-                            batch['ind'].detach().cpu().numpy(), 
-                            batch['inp'].shape[3] // self.cfg.MODEL.STRIDES, 
-                            batch['inp'].shape[2] // self.cfg.MODEL.STRIDES
+                            batch[out_size]['wh'].detach().cpu().numpy(), 
+                            batch[out_size]['ind'].detach().cpu().numpy(), 
+                            batch['inp'].shape[3] // self.cfg.MODEL.STRIDES[-1], 
+                            batch['inp'].shape[2] // self.cfg.MODEL.STRIDES[-1]
                         )
                     ).cuda()
                     feat['reg'] = torch.from_numpy(
                         gen_oracle_map(
-                            batch['reg'].detach().cpu().numpy(), 
-                            batch['ind'].detach().cpu().numpy(), 
-                            batch['inp'].shape[3] // self.cfg.MODEL.STRIDES, 
-                            batch['inp'].shape[2] // self.cfg.MODEL.STRIDES
+                            batch[out_size]['reg'].detach().cpu().numpy(), 
+                            batch[out_size]['ind'].detach().cpu().numpy(), 
+                            batch['inp'].shape[3] // self.cfg.MODEL.STRIDES[-1], 
+                            batch['inp'].shape[2] // self.cfg.MODEL.STRIDES[-1]
                         )
                     ).cuda()
                 else:               
-                    feat = self.graph.run(batch['inp'])[-1]
+                    feat = self.graph.run(batch['inp'])[-1][out_size]
                     feat['hm'].sigmoid_()
                     
                 if self.cfg.DB.TARGET_FORMAT == 'centerface_bbox':
@@ -67,7 +84,7 @@ class HourglassJDE(BaseEngine):
                     feat['hm'].shape[1]
                 )
                 results[batch['img_id'][0]] = dets_out[0]
-        cce = coco_eval(self.vdata.dataset.coco, results, self.cfg.OUTPUT_DIR)  
+        cce = coco_eval(self.vdata.dataset.coco[0], results, self.cfg.OUTPUT_DIR)  
 
         logger.info('Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets={:>3d} ] = {:.3f}'.format(cce.params.maxDets[2], cce.stats[0]))
         logger.info('Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets={:>3d} ] = {:.3f}'.format(cce.params.maxDets[2], cce.stats[1]))
@@ -95,21 +112,22 @@ def _to_float(x):
 def convert_eval_format(all_bboxes, valid_ids):
     # import pdb; pdb.set_trace()
     detections = []
-    for image_id in all_bboxes:
+    for image_id in tqdm(all_bboxes, desc="COCO EVAL"):
         for cls_ind in all_bboxes[image_id]:
             for bbox in all_bboxes[image_id][cls_ind]:
                 bbox[2] -= bbox[0]
                 bbox[3] -= bbox[1]
                 score = bbox[4]
-                bbox_out  = list(map(_to_float, bbox[0:4]))
-                category_id = valid_ids[cls_ind - 1]
-                detection = {
-                    "image_id": int(image_id),
-                    "category_id": int(category_id),
-                    "bbox": bbox_out,
-                    "score": float("{:.2f}".format(score))
-                }
-                detections.append(detection)
+                if score >= 0.5:
+                    bbox_out  = list(map(_to_float, bbox[0:4]))
+                    category_id = valid_ids[cls_ind - 1]
+                    detection = {
+                        "image_id": int(image_id),
+                        "category_id": int(category_id),
+                        "bbox": bbox_out,
+                        "score": float("{:.2f}".format(score))
+                    }
+                    detections.append(detection)
     return detections
 
 def coco_eval(coco, results, save_dir):
