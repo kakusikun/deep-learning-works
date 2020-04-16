@@ -39,8 +39,17 @@ def main():
     
     if cfg.EVALUATE:
         trainer.test()
+        sys.exit()
+        
+    try:
+        trainer.train()        
+    except:
+        logger.info("Unexpected Error Occurred")
+        if cfg.SAVE:
+            logger.info("Back up the Checkpoint")
+            trainer.graph.save(trainer.graph.save_path, trainer.graph.model, trainer.graph.sub_models, trainer.solvers, trainer.engine.epoch, trainer.engine.accu)
+        print(f"Error : {sys.exc_info()[1]}")
         sys.exit(1)
-    trainer.train()        
     
 
 if __name__ == '__main__':
