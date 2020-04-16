@@ -249,7 +249,6 @@ def centernet_bbox_target(cls_ids, bboxes, ids, max_objs, num_classes, out_sizes
             bbox = _bbox.copy()
             bbox[[0, 2]] *= output_w
             bbox[[1, 3]] *= output_h
-            np.round(bbox, out=bbox)
 
             h, w = bbox[3] - bbox[1], bbox[2] - bbox[0]            
             if h > 0 and w > 0:
