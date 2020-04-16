@@ -86,19 +86,20 @@ class COCO(BaseData):
         images = []
         for img_id in image_ids:
             idxs = data_handle.getAnnIds(imgIds=[img_id])
-            if split == 'train' and len(idxs) > 0:
-                fname = data_handle.loadImgs(ids=[img_id])[0]['file_name']
-                fname = osp.join(img_path, fname)
-                images.append((img_id, fname))
-                anns = data_handle.loadAnns(ids=idxs)
-                for ann in anns:
-                    if 'pid' not in ann or ann['pid'] == '-1':
-                        continue
-                    pids[f"{int(ann['pid']):05}"] += 1
-            else:
-                fname = data_handle.loadImgs(ids=[img_id])[0]['file_name']
-                fname = osp.join(img_path, fname)
-                images.append((img_id, fname))
+            if len(idxs) > 0:
+                if split == 'train':
+                    fname = data_handle.loadImgs(ids=[img_id])[0]['file_name']
+                    fname = osp.join(img_path, fname)
+                    images.append((img_id, fname))
+                    anns = data_handle.loadAnns(ids=idxs)
+                    for ann in anns:
+                        if 'pid' not in ann or ann['pid'] == '-1':
+                            continue
+                        pids[f"{int(ann['pid']):05}"] += 1
+                else:
+                    fname = data_handle.loadImgs(ids=[img_id])[0]['file_name']
+                    fname = osp.join(img_path, fname)
+                    images.append((img_id, fname))
      
         num_samples = len(images)
         

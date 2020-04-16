@@ -4,15 +4,15 @@ from PIL import Image
 
 class build_coco_dataset(Dataset):
     def __init__(self, data, transform=None, build_func=None, **kwargs):
-        self.coco = data['handle']
-        self.pid = data['pid']
+        self.coco = data['handle'] if isinstance(data['handle'], list) else [data['handle']]
+        self.pid = data['pid'] if isinstance(data['pid'], list) else [data['pid']]
         self.num_classes = data['num_classes']
         self.num_keypoints = data['num_keypoints']
         self.num_person = data['num_person']
         self.strides = data['strides']
-        self.max_objs = 32
+        self.max_objs = 100
         self.indice = data['indice']
-        self.cat_ids = {v: i for i, v in enumerate(self.coco[0].getCatIds())} if isinstance(self.coco, list) else {1: 0}
+        self.cat_ids = {v: i for i, v in enumerate(self.coco[0].getCatIds())}
         self.transform = transform
         self.build_func = build_func
         self.use_kp = True if self.num_keypoints > 0 else False
@@ -25,10 +25,16 @@ class build_coco_dataset(Dataset):
         return len(self.indice)
         
     def __getitem__(self, index):
-        img_id, img_path, handle_idx, offset = self.indice[index]        
+        meta = self.indice[index]
+        if len(meta) == 2:
+            img_id, img_path = meta
+            handle_idx, offset = 0, 0
+        else:
+            img_id, img_path, handle_idx, offset = meta
+
         ann_ids = self.coco[handle_idx].getAnnIds(imgIds=[img_id])
         anns = self.coco[handle_idx].loadAnns(ids=ann_ids)
-        num_objs = len(anns)
+        num_objs = min(len(anns), self.max_objs)
         img = Image.open(img_path)
         if img.mode != 'RGB':
             img = img.convert('RGB')
