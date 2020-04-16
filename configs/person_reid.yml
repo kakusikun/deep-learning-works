@@ -1,0 +1,45 @@
+# [modelname]_[task]_[loss]_[opt]_[pretrain]
+EXPERIMENT: "Hourglass-coco_cityperson_caltech-person_reid-focal_l1-SGDW_cosine_lr_0.01_warmup-scratch"
+SAVE: True
+IO: True
+# EVALUATE: True
+ENGINE: "hourglass_jde"
+GRAPH: "hourglass_jde"
+TRAINER: "jde"
+NUM_WORKERS: 16
+ORACLE: False
+EVALUATE_FREQ: 10
+MODEL:
+  GPU: [1]
+  BACKBONE: "hourglass"
+  STRIDES: [4]
+  FEATSIZE: 256
+INPUT:
+  SIZE: (512,512)
+  TRAIN_BS: 2
+  TEST_BS: 1
+  MEAN: [0.5, 0.5, 0.5]
+  STD: [0.5, 0.5, 0.5]
+DB:
+  PATH: "/media/allen/mass/DB"
+  DATA: "caltech cityperson" #"prw cityperson cuhksysu ethz caltech coco"
+  DATA_FORMAT: "coco"
+  LOADER: "coco"
+  NUM_CLASSES: 1
+  USE_TRAIN: True
+  USE_TEST: True
+  TARGET_FORMAT: "centernet" 
+  TRAIN_TRANSFORM: "RandScale AugMix Tensorize Normalize"
+  TEST_TRANSFORM: "ResizeKeepAspectRatio Tensorize Normalize"
+SOLVER:
+  OPTIMIZER: "SGDW"
+  START_EPOCH: 1
+  MAX_EPOCHS: 120
+  BASE_LR: 0.01
+  BIAS_LR_FACTOR: 1.0
+  WEIGHT_DECAY: 0.0005
+  WEIGHT_DECAY_BIAS_FACTOR: 1.0
+  LR_POLICY: "warm-10 cosine-4-0.1-10-2"
+COCO:
+  TARGET: 'person'
+
