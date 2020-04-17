@@ -1,0 +1,46 @@
+# [modelname]_[task]_[loss]_[opt]_[pretrain]
+EXPERIMENT: "Shufflenetv2_fpn-coco_cityperson_caltech-person_reid-focal_l1-SGDW_cosine_lr_0.01_warmup-scratch"
+RESUME: "/media/allen/mass/shufflenetv2_x1-5666bf0f80.pth"
+SAVE: True
+IO: True
+EVALUATE: True
+ENGINE: "shufflenetv2_jde"
+GRAPH: "shufflenetv2_jde"
+TRAINER: "jde"
+NUM_WORKERS: 1
+ORACLE: False
+EVALUATE_FREQ: 10
+MODEL:
+  GPU: [1]
+  BACKBONE: "shufflenetv2"
+  STRIDES: [4, 8, 16]
+  FEATSIZE: 256
+INPUT:
+  SIZE: (512,512)
+  TRAIN_BS: 4
+  TEST_BS: 1
+  MEAN: [0.485, 0.456, 0.406]
+  STD: [0.229, 0.224, 0.225]
+DB:
+  PATH: "/media/allen/mass/DB"
+  DATA: "prw cityperson cuhksysu ethz caltech cityperson"
+  DATA_FORMAT: "coco"
+  LOADER: "coco"
+  NUM_CLASSES: 1
+  USE_TRAIN: True
+  USE_TEST: True
+  TARGET_FORMAT: "centernet" 
+  TRAIN_TRANSFORM: "RandScale AugMix Tensorize Normalize"
+  TEST_TRANSFORM: "ResizeKeepAspectRatio Tensorize Normalize"
+SOLVER:
+  OPTIMIZER: "SGDW"
+  START_EPOCH: 1
+  MAX_EPOCHS: 120
+  BASE_LR: 0.01
+  BIAS_LR_FACTOR: 1.0
+  WEIGHT_DECAY: 0.0005
+  WEIGHT_DECAY_BIAS_FACTOR: 1.0
+  LR_POLICY: "warm-10 cosine-4-0.1-10-2"
+COCO:
+  TARGET: 'person'
+

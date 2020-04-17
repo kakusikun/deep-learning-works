@@ -121,7 +121,7 @@ class ShuffleNetV2(nn.Module):
         return stage_feats
 
 def shufflenetv2():
-    return ShuffleNetV2([2, 2, 2, 2, 2], [4, 8, 4], [24, 116, 232, 464])
+    return ShuffleNetV2([1, 2, 2, 2, 2], [4, 8, 4], [24, 116, 232, 464])
 
 def shufflenetv2_low_resolution():
     return ShuffleNetV2([1, 1, 2, 2, 2], [4, 8, 4], [24, 116, 232, 464])

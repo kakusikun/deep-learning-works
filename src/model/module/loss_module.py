@@ -299,7 +299,10 @@ class AMSoftmaxWithLoss(nn.Module):
             loss = F.relu(loss + self.relax * (logit * log_logit).sum(1))
             with torch.no_grad():
                 nonzero_count = loss.nonzero().size(0)
-            return loss.sum() / nonzero_count, logit
+            if nonzero_count > 0:
+                return loss.sum() / nonzero_count, logit
+            else:
+                return torch.Tensor(0.0), None
 
         return loss.mean(), logit
 
