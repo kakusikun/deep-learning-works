@@ -66,9 +66,10 @@ class _LossHead(nn.Module):
                         reg_loss.append(self.crit[head](output, batch[out_size]['reg_mask'], batch[out_size]['ind'], batch[out_size]['reg']).unsqueeze(0))
                     elif head == 'embb':
                         id_target = batch[out_size]['pids'][batch[out_size]['reg_mask'] > 0]
-                        if len(id_target) > 0:
+                        valid_id = id_target > 0                        
+                        if len(valid_id) > 0:
                             cosine = self.id_fc(output, batch[out_size]['reg_mask'], batch[out_size]['ind'])                            
-                            _id_loss, logit = self.crit[head](cosine, id_target)
+                            _id_loss, logit = self.crit[head](cosine[valid_id], id_target[valid_id])
                         else:
                             _id_loss = torch.Tensor(0.0)
                             logit = None

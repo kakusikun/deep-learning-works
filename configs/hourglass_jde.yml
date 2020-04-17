@@ -6,7 +6,7 @@ IO: True
 ENGINE: "hourglass_jde"
 GRAPH: "hourglass_jde"
 TRAINER: "jde"
-NUM_WORKERS: 16
+NUM_WORKERS: 1
 ORACLE: False
 EVALUATE_FREQ: 10
 MODEL:
@@ -16,13 +16,13 @@ MODEL:
   FEATSIZE: 256
 INPUT:
   SIZE: (512,512)
-  TRAIN_BS: 2
+  TRAIN_BS: 4
   TEST_BS: 1
   MEAN: [0.5, 0.5, 0.5]
   STD: [0.5, 0.5, 0.5]
 DB:
   PATH: "/media/allen/mass/DB"
-  DATA: "caltech cityperson" #"prw cityperson cuhksysu ethz caltech coco"
+  DATA: "prw cityperson cuhksysu ethz caltech cityperson"
   DATA_FORMAT: "coco"
   LOADER: "coco"
   NUM_CLASSES: 1

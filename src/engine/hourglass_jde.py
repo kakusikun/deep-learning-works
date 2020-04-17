@@ -27,7 +27,10 @@ class HourglassJDE(BaseEngine):
             outputs = self.graph.run(batch['inp'])
             self.loss, self.losses, logit = self.graph.loss_head(outputs, batch)
             if logit is not None:
-                accus.append((logit.max(1)[1] == batch[out_size]['pids'][batch[out_size]['reg_mask'] > 0]).float().mean())
+                id_target = batch[out_size]['pids'][batch[out_size]['reg_mask'] > 0]
+                valid_id = id_target > 0
+                if len(valid_id) > 0:
+                    accus.append((logit.max(1)[1] == id_target[valid_id]).float().mean())
             self._train_iter_end()
 
     def _evaluate(self, eval=False):
@@ -118,16 +121,15 @@ def convert_eval_format(all_bboxes, valid_ids):
                 bbox[2] -= bbox[0]
                 bbox[3] -= bbox[1]
                 score = bbox[4]
-                if score >= 0.5:
-                    bbox_out  = list(map(_to_float, bbox[0:4]))
-                    category_id = valid_ids[cls_ind - 1]
-                    detection = {
-                        "image_id": int(image_id),
-                        "category_id": int(category_id),
-                        "bbox": bbox_out,
-                        "score": float("{:.2f}".format(score))
-                    }
-                    detections.append(detection)
+                bbox_out  = list(map(_to_float, bbox[0:4]))
+                category_id = valid_ids[cls_ind - 1]
+                detection = {
+                    "image_id": int(image_id),
+                    "category_id": int(category_id),
+                    "bbox": bbox_out,
+                    "score": float("{:.2f}".format(score))
+                }
+                detections.append(detection)
     return detections
 
 def coco_eval(coco, results, save_dir):
