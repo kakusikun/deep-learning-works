@@ -52,40 +52,40 @@ def centernet_keypoints_target(cls_ids, bboxes, ptss, max_objs, num_classes, num
     rets = {}
     for output_w, output_h in out_sizes:
         # center, object heatmap
-        hm = np.zeros((num_classes, output_h, output_w), dtype=np.float32)
+        hm = torch.zeros(num_classes, output_h, output_w)
         # center, keypoint heatmap
-        hm_kp = np.zeros((num_keypoints, output_h, output_w), dtype=np.float32)
+        hm_kp = torch.zeros(num_keypoints, output_h, output_w)
 
         # object size
-        wh = np.zeros((max_objs, 2), dtype=np.float32)
+        wh = torch.zeros(max_objs, 2)
         # keypoint location relative to center
-        kps = np.zeros((max_objs, num_keypoints * 2), dtype=np.float32)
+        kps = torch.zeros(max_objs, num_keypoints * 2)
         # object offset
-        reg = np.zeros((max_objs, 2), dtype=np.float32)       
-        ind = np.zeros((max_objs), dtype=np.int64)
-        reg_mask = np.zeros((max_objs), dtype=np.uint8)                       
-        kps_mask = np.zeros((max_objs, num_keypoints * 2), dtype=np.uint8)
-        kp_reg = np.zeros((max_objs * num_keypoints, 2), dtype=np.float32)
-        kp_ind = np.zeros((max_objs * num_keypoints), dtype=np.int64)
-        kp_mask = np.zeros((max_objs * num_keypoints), dtype=np.int64)
+        reg = torch.zeros(max_objs, 2)       
+        ind = torch.zeros(max_objs).long()
+        reg_mask = torch.zeros(max_objs).byte()    
+        kps_mask = torch.zeros(max_objs, num_keypoints * 2).byte()
+        kp_reg = torch.zeros(max_objs * num_keypoints, 2)
+        kp_ind = torch.zeros(max_objs * num_keypoints).int()
+        kp_mask = torch.zeros(max_objs * num_keypoints).int()
 
         draw_gaussian = draw_umich_gaussian
 
-        for k, (cls_id, bbox, pts) in enumerate(zip(cls_ids, bboxes, ptss)):
+        for k, (cls_id, _bbox, _pts) in enumerate(zip(cls_ids, bboxes, ptss)):
+            bbox = _bbox.copy()
+            pts = _pts.copy()
             bbox[[0, 2]] *= output_w
             bbox[[1, 3]] *= output_h
-            np.round(bbox, out=bbox)
             pts[:, 0] *= output_w
             pts[:, 1] *= output_h
-            np.round(pts, out=pts)
             
             h, w = bbox[3] - bbox[1], bbox[2] - bbox[0]            
             if h > 0 and w > 0:
                 radius = gaussian_radius((math.ceil(h), math.ceil(w)))
                 radius = max(0, int(radius))
-                ct = np.array([(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2], dtype=np.float32)
-                ct_int = ct.astype(np.int32)
-                wh[k] = 1. * w, 1. * h
+                ct = torch.FloatTensor([(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2])
+                ct_int = ct.int()
+                wh[k] = wh[k].new_tensor([1. * w, 1. * h])
                 ind[k] = ct_int[1] * output_w + ct_int[0]
                 reg[k] = ct - ct_int
                 reg_mask[k] = 1  
@@ -101,21 +101,29 @@ def centernet_keypoints_target(cls_ids, bboxes, ptss, max_objs, num_classes, num
                         if pts[j, 0] >= 0 and pts[j, 0] < output_w and pts[j, 1] >= 0 and pts[j, 1] < output_h:
                             kps[k, j * 2: j * 2 + 2] = pts[j, :2] - ct_int
                             kps_mask[k, j * 2: j * 2 + 2] = 1
-                            pt_int = pts[j, :2].astype(np.int32)
+                            pt_int = pts[j, :2].int()
                             kp_reg[k * num_keypoints + j] = pts[j, :2] - pt_int
                             kp_ind[k * num_keypoints + j] = pt_int[1] * output_w + pt_int[0]
                             kp_mask[k * num_keypoints + j] = 1
-                            draw_gaussian(hm_kp[j], pt_int, hp_radius)
-                draw_gaussian(hm[cls_id], ct_int, radius)
+                            draw_gaussian(hm_kp[j].numpy(), pt_int.numpy(), hp_radius)
+                draw_gaussian(hm[cls_id].numpy(), ct_int.numpy(), radius)
                 
         rets[(output_w, output_h)] = {
-            'hm': hm, 'wh':wh, 'reg':reg,
-            'reg_mask': reg_mask, 'ind': ind,
-            'hm_kp': hm_kp, 'kps': kps, 'kps_mask': kps_mask, 'kp_reg': kp_reg,
-            'kp_ind': kp_ind, 'kp_mask': kp_mask
+            'hm': hm, 
+            'wh':wh, 
+            'reg':reg,
+            'reg_mask': reg_mask, 
+            'ind': ind,
+            'hm_kp': hm_kp, 
+            'kps': kps, 
+            'kps_mask': kps_mask, 
+            'kp_reg': kp_reg,
+            'kp_ind': kp_ind, 
+            'kp_mask': kp_mask
         }
 
     return rets
+
 
 def centernet_pose_decode(heat, wh, kps, reg=None, hm_kp=None, kp_reg=None, K=100):
     batch, cat, height, width = heat.size()
@@ -233,15 +241,14 @@ def centernet_bbox_target(cls_ids, bboxes, ids, max_objs, num_classes, out_sizes
     rets = {}
     for output_w, output_h in out_sizes:
         # center, object heatmap
-        hm = np.zeros((num_classes, output_h, output_w), dtype=np.float32)
-
+        hm = torch.zeros(num_classes, output_h, output_w)
         # object size
-        wh = np.zeros((max_objs, 2), dtype=np.float32)
+        wh = torch.zeros(max_objs, 2)
         # object offset
-        reg = np.zeros((max_objs, 2), dtype=np.float32)       
-        ind = np.zeros((max_objs), dtype=np.int64)
-        reg_mask = np.zeros((max_objs), dtype=np.uint8)    
-        pids = np.ones((max_objs), dtype=np.int64) * -1
+        reg = torch.zeros(max_objs, 2)       
+        ind = torch.zeros(max_objs).long()
+        reg_mask = torch.zeros(max_objs).byte()    
+        pids = torch.ones(max_objs).long() * -1
 
         draw_gaussian = draw_umich_gaussian
 
@@ -254,22 +261,22 @@ def centernet_bbox_target(cls_ids, bboxes, ids, max_objs, num_classes, out_sizes
             if h > 0 and w > 0:
                 radius = gaussian_radius((math.ceil(h), math.ceil(w)))
                 radius = max(0, int(radius))
-                ct = np.array([(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2], dtype=np.float32)
-                ct_int = ct.astype(np.int32)
-                draw_gaussian(hm[cls_id], ct_int, radius)
-                wh[k] = 1. * w, 1. * h
+                ct = torch.FloatTensor([(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2])
+                ct_int = ct.int()
+                draw_gaussian(hm[cls_id].numpy(), ct_int.numpy(), radius)
+                wh[k] = wh[k].new_tensor([1. * w, 1. * h])
                 ind[k] = ct_int[1] * output_w + ct_int[0]
                 reg[k] = ct - ct_int
                 reg_mask[k] = 1  
                 pids[k] = pid
                 
         rets[(output_w, output_h)] = {
-            'hm': torch.from_numpy(hm),
-            'wh': torch.from_numpy(wh),
-            'reg': torch.from_numpy(reg),
-            'reg_mask': torch.from_numpy(reg_mask),
-            'ind': torch.from_numpy(ind),
-            'pids': torch.from_numpy(pids)
+            'hm': hm,
+            'wh': wh,
+            'reg': reg,
+            'reg_mask': reg_mask,
+            'ind': ind,
+            'pids': pids
         }
 
     return rets

@@ -57,10 +57,13 @@ def yolov3_JDE_targets(bboxes, ids, anchors, wh, strides, **kwargs):
             fg_anchor_list = anchor_list.view(n_a, g_h, g_w, 4)[fg_index] 
             delta_target = encode_delta(gt_box_list, fg_anchor_list)
             t_bbox[fg_index] = delta_target
-        rets[f"yolov3_{g_w}x{g_h}_t_bbox"] = t_bbox
-        rets[f"yolov3_{g_w}x{g_h}_t_conf"] = t_conf
-        rets[f"yolov3_{g_w}x{g_h}_t_pids"] = t_pids
+        rets[(g_w, g_h)] = {
+            'bbox': t_bbox,
+            'conf': t_conf,
+            'pids': t_pids,
+        }
     return rets
+
 
 def xxyy2xcycwh(xxyy):
     xcycwh = torch.ones_like(xxyy)
