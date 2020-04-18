@@ -13,7 +13,7 @@ class Shufflenetv2JDE(BaseEngine):
         self.out_sizes = [(w // s, h // s) for s in cfg.MODEL.STRIDES]
     def _train_once(self):
         accus = [] 
-        out_size = self.out_sizes[-1]
+        out_size = self.out_sizes[0]
         for batch in tqdm(self.tdata, desc=f"TRAIN[{self.epoch}/{self.cfg.SOLVER.MAX_EPOCHS}]"):
             self._train_iter_start()
             for key in batch:
@@ -38,7 +38,7 @@ class Shufflenetv2JDE(BaseEngine):
         title = "EVALUATE" if eval else f"TEST[{self.epoch}/{self.cfg.SOLVER.MAX_EPOCHS}]"
         results = {}
         self._eval_epoch_start()
-        out_size = self.out_sizes[-1]
+        out_size = self.out_sizes[0]
         with torch.no_grad():
             self._eval_epoch_start()
             for batch in tqdm(self.vdata, desc=title): 
@@ -57,16 +57,16 @@ class Shufflenetv2JDE(BaseEngine):
                         gen_oracle_map(
                             batch[out_size]['wh'].detach().cpu().numpy(), 
                             batch[out_size]['ind'].detach().cpu().numpy(), 
-                            batch['inp'].shape[3] // self.cfg.MODEL.STRIDES[-1], 
-                            batch['inp'].shape[2] // self.cfg.MODEL.STRIDES[-1]
+                            batch['inp'].shape[3] // self.cfg.MODEL.STRIDES[0], 
+                            batch['inp'].shape[2] // self.cfg.MODEL.STRIDES[0]
                         )
                     ).cuda()
                     feat['reg'] = torch.from_numpy(
                         gen_oracle_map(
                             batch[out_size]['reg'].detach().cpu().numpy(), 
                             batch[out_size]['ind'].detach().cpu().numpy(), 
-                            batch['inp'].shape[3] // self.cfg.MODEL.STRIDES[-1], 
-                            batch['inp'].shape[2] // self.cfg.MODEL.STRIDES[-1]
+                            batch['inp'].shape[3] // self.cfg.MODEL.STRIDES[0], 
+                            batch['inp'].shape[2] // self.cfg.MODEL.STRIDES[0]
                         )
                     ).cuda()
                 else:               

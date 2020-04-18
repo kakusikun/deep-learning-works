@@ -263,8 +263,14 @@ def centernet_bbox_target(cls_ids, bboxes, ids, max_objs, num_classes, out_sizes
                 reg_mask[k] = 1  
                 pids[k] = pid
                 
-        rets[(output_w, output_h)] = {f'hm': hm, 'wh':wh, 'reg':reg,
-            'reg_mask': reg_mask, 'ind': ind, 'pids': pids}
+        rets[(output_w, output_h)] = {
+            'hm': torch.from_numpy(hm),
+            'wh': torch.from_numpy(wh),
+            'reg': torch.from_numpy(reg),
+            'reg_mask': torch.from_numpy(reg_mask),
+            'ind': torch.from_numpy(ind),
+            'pids': torch.from_numpy(pids)
+        }
 
     return rets
 
