@@ -2,6 +2,7 @@ import argparse
 import shutil
 import logging
 import sys
+import traceback
 
 from src.factory.config_factory import cfg
 from src.factory.config_factory import build_output, show_products, show_configs
@@ -48,7 +49,7 @@ def main():
         if cfg.SAVE:
             logger.info("Back up the Checkpoint")
             trainer.graph.save(trainer.graph.save_path, trainer.graph.model, trainer.graph.sub_models, trainer.solvers, trainer.engine.epoch, trainer.engine.accu)
-        print(f"Error : {sys.exc_info()[1]}")
+        logger.info(traceback.format_exc())
         sys.exit(1)
     
 
