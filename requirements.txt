@@ -1,3 +1,4 @@
+numpy==1.18.1
 opencv-python==4.1.0.25
 pandas==0.25.0
 numba
@@ -6,8 +7,7 @@ yacs==0.1.6
 seaborn==0.9.0
 jupyter==1.0.0
 lmdb==0.94
-numpy==1.16.4
-Pillow==7.0.0.post3
+pillow-simd
 scikit-image==0.15.0
 scikit-learn==0.20.3
 scipy==1.1.0
