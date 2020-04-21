@@ -1,28 +1,28 @@
 # [modelname]_[task]_[loss]_[opt]_[pretrain]
-EXPERIMENT: "Shufflenetv2_fpn-coco_cityperson_caltech-person_reid-focal_l1-SGDW_cosine_lr_0.01_warmup-scratch"
+EXPERIMENT: "Shufflenetv2_fpn-prw_cityperson_cuhksysu_ethz_caltech_cityperson-person_reid-focal_l1-SGDW_cosine_lr_0.01_warmup-scratch"
 RESUME: "/media/allen/mass/shufflenetv2_x1-5666bf0f80.pth"
 SAVE: True
 IO: True
-EVALUATE: True
+# EVALUATE: True
 ENGINE: "shufflenetv2_jde"
 GRAPH: "shufflenetv2_jde"
 TRAINER: "jde"
-NUM_WORKERS: 1
-ORACLE: False
+NUM_WORKERS: 16
+# ORACLE: True
 EVALUATE_FREQ: 10
 MODEL:
-  GPU: [1]
+  GPU: [0,1]
   BACKBONE: "shufflenetv2"
   STRIDES: [4, 8, 16]
   FEATSIZE: 256
 INPUT:
-  SIZE: (512,512)
-  TRAIN_BS: 4
+  SIZE: (768,544)
+  TRAIN_BS: 10
   TEST_BS: 1
   MEAN: [0.485, 0.456, 0.406]
   STD: [0.229, 0.224, 0.225]
 DB:
-  PATH: "/media/allen/mass/DB"
+  PATH: "/media/allen/mass/DB/DB"
   DATA: "prw cityperson cuhksysu ethz caltech cityperson"
   DATA_FORMAT: "coco"
   LOADER: "coco"
