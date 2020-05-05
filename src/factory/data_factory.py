@@ -7,6 +7,7 @@ from src.database.data.imagenet import ImageNet
 from src.database.data.cifar10 import Cifar10
 from src.database.data.emotion import Emotion
 from src.database.data.tinyimagenet import TinyImageNet
+from src.database.data.flow import FLOW
 
 class DataFactory:
     products = {
@@ -29,6 +30,7 @@ class DataFactory:
         'cityperson': COCO,
         'ethz': COCO,
         'prw': COCO,
+        'flow': FLOW,
     }
 
     @classmethod
