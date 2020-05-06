@@ -1,0 +1,42 @@
+# [modelname]_[task]_[loss]_[opt]_[pretrain]
+EXPERIMENT: "Shufflenetv2_fpn-coco-object_detection-focal_l1-AdamW_cosine_lr_0.01_warm_plateau"
+RESUME: "/media/allen/mass/shufflenetv2_x1-5666bf0f80.pth"
+SAVE: True
+IO: True
+EVALUATE: True
+ENGINE: "shufflenetv2_object_detection"
+GRAPH: "shufflenetv2_object_detection"
+TRAINER: "jde"
+NUM_WORKERS: 16
+ORACLE: True
+EVALUATE_FREQ: 5
+MODEL:
+  GPU: [0,1]
+  BACKBONE: "shufflenetv2"
+  STRIDES: [4]
+  FEATSIZE: 256
+INPUT:
+  SIZE: (768,544)
+  TRAIN_BS: 10
+  TEST_BS: 1
+  MEAN: [0.485, 0.456, 0.406]
+  STD: [0.229, 0.224, 0.225]
+DB:
+  PATH: "/media/allen/mass/DB"
+  DATA: "coco"
+  DATA_FORMAT: "coco"
+  LOADER: "coco"
+  NUM_CLASSES: 80
+  USE_TRAIN: False
+  USE_TEST: True
+  TARGET_FORMAT: "centernet" 
+  TRAIN_TRANSFORM: "RandScale RandomColorJitter-0.8-0.15-0.15-0.1-0.1 RandomRotate-0.33 Tensorize Normalize"
+  TEST_TRANSFORM: "ResizeKeepAspectRatio Tensorize Normalize"
+SOLVER:
+  OPTIMIZER: "AdamW"
+  START_EPOCH: 1
+  BASE_LR: 0.01
+  LR_POLICY: "warm-10 plateau-400-0.1-5"
+COCO:
+  TARGET: 'original'
+

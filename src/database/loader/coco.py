@@ -26,9 +26,9 @@ def build_coco_loader(
     data_names = cfg.DB.DATA.split(" ")
     if len(data_names) == 1:
         if use_train:
-            train_data_names = data_names
+            train_data_names = data_names[0]
         if use_test:
-            test_data_name = data_names
+            test_data_name = data_names[0]
     else:
         if use_train:
             train_data_names = data_names[:-1]
