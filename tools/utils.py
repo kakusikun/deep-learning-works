@@ -173,6 +173,7 @@ def print_config(cfg):
         logger.info("="*50)
 
 def deploy_macro(cfg):
+    torch.multiprocessing.set_sharing_strategy('file_system')
     torch.manual_seed(cfg.SEED)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False  

@@ -302,7 +302,7 @@ class AMSoftmaxWithLoss(nn.Module):
             if nonzero_count > 0:
                 return loss.sum() / nonzero_count, logit
             else:
-                return torch.Tensor(0.0), None
+                return loss.sum(), logit
 
         return loss.mean(), logit
 
