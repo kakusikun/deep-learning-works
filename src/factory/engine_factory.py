@@ -7,6 +7,7 @@ from src.engine.harmattn_reid import HarmAttnReIDEngine
 from src.engine.iap_reid import IAPReIDEngine
 from src.engine.hourglass_jde import HourglassJDE
 from src.engine.shufflenetv2_jde import Shufflenetv2JDE
+from src.engine.shufflenetv2_object_detection import Shufflenetv2OD
 
 class EngineFactory():
     products = {
@@ -19,6 +20,7 @@ class EngineFactory():
         'iap_reid': IAPReIDEngine,
         'hourglass_jde': HourglassJDE,
         'shufflenetv2_jde': Shufflenetv2JDE,
+        'shufflenetv2_object_detection': Shufflenetv2OD,
     }
 
     @classmethod
