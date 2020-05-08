@@ -51,16 +51,16 @@ class Shufflenetv2OD(BaseEngine):
                             gen_oracle_map(
                                 batch[out_size]['wh'].detach().cpu().numpy(), 
                                 batch[out_size]['ind'].detach().cpu().numpy(), 
-                                batch['inp'].shape[3] // self.cfg.MODEL.STRIDES[size_idx], 
-                                batch['inp'].shape[2] // self.cfg.MODEL.STRIDES[size_idx]
+                                batch['inp'].shape[3] // self.cfg.MODEL.STRIDES[0], 
+                                batch['inp'].shape[2] // self.cfg.MODEL.STRIDES[0]
                             )
                         ).cuda()
                         feat['reg'] = torch.from_numpy(
                             gen_oracle_map(
                                 batch[out_size]['reg'].detach().cpu().numpy(), 
                                 batch[out_size]['ind'].detach().cpu().numpy(), 
-                                batch['inp'].shape[3] // self.cfg.MODEL.STRIDES[size_idx], 
-                                batch['inp'].shape[2] // self.cfg.MODEL.STRIDES[size_idx]
+                                batch['inp'].shape[3] // self.cfg.MODEL.STRIDES[0], 
+                                batch['inp'].shape[2] // self.cfg.MODEL.STRIDES[0]
                             )
                         ).cuda()
                     else:               
