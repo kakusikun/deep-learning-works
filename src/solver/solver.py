@@ -33,13 +33,13 @@ class Solver():
         self._model_analysis(params_groups, custom=cfg.SOLVER.CUSTOM)
 
         if self.opt_name == 'SGD':
-            self.opt = torch.optim.SGD(self.params, momentum=self.momentum, nesterov=cfg.SOLVER.NESTEROV)
+            self.opt = torch.optim.SGD(self.params, nesterov=cfg.SOLVER.NESTEROV)
         elif self.opt_name == 'Adam':
             self.opt = torch.optim.Adam(self.params, amsgrad=cfg.SOLVER.AMSGRAD)
         elif self.opt_name == 'AdamW':
             self.opt = torch.optim.AdamW(self.params, amsgrad=cfg.SOLVER.AMSGRAD)
         elif self.opt_name == 'SGDW':
-            self.opt = opts.SGDW(self.params, momentum=self.momentum, nesterov=cfg.SOLVER.NESTEROV)
+            self.opt = opts.SGDW(self.params, nesterov=cfg.SOLVER.NESTEROV)
 
         self.scheduler = LRScheduler(
             optimizer=self.opt,
@@ -61,6 +61,7 @@ class Solver():
                     continue
                 lr = self.lr
                 wd = self.wd
+                mt = self.momentum
                 if "bias" in layer:
                     lr = self.lr * self.bias_lr_factor
                     wd = self.wd * self.wd_factor    
@@ -70,10 +71,12 @@ class Solver():
                             lr = value
                         elif target == 'wd':
                             wd = value
+                        elif target == 'mt':
+                            mt = value
                         else:
                             logger.info("Unsupported optimizer parameter: {}".format(target))
 
-                self.params += [{"params": p, "lr": lr, "weight_decay": wd}]
+                self.params += [{"params": p, "lr": lr, "weight_decay": wd, "momentum": mt}]
                 num_params += p.numel()
         
         logger.info("Trainable parameters: {:.2f}M".format(num_params / 1000000.0))
