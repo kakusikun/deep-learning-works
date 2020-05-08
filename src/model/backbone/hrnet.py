@@ -151,7 +151,7 @@ class HighResolutionModule(nn.Module):
                     fuse_layer.append(
                         nn.Sequential(
                             ConvModule(num_inchannels[j], num_inchannels[i], kernel_size=1, activation='linear', use_gn=True),
-                            nn.Upsample(scale_factor=2**(j-i), mode='nearest')
+                            nn.Upsample(scale_factor=2**(j-i), mode='nearest', align_corners=True)
                         )
                     )
                 elif j == i:
@@ -224,17 +224,19 @@ class PoseHighResolutionNet(nn.Module):
         pre_stage_channels = [256]
         for i in range(3):
             transition = self._make_transition_layer(pre_stage_channels, stage_num_channels[i], stage_activation[max(i-1, 0)])
+            csp_channels = [c//2 for c in stage_num_channels[i]]
             stage, pre_stage_channels = self._make_stage(
                 stage_num_modules[i],
                 stage_num_branches[i],
                 stage_num_blocks[i],
-                stage_num_channels[i],
+                csp_channels,
                 stage_blocks[i],
                 stage_fused_method[i],
-                stage_num_channels[i],
+                csp_channels,
                 stage_activation[i],
                 stage_useSE[i],
             )
+            pre_stage_channels = [c*2 for c in pre_stage_channels]
             self.transitions.append(transition)
             self.stages.append(stage)
 
@@ -356,16 +358,26 @@ class PoseHighResolutionNet(nn.Module):
                         x_list.append(x)
                     else:
                         x_list.append(y_list[j])
+            part1 = []
+            part2 = []
+            for xs in x_list:
+                c = xs.size(1)
+                assert c % 2 == 0
+                part1.append(xs[:, :(c//2)])
+                part2.append(xs[:, (c//2):])
 
-            y_list = self.stages[i](x_list)
+            y_list = []
+            part2 = self.stages[i](part2)
+            for y1, y2 in zip(part1, part2):
+                y_list.append(torch.cat([y1, y2], axis=1))
 
         x = y_list
 
         # Upsampling
         x0_h, x0_w = x[0].size(2), x[0].size(3)
-        x1 = F.upsample(x[1], size=(x0_h, x0_w), mode='bilinear')
-        x2 = F.upsample(x[2], size=(x0_h, x0_w), mode='bilinear')
-        x3 = F.upsample(x[3], size=(x0_h, x0_w), mode='bilinear')
+        x1 = F.upsample(x[1], size=(x0_h, x0_w), mode='bilinear', align_corners=True)
+        x2 = F.upsample(x[2], size=(x0_h, x0_w), mode='bilinear', align_corners=True)
+        x3 = F.upsample(x[3], size=(x0_h, x0_w), mode='bilinear', align_corners=True)
 
         x = torch.cat([x[0], x1, x2, x3], 1)
 
