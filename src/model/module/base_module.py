@@ -13,7 +13,7 @@ class ConvModule(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, 
         stride=1, padding=0, groups=1, bias=False,
         activation='relu', 
-        use_bn=True, affine=True):
+        use_bn=True, affine=True, use_gn=False):
         super(ConvModule, self).__init__()
         self.conv = nn.Conv2d(
             in_channels, 
@@ -24,10 +24,13 @@ class ConvModule(nn.Module):
             bias=bias, 
             groups=groups)
         
-        if use_bn:
+        if use_bn and not use_gn:
             self.bn = nn.BatchNorm2d(out_channels, affine=affine)
         else:
-            self.bn = None
+            if use_gn:
+                self.bn = nn.GroupNorm(out_channels // 8, out_channels)
+            else:
+                self.bn = None
 
         if activation == 'linear':
             self.activation = None
