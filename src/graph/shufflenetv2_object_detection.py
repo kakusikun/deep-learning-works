@@ -8,16 +8,10 @@ class _Model(nn.Module):
         w, h = cfg.INPUT.SIZE
         self.out_sizes = [(w // s, h // s) for s in cfg.MODEL.STRIDES]
         self.backbone = BackboneFactory.produce(cfg)
-        self.fpn = FPN(
-            configs=["i_0", "i_1", "i_2"],
-            incs=self.backbone.stage_out_channels[-3:],
-            oss=cfg.MODEL.STRIDES,
-            oucs=[256, 256, 256],
-        )
         self.heads = nn.ModuleDict({
-            'hm': nn.ModuleList([HourGlassHead(256, cfg.DB.NUM_CLASSES) for _ in range(len(self.out_sizes))]),
-            'wh': nn.ModuleList([HourGlassHead(256, 2) for _ in range(len(self.out_sizes))]),
-            'reg': nn.ModuleList([HourGlassHead(256, 2) for _ in range(len(self.out_sizes))]),
+            'hm': nn.ModuleList([HourGlassHead(64, cfg.DB.NUM_CLASSES) for _ in range(len(self.out_sizes))]),
+            'wh': nn.ModuleList([HourGlassHead(64, 2) for _ in range(len(self.out_sizes))]),
+            'reg': nn.ModuleList([HourGlassHead(64, 2) for _ in range(len(self.out_sizes))]),
         })
         for head in self.heads['hm']:
             for m in head.modules():
@@ -27,12 +21,11 @@ class _Model(nn.Module):
 
     def forward(self, x):
         outs = self.backbone(x)
-        feats = self.fpn(outs)
         head_out = {}
         for i, out_size in enumerate(self.out_sizes):
             head_out[out_size] = {}
             for head in self.heads:
-                head_out[out_size][head] = self.heads[head][i](feats[i])
+                head_out[out_size][head] = self.heads[head][i](outs)
         return head_out
 
 class _LossHead(nn.Module):

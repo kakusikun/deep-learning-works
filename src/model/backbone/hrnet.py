@@ -3,7 +3,6 @@ from __future__ import division
 from __future__ import print_function
 
 import os
-import logging
 
 import torch
 import torch.nn as nn
@@ -18,45 +17,6 @@ from src.model.module.base_module import (
 )
 
 BN_MOMENTUM = 0.01
-logger = logging.getLogger(__name__)
-
-
-def conv3x3(in_planes, out_planes, stride=1):
-    """3x3 convolution with padding"""
-    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
-                     padding=1, bias=False)
-
-
-class BasicBlock(nn.Module):
-    expansion = 1
-
-    def __init__(self, inplanes, planes, stride=1, downsample=None):
-        super(BasicBlock, self).__init__()
-        self.conv1 = conv3x3(inplanes, planes, stride)
-        self.bn1 = nn.BatchNorm2d(planes, momentum=BN_MOMENTUM)
-        self.relu = nn.ReLU(inplace=True)
-        self.conv2 = conv3x3(planes, planes)
-        self.bn2 = nn.BatchNorm2d(planes, momentum=BN_MOMENTUM)
-        self.downsample = downsample
-        self.stride = stride
-
-    def forward(self, x):
-        residual = x
-
-        out = self.conv1(x)
-        out = self.bn1(out)
-        out = self.relu(out)
-
-        out = self.conv2(out)
-        out = self.bn2(out)
-
-        if self.downsample is not None:
-            residual = self.downsample(x)
-
-        out += residual
-        out = self.relu(out)
-
-        return out
 
 class ShuffleBlock(nn.Module):
     def __init__(self, inc, ouc, ksize, stride, activation, useSE, mode, affine=True):
@@ -116,47 +76,6 @@ def channel_shuffle(x):
     x = x.reshape(2, -1, num_channels // 2, height, width)
     return x[0], x[1]
 
-class Bottleneck(nn.Module):
-    expansion = 4
-
-    def __init__(self, inplanes, planes, stride=1, downsample=None):
-        super(Bottleneck, self).__init__()
-        self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(planes, momentum=BN_MOMENTUM)
-        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride,
-                               padding=1, bias=False)
-        self.bn2 = nn.BatchNorm2d(planes, momentum=BN_MOMENTUM)
-        self.conv3 = nn.Conv2d(planes, planes * self.expansion, kernel_size=1,
-                               bias=False)
-        self.bn3 = nn.BatchNorm2d(planes * self.expansion,
-                                  momentum=BN_MOMENTUM)
-        self.relu = nn.ReLU(inplace=True)
-        self.downsample = downsample
-        self.stride = stride
-
-    def forward(self, x):
-        residual = x
-
-        out = self.conv1(x)
-        out = self.bn1(out)
-        out = self.relu(out)
-
-        out = self.conv2(out)
-        out = self.bn2(out)
-        out = self.relu(out)
-
-        out = self.conv3(out)
-        out = self.bn3(out)
-
-        if self.downsample is not None:
-            residual = self.downsample(x)
-
-        out += residual
-        out = self.relu(out)
-
-        return out
-
-
 class HighResolutionModule(nn.Module):
     def __init__(self, num_branches, block, num_blocks, num_inchannels,
                  num_channels, fuse_method, activation, useSE, multi_scale_output=True):
@@ -172,7 +91,7 @@ class HighResolutionModule(nn.Module):
 
         self.branches = self._make_branches(
             num_branches, block, num_blocks, num_channels, activation, useSE)
-        self.fuse_layers = self._make_fuse_layers()
+        self.fuse_layers = self._make_fuse_layers(activation)
         self.relu = nn.ReLU(True) if activation == 'relu' else HSwish()
 
     def _check_branches(self, num_branches, block, num_blocks,
@@ -180,19 +99,19 @@ class HighResolutionModule(nn.Module):
         if num_branches != len(num_blocks):
             error_msg = 'NUM_BRANCHES({}) <> NUM_BLOCKS({})'.format(
                 num_branches, len(num_blocks))
-            logger.error(error_msg)
+            print(error_msg)
             raise ValueError(error_msg)
 
         if num_branches != len(num_channels):
             error_msg = 'NUM_BRANCHES({}) <> NUM_CHANNELS({})'.format(
                 num_branches, len(num_channels))
-            logger.error(error_msg)
+            print(error_msg)
             raise ValueError(error_msg)
 
         if num_branches != len(num_inchannels):
             error_msg = 'NUM_BRANCHES({}) <> NUM_INCHANNELS({})'.format(
                 num_branches, len(num_inchannels))
-            logger.error(error_msg)
+            print(error_msg)
             raise ValueError(error_msg)
 
     def _make_one_branch(self, branch_index, block, num_blocks, num_channels, activation, useSE,
@@ -218,7 +137,7 @@ class HighResolutionModule(nn.Module):
 
         return nn.ModuleList(branches)
 
-    def _make_fuse_layers(self):
+    def _make_fuse_layers(self, activation):
         if self.num_branches == 1:
             return None
 
@@ -231,12 +150,7 @@ class HighResolutionModule(nn.Module):
                 if j > i:
                     fuse_layer.append(
                         nn.Sequential(
-                            nn.Conv2d(
-                                num_inchannels[j],
-                                num_inchannels[i],
-                                1, 1, 0, bias=False
-                            ),
-                            nn.BatchNorm2d(num_inchannels[i]),
+                            ConvModule(num_inchannels[j], num_inchannels[i], kernel_size=1, activation='linear'),
                             nn.Upsample(scale_factor=2**(j-i), mode='nearest')
                         )
                     )
@@ -248,27 +162,12 @@ class HighResolutionModule(nn.Module):
                         if k == i - j - 1:
                             num_outchannels_conv3x3 = num_inchannels[i]
                             conv3x3s.append(
-                                nn.Sequential(
-                                    nn.Conv2d(
-                                        num_inchannels[j],
-                                        num_outchannels_conv3x3,
-                                        3, 2, 1, bias=False
-                                    ),
-                                    nn.BatchNorm2d(num_outchannels_conv3x3)
-                                )
+                                ConvModule(num_inchannels[j], num_outchannels_conv3x3, kernel_size=3, stride=2, padding=1, activation='linear')
                             )
                         else:
                             num_outchannels_conv3x3 = num_inchannels[j]
                             conv3x3s.append(
-                                nn.Sequential(
-                                    nn.Conv2d(
-                                        num_inchannels[j],
-                                        num_outchannels_conv3x3,
-                                        3, 2, 1, bias=False
-                                    ),
-                                    nn.BatchNorm2d(num_outchannels_conv3x3),
-                                    nn.ReLU(True)
-                                )
+                                ConvModule(num_inchannels[j], num_outchannels_conv3x3, kernel_size=3, stride=2, padding=1, activation=activation)
                             )
                     fuse_layer.append(nn.Sequential(*conv3x3s))
             fuse_layers.append(nn.ModuleList(fuse_layer))
@@ -297,13 +196,6 @@ class HighResolutionModule(nn.Module):
             x_fuse.append(self.relu(y))
 
         return x_fuse
-
-
-blocks_dict = {
-    'BASIC': BasicBlock,
-    'BOTTLENECK': Bottleneck
-}
-
 
 class PoseHighResolutionNet(nn.Module):
 
@@ -479,10 +371,6 @@ class PoseHighResolutionNet(nn.Module):
 
         x = self.last_layer(x)
 
-        # z = {}
-        # for head in self.heads:
-        #     z[head] = self.__getattr__(head)(x)
-        # return [z]
         return x
 
 def fill_fc_weights(layers):
@@ -492,17 +380,8 @@ def fill_fc_weights(layers):
                 nn.init.constant_(m.bias, 0)
 
 
-def get_pose_net(num_layers, heads, head_conv):
-    if num_layers == 32:
-        cfg_dir = '../src/lib/models/networks/config/hrnet_w32.yaml'
-    elif num_layers == 18:
-        cfg_dir = '../src/lib/models/networks/config/hrnet_w18.yaml'
-    else:
-        cfg_dir = '../src/lib/models/networks/config/hrnet_w18.yaml'
-    update_config(cfg, cfg_dir)
-    model = PoseHighResolutionNet(cfg, heads)
-    model.init_weights(cfg.MODEL.PRETRAINED)
-
+def hrnet():
+    model = PoseHighResolutionNet()
     return model
 
 if __name__ == "__main__":
