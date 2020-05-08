@@ -31,7 +31,7 @@ class DataFactory:
         'ethz': COCO,
         'prw': COCO,
         'flow': FLOW,
-        'crownhuman': COCO,
+        'crowdhuman': COCO,
     }
 
     @classmethod
