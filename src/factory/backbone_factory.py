@@ -4,6 +4,8 @@ from src.model.backbone.shufflenetv2_torchvision import shufflenetv2, shufflenet
 from src.model.backbone.osnet_deep_reid import osnet_x1_0
 from src.model.backbone.hacnn import hacnn
 from src.model.backbone.osnet_deep_reid_iap import osnet_iap_x1_0
+from src.model.backbone.hrnet import hrnet
+
 class BackboneFactory:
     products = {
         'shufflenetv2+': shufflenetv2_plus,
@@ -13,6 +15,7 @@ class BackboneFactory:
         'osnet_deep_reid': osnet_x1_0,
         'hacnn': hacnn,
         'osnet_deep_reid_iap': osnet_iap_x1_0,
+        'hrnet': hrnet,
     }
 
     @classmethod
