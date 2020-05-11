@@ -1,3 +1,4 @@
+import os
 import argparse
 import shutil
 import logging
@@ -34,14 +35,17 @@ def main():
     if args.config != "":
         cfg.merge_from_file(args.config)
     cfg.merge_from_list(args.opts)    
+    if args.local_rank != 0:
+        cfg.IO = False
+        cfg.SAVE = False
     build_output(cfg, args.config)
     logger = setup_logger(cfg.OUTPUT_DIR)   
     deploy_macro(cfg)
 
     assert cfg.DISTRIBUTED is True
+    dist.init_process_group(backend='nccl')
     rank = dist.get_rank()
     logger.info(f"Rank [{rank}] Start!")
-    dist.init_process_group(backend='nccl')
     device = torch.device("cuda:{}".format(args.local_rank))
     torch.cuda.set_device(device)
     trainer = TrainerFactory.produce(cfg)
@@ -51,7 +55,7 @@ def main():
     if cfg.EVALUATE:
         trainer.test()
         sys.exit()
-        
+    
     try:
         trainer.train()        
     except:
@@ -64,4 +68,6 @@ def main():
     
 
 if __name__ == '__main__':
+    # python3 -m torch.distributed.launch --nproc_per_node=3
+    print(os.getpid())
     main()

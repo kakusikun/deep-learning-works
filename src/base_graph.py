@@ -2,6 +2,7 @@ import os
 import torch
 import math
 import torch.nn as nn
+import torch.distributed as dist
 from collections import OrderedDict
 import logging
 logger = logging.getLogger("logger")
@@ -31,9 +32,15 @@ class BaseGraph:
         if self.cfg.IO:
             self.set_save_path()
         self.build()
+        if self.cfg.DISTRIBUTED:
+            self.syncbn()
 
     def build(self):        
         raise NotImplementedError
+    
+    def syncbn(self):
+        process_group = dist.new_group(list(range(dist.get_world_size())))
+        self.model = nn.SyncBatchNorm.convert_sync_batchnorm(self.model, process_group)
 
     def run(self, x, *args, **kwargs):
         if self.parallel_model is not None:
@@ -161,7 +168,7 @@ class BaseGraph:
             if num_gpus > 1 and torch.cuda.device_count() > 1:
                 if self.use_gpu:
                     if self.cfg.DISTRIBUTED:
-                        rank = torch.distributed.get_rank()
+                        rank = dist.get_rank()
                         self.parallel_model = torch.nn.parallel.DistributedDataParallel(self.model, device_ids=[rank], output_device=rank)
                     else:
                         logger.info("Use GPUs: {}{}{}{}".format(bcolors.RESET, bcolors.OKGREEN, gpu, bcolors.RESET))

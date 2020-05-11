@@ -71,6 +71,9 @@ class BaseEngine():
         if self.cfg.DISTRIBUTED:
             dist.all_reduce(self.loss)
             self.loss.div_(dist.get_world_size())
+            for loss in self.losses:
+                dist.all_reduce(self.losses[loss])
+                self.losses[loss].div_(dist.get_world_size())
 
         self.loss = self.tensor_to_scalar(self.loss)
         self.losses = self.tensor_to_scalar(self.losses)     
@@ -124,7 +127,10 @@ class BaseEngine():
             self._train_epoch_end()
             
             if self.epoch % self.cfg.EVALUATE_FREQ == 0:
-                self._evaluate()
+                if self.cfg.DISTRIBUTED and dist.get_rank() != 0:
+                    pass
+                else:
+                    self._evaluate()
             if self.cfg.SOLVER.LR_POLICY == 'plateau' and self.cfg.SOLVER.MIN_LR >= self.solvers['model'].monitor_lr:
                 logger.info(f"LR {self.solvers['model'].monitor_lr} is less than {self.cfg.SOLVER.MIN_LR}")
                 break

@@ -34,22 +34,18 @@ class IAPReIDEngine(BaseEngine):
                     p.requires_grad = True
                 
     def _train_once(self):
-        accus = []   
         for batch in tqdm(self.tdata, desc=f"TRAIN[{self.epoch}/{self.cfg.SOLVER.MAX_EPOCHS}]"):
             self._train_iter_start()
             if self.use_gpu:
                 for key in batch:
                     if self.cfg.DISTRIBUTED:
-                        batch[key] = batch[key].to(self.device)
+                        batch[key] = batch[key].to(self.device, non_blocking=True)
                     else:
                         batch[key] = batch[key].cuda()
             outputs = self.graph.run(batch['inp']) 
-            loss, losses, logit = self.graph.loss_head(outputs, batch)
+            loss, losses = self.graph.loss_head(outputs, batch)
             self.loss, self.losses = loss, losses
-            accus.append((logit.max(1)[1] == batch['pid']).float().mean())        
             self._train_iter_end()
-
-        self.train_accu = self.tensor_to_scalar(torch.stack(accus).mean())
 
     def _evaluate(self, eval=False):
         logger.info("Epoch {} evaluation start".format(self.epoch))
@@ -61,7 +57,7 @@ class IAPReIDEngine(BaseEngine):
             for batch in tqdm(self.qdata, desc=title): 
                 imgs, pids, camids = batch['inp'], batch['pid'], batch['camid']
                 if self.cfg.DISTRIBUTED:
-                    features = self.graph.run(imgs.to(self.device) if self.use_gpu else imgs)['embb']
+                    features = self.graph.run(imgs.to(self.device, non_blocking=True) if self.use_gpu else imgs)['embb']
                 else:
                     features = self.graph.run(imgs.cuda() if self.use_gpu else imgs)['embb']
                 qf.append(features.cpu())
@@ -77,7 +73,7 @@ class IAPReIDEngine(BaseEngine):
             for batch in tqdm(self.gdata, desc=title): 
                 imgs, pids, camids = batch['inp'], batch['pid'], batch['camid']
                 if self.cfg.DISTRIBUTED:
-                    features = self.graph.run(imgs.to(self.device) if self.use_gpu else imgs)['embb']
+                    features = self.graph.run(imgs.to(self.device, non_blocking=True) if self.use_gpu else imgs)['embb']
                 else:
                     features = self.graph.run(imgs.cuda() if self.use_gpu else imgs)['embb']
                 gf.append(features.cpu())

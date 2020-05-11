@@ -151,7 +151,7 @@ class HighResolutionModule(nn.Module):
                     fuse_layer.append(
                         nn.Sequential(
                             ConvModule(num_inchannels[j], num_inchannels[i], kernel_size=1, activation='linear', use_gn=True),
-                            nn.Upsample(scale_factor=2**(j-i), mode='nearest', align_corners=True)
+                            nn.Upsample(scale_factor=2**(j-i), mode='nearest')
                         )
                     )
                 elif j == i:

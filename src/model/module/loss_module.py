@@ -292,19 +292,19 @@ class AMSoftmaxWithLoss(nn.Module):
 
         output = (one_hot * phi) + ((1.0 - one_hot) * cosine)
         output *= self.s
-        log_logit = F.log_softmax(output, dim=1)
-        logit = torch.exp(log_logit)
         loss = self.ce(output, labels)
         if self.relax > 0.0:
+            log_logit = F.log_softmax(output, dim=1)
+            logit = torch.exp(log_logit)
             loss = F.relu(loss + self.relax * (logit * log_logit).sum(1))
             with torch.no_grad():
                 nonzero_count = loss.nonzero().size(0)
             if nonzero_count > 0:
-                return loss.sum() / nonzero_count, logit
+                return loss.sum() / nonzero_count
             else:
-                return loss.sum(), logit
+                return loss.sum()
 
-        return loss.mean(), logit
+        return loss.mean()
 
 
 if __name__ == "__main__":
