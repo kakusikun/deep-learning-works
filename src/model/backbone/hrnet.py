@@ -361,10 +361,11 @@ class PoseHighResolutionNet(nn.Module):
             part1 = []
             part2 = []
             for xs in x_list:
-                c = xs.size(1)
+                n, c, h, w = xs.shape
                 assert c % 2 == 0
-                part1.append(xs[:, :(c//2)])
-                part2.append(xs[:, (c//2):])
+                xs = xs.reshape(2, n, c//2, h, w)
+                part1.append(xs[0])
+                part2.append(xs[1])
 
             y_list = []
             part2 = self.stages[i](part2)
