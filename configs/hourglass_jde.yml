@@ -2,12 +2,12 @@
 EXPERIMENT: "Hourglass-coco_cityperson_caltech-person_reid-focal_l1-SGDW_cosine_lr_0.01_warmup-scratch"
 SAVE: True
 IO: True
-# EVALUATE: True
+EVALUATE: True
 ENGINE: "hourglass_jde"
 GRAPH: "hourglass_jde"
 TRAINER: "jde"
 NUM_WORKERS: 1
-ORACLE: False
+ORACLE: True
 EVALUATE_FREQ: 10
 MODEL:
   GPU: [1]
@@ -26,7 +26,7 @@ DB:
   DATA_FORMAT: "coco"
   LOADER: "coco"
   NUM_CLASSES: 1
-  USE_TRAIN: True
+  USE_TRAIN: False
   USE_TEST: True
   TARGET_FORMAT: "centernet" 
   TRAIN_TRANSFORM: "RandScale AugMix Tensorize Normalize"

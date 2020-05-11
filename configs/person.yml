@@ -2,11 +2,12 @@
 EXPERIMENT: "Hourglass-coco_cityperson_caltech-person-focal_l1-SGDW_cosine_lr_0.01_warmup-scratch"
 SAVE: True
 IO: True
+EVALUATE: True
 ENGINE: "hourglass_object_detection"
 GRAPH: "hourglass_object_detection"
 TRAINER: "centernet_object_detection"
 NUM_WORKERS: 1  
-ORACLE: False
+ORACLE: True
 EVALUATE_FREQ: 10
 MODEL:
   GPU: [1]
@@ -21,11 +22,11 @@ INPUT:
   STD: [0.5, 0.5, 0.5]
 DB:
   PATH: "/media/allen/mass/DB"
-  DATA: "caltech cityperson coco coco" #"prw cityperson cuhksysu ethz caltech coco"
+  DATA: "caltech cityperson cityperson" #"prw cityperson cuhksysu ethz caltech coco"
   DATA_FORMAT: "coco"
   LOADER: "coco"
   NUM_CLASSES: 1
-  USE_TRAIN: True
+  USE_TRAIN: False
   USE_TEST: True
   TARGET_FORMAT: "centernet" 
   TRAIN_TRANSFORM: "RandScale AugMix Tensorize Normalize"
