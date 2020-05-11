@@ -26,6 +26,22 @@ def test_hrnet():
     x = torch.rand(2, 3, 256, 192)
     output = model(x)
 
+def test_IdBasedDistributedSampler():
+    print("test IdBasedDistributedSampler")
+    from src.database.sampler.sampler import IdBasedDistributedSampler
+    dataset = []
+    for i in range(20):
+        dataset.extend([(j, j, j) for j in [i]*4])
+    sampler = IdBasedDistributedSampler(data_source=dataset, batch_size=16, num_instances=4)
+    for epoch in range(3):
+        sampler.set_epoch(0)
+        print(epoch)
+        for i in sampler:
+            print(dataset[i])
+
+
+
 if __name__ == "__main__":
     test_shufflenetv2_plus()
     test_hrnet()
+    test_IdBasedDistributedSampler()
