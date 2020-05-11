@@ -78,6 +78,10 @@ def build_coco_loader(
             transform=train_trans, 
             build_func=build_func
         )
+        if cfg.DISTRIBUTED:
+            sampler = distributed.DistributedSampler(train_dataset)
+        else:
+            sampler = None
         loader['train'] = DataLoader(
             train_dataset, 
             batch_size=train_batch_size, 
@@ -85,7 +89,8 @@ def build_coco_loader(
             num_workers=num_workers, 
             pin_memory=False,
             drop_last=True,
-            collate_fn=default_collate
+            collate_fn=default_collate,
+            sampler=sampler,
         )
     if use_test:
         data = DataFactory.produce(cfg, branch=test_data_name, use_train=False) 

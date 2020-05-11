@@ -136,9 +136,15 @@ class BaseGraph:
         else:
             if num_gpus > 0 and torch.cuda.device_count() > 0:
                 logger.info("Use GPU")
-                self.model = self.model.cuda()
-                for sub_model in self.sub_models:
-                    self.sub_models[sub_model] = self.sub_models[sub_model].cuda()
+                if self.cfg.DISTRIBUTED:
+                    device = torch.cuda.current_device()
+                    self.model = self.model.to(device)
+                    for sub_model in self.sub_models:
+                        self.sub_models[sub_model] = self.sub_models[sub_model].to(device)
+                else:
+                    self.model = self.model.cuda()
+                    for sub_model in self.sub_models:
+                        self.sub_models[sub_model] = self.sub_models[sub_model].cuda()
                 self.use_gpu = True
             elif torch.cuda.device_count() == 0:
                 logger.info("GPU is no found")
@@ -154,8 +160,12 @@ class BaseGraph:
         else:            
             if num_gpus > 1 and torch.cuda.device_count() > 1:
                 if self.use_gpu:
-                    logger.info("Use GPUs: {}{}{}{}".format(bcolors.RESET, bcolors.OKGREEN, gpu, bcolors.RESET))
-                    self.parallel_model = torch.nn.DataParallel(self.model)
+                    if self.cfg.DISTRIBUTED:
+                        rank = torch.distributed.get_rank()
+                        self.parallel_model = torch.nn.parallel.DistributedDataParallel(self.model, device_ids=[rank], output_device=rank)
+                    else:
+                        logger.info("Use GPUs: {}{}{}{}".format(bcolors.RESET, bcolors.OKGREEN, gpu, bcolors.RESET))
+                        self.parallel_model = torch.nn.DataParallel(self.model)
                 else:
                     logger.info("Use .cuda() first")
             elif self.use_gpu:

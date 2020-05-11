@@ -1,6 +1,6 @@
 from src.database.loader import *
 from src.base_data import BaseData
-from src.database.sampler.sampler import IdBasedSampler
+from src.database.sampler.sampler import IdBasedSampler, IdBasedDistributedSampler
 
 def build_reid_loader(
     cfg, 
@@ -49,8 +49,11 @@ def build_reid_loader(
             transform=train_trans, 
             return_indice=return_indice
         )
-        if use_sampler:    
-            sampler = IdBasedSampler(data.train['indice'], batch_size=train_batch_size, num_instances=num_people_per_batch)       
+        if use_sampler:
+            if cfg.DISTRIBUTED:
+                sampler = IdBasedDistributedSampler(data.train['indice'], batch_size=train_batch_size, num_instances=num_people_per_batch)
+            else:
+                sampler = IdBasedSampler(data.train['indice'], batch_size=train_batch_size, num_instances=num_people_per_batch)       
             loader['train'] = DataLoader(
                 train_dataset, 
                 batch_size=train_batch_size, 

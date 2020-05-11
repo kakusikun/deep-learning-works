@@ -39,7 +39,7 @@ cfg.TRAINER = ""
 cfg.NUM_WORKERS = 16
 cfg.ORACLE = False
 cfg.EVALUATE_FREQ = 1
-
+cfg.DISTRIBUTED = False
 # -----------------------------------------------------------------------------
 # Model in Graph
 # -----------------------------------------------------------------------------

@@ -39,7 +39,10 @@ class IAPReIDEngine(BaseEngine):
             self._train_iter_start()
             if self.use_gpu:
                 for key in batch:
-                    batch[key] = batch[key].cuda()
+                    if self.cfg.DISTRIBUTED:
+                        batch[key] = batch[key].to(self.device)
+                    else:
+                        batch[key] = batch[key].cuda()
             outputs = self.graph.run(batch['inp']) 
             loss, losses, logit = self.graph.loss_head(outputs, batch)
             self.loss, self.losses = loss, losses
@@ -57,7 +60,10 @@ class IAPReIDEngine(BaseEngine):
             qf, q_pids, q_camids = [], [], []
             for batch in tqdm(self.qdata, desc=title): 
                 imgs, pids, camids = batch['inp'], batch['pid'], batch['camid']
-                features = self.graph.run(imgs.cuda() if self.use_gpu else imgs)['embb']
+                if self.cfg.DISTRIBUTED:
+                    features = self.graph.run(imgs.to(self.device) if self.use_gpu else imgs)['embb']
+                else:
+                    features = self.graph.run(imgs.cuda() if self.use_gpu else imgs)['embb']
                 qf.append(features.cpu())
                 q_pids.extend(pids)
                 q_camids.extend(camids)
@@ -70,7 +76,10 @@ class IAPReIDEngine(BaseEngine):
             gf, g_pids, g_camids = [], [], []
             for batch in tqdm(self.gdata, desc=title): 
                 imgs, pids, camids = batch['inp'], batch['pid'], batch['camid']
-                features = self.graph.run(imgs.cuda() if self.use_gpu else imgs)['embb']
+                if self.cfg.DISTRIBUTED:
+                    features = self.graph.run(imgs.to(self.device) if self.use_gpu else imgs)['embb']
+                else:
+                    features = self.graph.run(imgs.cuda() if self.use_gpu else imgs)['embb']
                 gf.append(features.cpu())
                 g_pids.extend(pids)
                 g_camids.extend(camids)

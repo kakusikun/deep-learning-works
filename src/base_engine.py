@@ -1,6 +1,7 @@
 import os
 import sys
 import torch
+import torch.distributed as dist
 import numpy as np
 import logging
 logger = logging.getLogger("logger")
@@ -32,6 +33,10 @@ class BaseEngine():
         self.test_loss = 0.0
         self.accu = 0.0
         self.save_criterion = cfg.MODEL.SAVE_CRITERION
+        if self.cfg.DISTRIBUTED:
+            self.device = torch.cuda.current_device()
+        else:
+            self.device = -1
 
     def _start(self):
         logger.info("Training start")
@@ -42,6 +47,8 @@ class BaseEngine():
         self.epoch += 1
         logger.info(f"Epoch {self.epoch} start")
         self.graph.model.train() 
+        if self.cfg.DISTRIBUTED:
+            self.tdata.sampler.set_epoch(self.epoch)
         if len(self.graph.sub_models) > 0:
             for sub_model in self.graph.sub_models:
                 self.graph.sub_models[sub_model].train()
@@ -60,6 +67,10 @@ class BaseEngine():
             self.loss.backward() 
         for solver in self.solvers:
             self.solvers[solver].step()
+
+        if self.cfg.DISTRIBUTED:
+            dist.all_reduce(self.loss)
+            self.loss.div_(dist.get_world_size())
 
         self.loss = self.tensor_to_scalar(self.loss)
         self.losses = self.tensor_to_scalar(self.losses)     

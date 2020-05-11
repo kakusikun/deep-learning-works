@@ -16,13 +16,18 @@ def build_classification_loader(
     if use_train:
         train_trans = TransformFactory.produce(cfg, train_transformation)
         train_dataset = DataFormatFactory.produce(cfg, data=data.train, transform=train_trans)
+        if cfg.DISTRIBUTED:
+            sampler = distributed.DistributedSampler(train_dataset)
+        else:
+            sampler = None
         loader['train'] = DataLoader(
             train_dataset, 
             batch_size=train_batch_size, 
             shuffle=True, 
             num_workers=num_workers, 
             pin_memory=False,
-            drop_last=True
+            drop_last=True, 
+            sampler=sampler,
         )
     if use_test:
         val_trans = TransformFactory.produce(cfg, test_transformation)
