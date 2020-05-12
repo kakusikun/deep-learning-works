@@ -1,6 +1,7 @@
 from src.database.loader.coco import build_coco_loader
 from src.database.loader.reid import build_reid_loader
 from src.database.loader.classification import build_classification_loader
+import torch.distributed as dist
 
 class LoaderFactory:
     '''
@@ -50,5 +51,8 @@ class LoaderFactory:
                         num_people_per_batch=cfg.REID.SIZE_PERSON,
                     )
             if cfg.DB.USE_TRAIN:
-                cfg.SOLVER.ITERATIONS_PER_EPOCH = len(loader['train'])
+                if cfg.DISTRIBUTED:
+                    cfg.SOLVER.ITERATIONS_PER_EPOCH = len(loader['train']) // dist.get_world_size()
+                else:
+                    cfg.SOLVER.ITERATIONS_PER_EPOCH = len(loader['train'])
             return loader

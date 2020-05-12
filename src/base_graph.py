@@ -169,7 +169,7 @@ class BaseGraph:
                 if self.use_gpu:
                     if self.cfg.DISTRIBUTED:
                         rank = dist.get_rank()
-                        self.parallel_model = torch.nn.parallel.DistributedDataParallel(self.model, device_ids=[rank], output_device=rank)
+                        self.parallel_model = torch.nn.parallel.DistributedDataParallel(self.model, device_ids=[rank], output_device=rank, find_unused_parameters=True)
                     else:
                         logger.info("Use GPUs: {}{}{}{}".format(bcolors.RESET, bcolors.OKGREEN, gpu, bcolors.RESET))
                         self.parallel_model = torch.nn.DataParallel(self.model)

@@ -2,6 +2,7 @@ import os
 import argparse
 import shutil
 import logging
+import time
 import sys
 import traceback
 import torch
@@ -36,10 +37,12 @@ def main():
         cfg.merge_from_file(args.config)
     cfg.merge_from_list(args.opts)    
     if args.local_rank != 0:
+        time.sleep(5)
         cfg.IO = False
         cfg.SAVE = False
     build_output(cfg, args.config)
     logger = setup_logger(cfg.OUTPUT_DIR)   
+
     deploy_macro(cfg)
 
     assert cfg.DISTRIBUTED is True
@@ -69,5 +72,6 @@ def main():
 
 if __name__ == '__main__':
     # python3 -m torch.distributed.launch --nproc_per_node=3
+    # kill $(ps aux | grep train_distributed.py | grep -v grep | awk '{print $2}')
     print(os.getpid())
     main()
