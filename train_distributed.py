@@ -2,6 +2,7 @@ import os
 import argparse
 import shutil
 import logging
+import time
 import sys
 import traceback
 import torch
@@ -36,10 +37,15 @@ def main():
         cfg.merge_from_file(args.config)
     cfg.merge_from_list(args.opts)    
     if args.local_rank != 0:
+        time.sleep(5)
         cfg.IO = False
         cfg.SAVE = False
-    build_output(cfg, args.config)
-    logger = setup_logger(cfg.OUTPUT_DIR)   
+        build_output(cfg, args.config)
+        logger = logging.getLogger("logger")
+    else:
+        build_output(cfg, args.config)
+        logger = setup_logger(cfg.OUTPUT_DIR)   
+
     deploy_macro(cfg)
 
     assert cfg.DISTRIBUTED is True

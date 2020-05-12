@@ -127,10 +127,12 @@ class BaseEngine():
             self._train_epoch_end()
             
             if self.epoch % self.cfg.EVALUATE_FREQ == 0:
-                if self.cfg.DISTRIBUTED and dist.get_rank() != 0:
-                    pass
+                if self.cfg.DISTRIBUTED:
+                    if dist.get_rank() == 0:
+                        self._evaluate()
                 else:
                     self._evaluate()
+
             if self.cfg.SOLVER.LR_POLICY == 'plateau' and self.cfg.SOLVER.MIN_LR >= self.solvers['model'].monitor_lr:
                 logger.info(f"LR {self.solvers['model'].monitor_lr} is less than {self.cfg.SOLVER.MIN_LR}")
                 break

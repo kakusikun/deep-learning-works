@@ -9,7 +9,7 @@ class _Model(nn.Module):
     
     def forward(self, x):
         # use trick: BNNeck, feature before BNNeck to triplet GAP and feature w/o fc forward in backbone
-        x = self.backbone(x)[-1]
+        x = self.backbone(x)
         embb = self.head(x)
         if self.iap_cosine_head.training:
             output = self.iap_cosine_head(embb)

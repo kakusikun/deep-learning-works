@@ -158,21 +158,25 @@ cfg.YOLO = CN()
 cfg.YOLO.ANCHORS = []
 
 
-def build_output(cfg, config_file=""):
-    time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
-    if cfg.EVALUATE:
-        root = osp.join("evaluation", cfg.DB.DATA, cfg.EXPERIMENT)
+def build_output(cfg, config_file="", find_existing_path=False):
+    if not find_existing_path:
+        time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
+        if cfg.EVALUATE:
+            root = osp.join("evaluation", cfg.DB.DATA, cfg.EXPERIMENT)
+        else:
+            root = osp.join(os.getcwd(), "result", cfg.DB.DATA, cfg.EXPERIMENT)
+        if not osp.exists(root):
+            os.makedirs(root)
+        n_folders = len([f for f in os.scandir(root) if f.is_dir()])
+        cfg.OUTPUT_DIR = osp.join(root, f"{n_folders:03}-{time}")
+        if cfg.OUTPUT_DIR and not osp.exists(cfg.OUTPUT_DIR):
+            os.makedirs(cfg.OUTPUT_DIR)
+            if config_file != "":
+                shutil.copy(config_file, osp.join(cfg.OUTPUT_DIR, config_file.split("/")[-1]))
     else:
         root = osp.join(os.getcwd(), "result", cfg.DB.DATA, cfg.EXPERIMENT)
-    if not osp.exists(root):
-        os.makedirs(root)
-    n_folders = len([f for f in os.scandir(root) if f.is_dir()])
-    cfg.OUTPUT_DIR = osp.join(root, f"{n_folders:03}-{time}")
-    if cfg.OUTPUT_DIR and not osp.exists(cfg.OUTPUT_DIR):
-        os.makedirs(cfg.OUTPUT_DIR)
-        if config_file != "":
-            shutil.copy(config_file, osp.join(cfg.OUTPUT_DIR, config_file.split("/")[-1]))
-    
+        cfg.OUTPUT_DIR = osp.join(root, sorted(os.listdir(root))[-1])
+
 def show_products():
     from src.factory.data_factory import DataFactory
     from src.factory.data_format_factory import DataFormatFactory
