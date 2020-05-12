@@ -6,7 +6,7 @@ import numpy as np
 import logging
 logger = logging.getLogger("logger")
 try:
-    import apex
+    from apex import amp
     APEX_IMPORTED = True
 except:
     logger.info("Install nvidia apex first")
