@@ -6,9 +6,11 @@ import numpy as np
 import logging
 logger = logging.getLogger("logger")
 try:
-    from apex import amp
+    import apex
+    APEX_IMPORTED = True
 except:
     logger.info("Install nvidia apex first")
+    APEX_IMPORTED = False
 
 class BaseEngine():
     def __init__(self, cfg, graph, loader, solvers, visualizer):
@@ -60,7 +62,7 @@ class BaseEngine():
             self.solvers[solver].zero_grad()
 
     def _train_iter_end(self): 
-        if self.cfg.APEX:
+        if self.cfg.APEX and APEX_IMPORTED:
             with amp.scale_loss(self.loss, self.solvers['main'].opt) as scaled_loss:
                 scaled_loss.backward()  
         else:       

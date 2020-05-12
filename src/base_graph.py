@@ -10,6 +10,15 @@ from tools import bcolors
 from copy import deepcopy
 from src.factory.transform_factory import TransformFactory
 
+try:
+    from apex.parallel import DistributedDataParallel as DDP
+    import apex
+    APEX_IMPORTED = True
+except:
+    logger.info("Install nvidia apex first")
+    APEX_IMPORTED = False
+
+
 class BaseGraph:
     def __init__(self, cfg):
         '''
@@ -39,8 +48,11 @@ class BaseGraph:
         raise NotImplementedError
     
     def syncbn(self):
-        process_group = dist.new_group(list(range(dist.get_world_size())))
-        self.model = nn.SyncBatchNorm.convert_sync_batchnorm(self.model, process_group)
+        if self.cfg.APEX and APEX_IMPORTED:
+            self.model = apex.parallel.convert_syncbn_model(self.model)
+        else:
+            process_group = dist.new_group(list(range(dist.get_world_size())))
+            self.model = nn.SyncBatchNorm.convert_sync_batchnorm(self.model, process_group)
 
     def run(self, x, *args, **kwargs):
         if self.parallel_model is not None:
@@ -168,8 +180,11 @@ class BaseGraph:
             if num_gpus > 1 and torch.cuda.device_count() > 1:
                 if self.use_gpu:
                     if self.cfg.DISTRIBUTED:
-                        rank = dist.get_rank()
-                        self.parallel_model = torch.nn.parallel.DistributedDataParallel(self.model, device_ids=[rank], output_device=rank, find_unused_parameters=True)
+                        if self.cfg.APEX and APEX_IMPORTED:
+                            self.parallel_model = DDP(self.model, delay_allreduce=True)
+                        else:
+                            rank = dist.get_rank()
+                            self.parallel_model = torch.nn.parallel.DistributedDataParallel(self.model, device_ids=[rank], output_device=rank, find_unused_parameters=True)
                     else:
                         logger.info("Use GPUs: {}{}{}{}".format(bcolors.RESET, bcolors.OKGREEN, gpu, bcolors.RESET))
                         self.parallel_model = torch.nn.DataParallel(self.model)
