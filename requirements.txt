@@ -16,7 +16,6 @@ tensorboardX==1.7
 tensorflow==1.14.0
 opencv-python==4.1.0.25
 colormath
-pycocotools
 onnx==1.5.0
 thop
 

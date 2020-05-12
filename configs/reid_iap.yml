@@ -1,7 +1,7 @@
 # [modelname]_[task]_[loss]_[opt]_[pretrain]
 EXPERIMENT: "OSNet_IAP-msmt_duke_cuhk123-amsoftmax-AdamW_amsgrad_lr_0.0015_freeze_step-imagenet"
-EVALUATE: True
-RESUME: "/media/allen/mass/osnet_x1_0_imagenet.pth"
+# EVALUATE: True
+RESUME: "/home/agent/osnet_x1_0_imagenet.pth"
 SAVE: True
 IO: True
 SEED: 42
