@@ -6,7 +6,7 @@ class _Model(nn.Module):
         self.backbone = BackboneFactory.produce(cfg)
         self.head = ClassifierHead(cfg.MODEL.FEATSIZE, cfg.DB.NUM_CLASSES)
     def forward(self, x):
-        x = self.backbone(x)[-1]
+        x = self.backbone(x)
         x = self.head(x)
         return x
 

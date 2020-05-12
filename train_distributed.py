@@ -33,27 +33,28 @@ def main():
     if args.cfg:
         show_configs()
 
-    if args.config != "":
-        cfg.merge_from_file(args.config)
-    cfg.merge_from_list(args.opts)    
-    if args.local_rank != 0:
-        time.sleep(5)
-        cfg.IO = False
-        cfg.SAVE = False
-    build_output(cfg, args.config)
-    logger = setup_logger(cfg.OUTPUT_DIR)   
-
-    deploy_macro(cfg)
-
-    assert cfg.DISTRIBUTED is True
     dist.init_process_group(backend='nccl')
     rank = dist.get_rank()
+    assert rank == args.local_rank
+
+    if args.config != "":
+        cfg.merge_from_file(args.config)
+    cfg.merge_from_list(args.opts)  
+
+    if args.local_rank != 0:
+        cfg.IO = False
+        cfg.SAVE = False
+        build_output(cfg, args.config, find_existing_path=True)
+        logger = logging.getLogger("Logger")
+    else:
+        build_output(cfg, args.config)
+        logger = setup_logger(cfg.OUTPUT_DIR)    
+
+    deploy_macro(cfg)
     logger.info(f"Rank [{rank}] Start!")
-    device = torch.device("cuda:{}".format(args.local_rank))
+    device = torch.device("cuda:{}".format(rank))
     torch.cuda.set_device(device)
     trainer = TrainerFactory.produce(cfg)
-
-    logger.info("Running with config")
     
     if cfg.EVALUATE:
         trainer.test()

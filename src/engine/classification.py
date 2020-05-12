@@ -9,12 +9,15 @@ class ClassificationEngine(BaseEngine):
         accus = []   
         for batch in tqdm(self.tdata, desc=f"TRAIN[{self.epoch}/{self.cfg.SOLVER.MAX_EPOCHS}]"):
             self._train_iter_start()
-            for key in batch:
-                batch[key] = batch[key].cuda()
-            images = batch['inp']
-            outputs = self.graph.run(images)
-            self.loss, self.losses = self.graph.loss_head(outputs, batch)
-            accus.append((outputs.max(1)[1] == batch['target']).float().mean())        
+            if self.use_gpu:
+                for key in batch:
+                    if self.cfg.DISTRIBUTED:
+                        batch[key] = batch[key].to(self.device, non_blocking=True)
+                    else:
+                        batch[key] = batch[key].cuda()
+            output = self.graph.run(batch['inp']) 
+            self.loss, self.losses = self.graph.loss_head(output, batch)
+            accus.append((output.max(1)[1] == batch['target']).float().mean())        
             self._train_iter_end()    
 
         self.train_accu = self.tensor_to_scalar(torch.stack(accus).mean())
@@ -26,13 +29,14 @@ class ClassificationEngine(BaseEngine):
         with torch.no_grad():
             self._eval_epoch_start()
             for batch in tqdm(self.vdata, desc=title): 
-                for key in batch:
-                    batch[key] = batch[key].cuda()
-                images = batch['inp']      
-                
-                outputs = self.graph.run(images)
-
-                accus.append((outputs.max(1)[1] == batch['target']).float().mean())
+                if self.use_gpu:
+                    for key in batch:
+                        if self.cfg.DISTRIBUTED:
+                            batch[key] = batch[key].to(self.device, non_blocking=True)
+                        else:
+                            batch[key] = batch[key].cuda()
+                output = self.graph.run(batch['inp']) 
+                accus.append((output.max(1)[1] == batch['target']).float().mean())
           
         self.accu = self.tensor_to_scalar(torch.stack(accus).mean())    
 
