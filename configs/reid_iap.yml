@@ -1,18 +1,18 @@
 # [modelname]_[task]_[loss]_[opt]_[pretrain]
-EXPERIMENT: "OSNet_IAP-msmt-amsoftmax-AdamW_amsgrad_lr_0.0015_freeze_step-scratch"
+EXPERIMENT: "OSNet_IAP-msmt_duke_cuhk123-amsoftmax-AdamW_amsgrad_lr_0.0015_freeze_step-imagenet"
 EVALUATE: True
-RESUME: "/media/allen/mass/deep-learning-works/result/msmt market/OSNet_IAP-msmt-amsoftmax-AdamW_amsgrad_lr_0.0015_freeze_step-scratch/000-2020-03-30_23-19/weights/model_055_0.6129.pth"
-# "/media/allen/mass/osnet_x1_0_imagenet.pth"
+RESUME: "/media/allen/mass/osnet_x1_0_imagenet.pth"
 SAVE: True
 IO: True
 SEED: 42
 ENGINE: "iap_reid"
 GRAPH: "iap_reid"
 TRAINER: "iap_reid"
-NUM_WORKERS: 1
+NUM_WORKERS: 3
 EVALUATE_FREQ: 5
+DISTRIBUTED: True
 MODEL:
-  GPU: [1]
+  GPU: [0,1,2]
   BACKBONE: "osnet_deep_reid_iap"
   FEATSIZE: 512
 INPUT:
@@ -23,8 +23,8 @@ INPUT:
   MEAN: [0.485, 0.456, 0.406]
   STD: [0.229, 0.224, 0.225]
 DB:
-  PATH: "/media/allen/mass/DB"
-  DATA: "msmt duke"
+  PATH: "/home/agent/person_reid"
+  DATA: "msmt duke cuhk01 cuhk02 cuhk03"
   DATA_FORMAT: "reid"
   LOADER: "reid"
   USE_TRAIN: True
