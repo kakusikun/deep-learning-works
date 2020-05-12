@@ -10,7 +10,12 @@ from src.solver.solver import Solver
 from src.factory.engine_factory import EngineFactory
 from tools.tensorboard import Tensorboard
 from tools.utils import print_config
-
+try:
+    import apex
+    APEX_IMPORTED = True
+except:
+    logger.info("Install nvidia apex first")
+    APEX_IMPORTED = False
 
 class BaseTrainer():
     def __init__(self, cfg):
@@ -27,24 +32,20 @@ class BaseTrainer():
         
     def activate(self):
         self.resume()
-        if self.cfg.APEX:
-            try:
-                from apex import amp
-                self.graph.model, self.solvers['main'].opt = amp.initialize(
-                    self.graph.model, 
-                    self.solvers['main'].opt,
-                    opt_level='O1',
-                    keep_batchnorm_fp32=True
-                )
-                logger.info("Using nvidia apex")
-            except:
-                logger.info("Install nvidia apex first")
+        if self.cfg.APEX and APEX_IMPORTED:
+            self.graph.model, self.solvers['main'].opt = amp.initialize(
+                self.graph.model, 
+                self.solvers['main'].opt,
+                opt_level='O1',
+                keep_batchnorm_fp32=True
+            )
                 
         self.graph.to_gpus()
         self.engine = EngineFactory.produce(
             self.cfg, self.graph, self.loader, self.solvers, self.visualizer
         )
-        print_config(self.cfg)        
+        if self.cfg.IO:
+            print_config(self.cfg)        
     
     def train(self):
         self.engine.Train()
