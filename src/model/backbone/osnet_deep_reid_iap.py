@@ -334,20 +334,21 @@ class OSNet(nn.Module):
     
 
     def forward(self, x):
-        stages = []
+        # stages = []
         if self.in_first is not None:
             x = self.in_first(x)
         x = self.conv1(x)
         x = self.maxpool(x)
         x = self.conv2(x)
-        stages.append(x)
+        # stages.append(x)
         x = self.conv3(x)
-        stages.append(x)
+        # stages.append(x)
         x = self.conv4(x)
-        stages.append(x)
+        # stages.append(x)
         x = self.conv5(x)
-        stages.append(x)
-        return stages
+        # stages.append(x)
+        # return stages
+        return x
 
     def _init_params(self):
         for m in self.modules():

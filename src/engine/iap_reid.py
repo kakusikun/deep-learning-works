@@ -42,8 +42,8 @@ class IAPReIDEngine(BaseEngine):
                         batch[key] = batch[key].to(self.device, non_blocking=True)
                     else:
                         batch[key] = batch[key].cuda()
-            outputs = self.graph.run(batch['inp']) 
-            loss, losses = self.graph.loss_head(outputs, batch)
+            output = self.graph.run(batch['inp']) 
+            loss, losses = self.graph.loss_head(output, batch)
             self.loss, self.losses = loss, losses
             self._train_iter_end()
 
@@ -57,9 +57,9 @@ class IAPReIDEngine(BaseEngine):
             for batch in tqdm(self.qdata, desc=title): 
                 imgs, pids, camids = batch['inp'], batch['pid'], batch['camid']
                 if self.cfg.DISTRIBUTED:
-                    features = self.graph.run(imgs.to(self.device, non_blocking=True) if self.use_gpu else imgs)['embb']
+                    features = self.graph.run(imgs.to(self.device, non_blocking=True) if self.use_gpu else imgs)
                 else:
-                    features = self.graph.run(imgs.cuda() if self.use_gpu else imgs)['embb']
+                    features = self.graph.run(imgs.cuda() if self.use_gpu else imgs)
                 qf.append(features.cpu())
                 q_pids.extend(pids)
                 q_camids.extend(camids)
@@ -73,9 +73,9 @@ class IAPReIDEngine(BaseEngine):
             for batch in tqdm(self.gdata, desc=title): 
                 imgs, pids, camids = batch['inp'], batch['pid'], batch['camid']
                 if self.cfg.DISTRIBUTED:
-                    features = self.graph.run(imgs.to(self.device, non_blocking=True) if self.use_gpu else imgs)['embb']
+                    features = self.graph.run(imgs.to(self.device, non_blocking=True) if self.use_gpu else imgs)
                 else:
-                    features = self.graph.run(imgs.cuda() if self.use_gpu else imgs)['embb']
+                    features = self.graph.run(imgs.cuda() if self.use_gpu else imgs)
                 gf.append(features.cpu())
                 g_pids.extend(pids)
                 g_camids.extend(camids)
