@@ -55,11 +55,7 @@ class ImageNet(BaseData):
         with open(self.train_list, 'r') as f:
             for line in f:
                 img, label = line.strip().split(" ")
-                if not self.use_lmdb:
-                    dataset.append((osp.join(self.train_dir, img), int(label)))                    
-                else:
-                    dataset.append((img, int(label)))
-
+                dataset.append((img, int(label)))
                 class_name = img.split("/")[0]
                 if class_name not in self.class_dict:
                     self.class_dict[class_name] = int(label)
@@ -72,10 +68,7 @@ class ImageNet(BaseData):
         with open(self.val_list, 'r') as f:
             for line in f:
                 img, label = line.strip().split(" ")
-                if not self.use_lmdb:
-                    dataset.append((osp.join(self.val_dir, img), int(label)))
-                else:
-                    dataset.append((img, int(label)))
+                dataset.append((img, int(label)))
                 gt.append(int(label))
         
         return dataset, len(dataset), len(set(gt))
