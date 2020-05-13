@@ -1,5 +1,5 @@
 # [modelname]_[task]_[loss]_[opt]_[pretrain]
-EXPERIMENT: "Shufflenetv2_hrnet-imagenet-ce-SGDW_nesterov_lr_0.01_cosine-scratch"
+EXPERIMENT: "Shufflenetv2_hrnet-imagenet-ce-SGDW_nesterov_lr_0.1_cosine-scratch"
 # EVALUATE: True
 # RESUME: "/home/agent/osnet_x1_0_imagenet.pth"
 APEX: True
@@ -14,12 +14,12 @@ EVALUATE_FREQ: 10
 DISTRIBUTED: True
 MODEL:
   GPU: [0,1,2]
-  BACKBONE: "hrnet"
-  FEATSIZE: 64
+  BACKBONE: "hrnet_cls"
+  FEATSIZE: 2048
 INPUT:
   PAD: 10
-  SIZE: (256, 256)
-  TRAIN_BS: 64
+  SIZE: (224,224)
+  TRAIN_BS: 85
   TEST_BS: 256
   MEAN: [0.485, 0.456, 0.406]
   STD: [0.229, 0.224, 0.225]
@@ -36,9 +36,10 @@ DB:
 SOLVER:
   OPTIMIZER: "SGDW"
   NESTEROV: True
+  MOMENTUM: 0.9
   START_EPOCH: 1
-  BASE_LR: 0.01
+  BASE_LR: 0.1
   BIAS_LR_FACTOR: 1.0
-  WEIGHT_DECAY: 0.0005
+  WEIGHT_DECAY: 0.0001
   WEIGHT_DECAY_BIAS_FACTOR: 1.0
-  LR_POLICY: "cosine-4-1-20-2"
+  LR_POLICY: "cosine-1-1-200-1"
