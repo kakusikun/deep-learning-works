@@ -36,8 +36,8 @@ class BaseTrainer():
             self.graph.model, self.solvers['main'].opt = amp.initialize(
                 self.graph.model, 
                 self.solvers['main'].opt,
-                opt_level='O2',
-                keep_batchnorm_fp32=True
+                opt_level='O1',
+                # keep_batchnorm_fp32=True
             )
                 
         self.graph.to_gpus()
