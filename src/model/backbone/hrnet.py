@@ -349,7 +349,7 @@ class PoseHighResolutionNet(nn.Module):
 
         # Increasing the #channels on each resolution 
         # from C, 2C, 4C, 8C to 128, 256, 512, 1024
-        incre_modules = []
+        incre_modules = nn.ModuleList()
         for i, channels  in enumerate(pre_stage_channels):
             self.inplanes = channels
             incre_module = self._make_layer(head_block,
@@ -357,27 +357,23 @@ class PoseHighResolutionNet(nn.Module):
                                             1,
                                             stride=1)
             incre_modules.append(incre_module)
-        incre_modules = nn.ModuleList(incre_modules)
             
         # downsampling modules
-        downsamp_modules = []
+        downsamp_modules = nn.ModuleList()
         for i in range(len(pre_stage_channels)-1):
-            in_channels = head_channels[i] * head_block.expansion
-            out_channels = head_channels[i+1] * head_block.expansion
-
-            downsamp_modules = ConvModule(
-                in_channels=in_channels,
-                out_channels=out_channels,
+            downsamp_module = ConvModule(
+                in_channels=head_channels[i],
+                out_channels=head_channels[i+1],
                 kernel_size=3,
                 stride=2,
                 padding=1,
             )
             downsamp_modules.append(downsamp_module)
-        downsamp_modules = nn.ModuleList(downsamp_modules)
 
         final_layer = ConvModule(
-            in_channels= head_channels[3],
+            in_channels=head_channels[3],
             out_channels=2048,
+            kernel_size=1
         )
         
         return incre_modules, downsamp_modules, final_layer
