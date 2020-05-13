@@ -15,14 +15,21 @@ class Shufflenetv2OD(BaseEngine):
     def _train_once(self):
         for batch in tqdm(self.tdata, desc=f"TRAIN[{self.epoch}/{self.cfg.SOLVER.MAX_EPOCHS}]"):
             self._train_iter_start()
-            for key in batch:
-                if isinstance(batch[key], dict):
-                    for sub_key in batch[key]:
-                        batch[key][sub_key] = batch[key][sub_key].cuda()
-                elif not isinstance(batch[key], torch.Tensor):
-                    continue
-                else:
-                    batch[key] = batch[key].cuda()
+            if self.use_gpu:
+                for key in batch:
+                    if isinstance(batch[key], dict):
+                        for sub_key in batch[key]:
+                            if self.cfg.DISTRIBUTED:
+                                batch[key][sub_key] = batch[key][sub_key].to(self.device, non_blocking=True)
+                            else:
+                                batch[key][sub_key] = batch[key][sub_key].cuda()
+                    elif not isinstance(batch[key], torch.Tensor):
+                        continue
+                    else:
+                        if self.cfg.DISTRIBUTED:
+                            batch[key] = batch[key].to(self.device, non_blocking=True)
+                        else:
+                            batch[key] = batch[key].cuda()
             outputs = self.graph.run(batch['inp'])
             self.loss, self.losses = self.graph.loss_head(outputs, batch)
             self._train_iter_end()
@@ -36,50 +43,57 @@ class Shufflenetv2OD(BaseEngine):
         with torch.no_grad():
             self._eval_epoch_start()
             for batch in tqdm(self.vdata, desc=title): 
-                for key in batch:
-                    if isinstance(batch[key], dict):
-                        for sub_key in batch[key]:
-                            batch[key][sub_key] = batch[key][sub_key].cuda()
-                    elif not isinstance(batch[key], torch.Tensor):
-                        continue
-                    else:
-                        batch[key] = batch[key].cuda()
-                    if self.cfg.ORACLE:
-                        feat = {}
-                        feat['hm']  = batch[out_size]['hm']
-                        feat['wh']  = torch.from_numpy(
-                            gen_oracle_map(
-                                batch[out_size]['wh'].detach().cpu().numpy(), 
-                                batch[out_size]['ind'].detach().cpu().numpy(), 
-                                batch['inp'].shape[3] // self.cfg.MODEL.STRIDES[0], 
-                                batch['inp'].shape[2] // self.cfg.MODEL.STRIDES[0]
-                            )
-                        ).cuda()
-                        feat['reg'] = torch.from_numpy(
-                            gen_oracle_map(
-                                batch[out_size]['reg'].detach().cpu().numpy(), 
-                                batch[out_size]['ind'].detach().cpu().numpy(), 
-                                batch['inp'].shape[3] // self.cfg.MODEL.STRIDES[0], 
-                                batch['inp'].shape[2] // self.cfg.MODEL.STRIDES[0]
-                            )
-                        ).cuda()
-                    else:               
-                        feat = self.graph.run(batch['inp'])[out_size]
-                        feat['hm'].sigmoid_()
-                        
-                    if self.cfg.DB.TARGET_FORMAT == 'centerface_bbox':
-                        feat['wh'].exp_()
+                if self.use_gpu:
+                    for key in batch:
+                        if isinstance(batch[key], dict):
+                            for sub_key in batch[key]:
+                                if self.cfg.DISTRIBUTED:
+                                    batch[key][sub_key] = batch[key][sub_key].to(self.device, non_blocking=True)
+                                else:
+                                    batch[key][sub_key] = batch[key][sub_key].cuda()
+                        elif not isinstance(batch[key], torch.Tensor):
+                            continue
+                        else:
+                            if self.cfg.DISTRIBUTED:
+                                batch[key] = batch[key].to(self.device, non_blocking=True)
+                            else:
+                                batch[key] = batch[key].cuda()
+                if self.cfg.ORACLE:
+                    feat = {}
+                    feat['hm']  = batch[out_size]['hm']
+                    feat['wh']  = torch.from_numpy(
+                        gen_oracle_map(
+                            batch[out_size]['wh'].detach().cpu().numpy(), 
+                            batch[out_size]['ind'].detach().cpu().numpy(), 
+                            batch['inp'].shape[3] // self.cfg.MODEL.STRIDES[0], 
+                            batch['inp'].shape[2] // self.cfg.MODEL.STRIDES[0]
+                        )
+                    ).cuda()
+                    feat['reg'] = torch.from_numpy(
+                        gen_oracle_map(
+                            batch[out_size]['reg'].detach().cpu().numpy(), 
+                            batch[out_size]['ind'].detach().cpu().numpy(), 
+                            batch['inp'].shape[3] // self.cfg.MODEL.STRIDES[0], 
+                            batch['inp'].shape[2] // self.cfg.MODEL.STRIDES[0]
+                        )
+                    ).cuda()
+                else:               
+                    feat = self.graph.run(batch['inp'])[out_size]
+                    feat['hm'].sigmoid_()
+                    
+                if self.cfg.DB.TARGET_FORMAT == 'centerface_bbox':
+                    feat['wh'].exp_()
 
-                    dets = centernet_det_decode(feat['hm'], feat['wh'], reg=feat['reg'], K=30)
-                    dets = dets.detach().cpu().numpy().reshape(1, -1, dets.shape[1])
-                    dets_out = centernet_det_post_process(
-                        dets.copy(), 
-                        batch['c'].cpu().numpy(), 
-                        batch['s'].cpu().numpy(), 
-                        feat['hm'].shape[2], 
-                        feat['hm'].shape[3], 
-                        feat['hm'].shape[1]
-                    )
+                dets = centernet_det_decode(feat['hm'], feat['wh'], reg=feat['reg'], K=30)
+                dets = dets.detach().cpu().numpy().reshape(1, -1, dets.shape[1])
+                dets_out = centernet_det_post_process(
+                    dets.copy(), 
+                    batch['c'].cpu().numpy(), 
+                    batch['s'].cpu().numpy(), 
+                    feat['hm'].shape[2], 
+                    feat['hm'].shape[3], 
+                    feat['hm'].shape[1]
+                )
                 results[batch['img_id'][0]] = dets_out[0]
         cce = coco_eval(self.vdata.dataset.coco[0], results, self.cfg.OUTPUT_DIR)  
 

@@ -56,7 +56,7 @@ class _LossHead(nn.Module):
                 else:
                     raise TypeError
         losses = {'hm':torch.cat(hm_loss).mean(), 'wh':torch.cat(wh_loss).mean(), 'reg':torch.cat(reg_loss).mean()}
-        loss = torch.exp(-self.s_hm) * (losses['hm'] + torch.exp(-self.s_wh) * losses['wh'] + torch.exp(-self.s_reg) * losses['reg']) + self.s_hm + self.s_wh + self.s_reg
+        loss = torch.exp(-self.s_hm) * losses['hm'] + torch.exp(-self.s_wh) * losses['wh'] + torch.exp(-self.s_reg) * losses['reg'] + self.s_hm + self.s_wh + self.s_reg
         uncertainty = {'s_hm': self.s_hm, 's_wh': self.s_wh, 's_reg': self.s_reg}
         losses.update(uncertainty)
         return loss, losses
