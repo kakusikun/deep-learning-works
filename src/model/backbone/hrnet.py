@@ -19,7 +19,7 @@ from src.model.module.base_module import (
 BN_MOMENTUM = 0.01
 
 class ShuffleBlock(nn.Module):
-    def __init__(self, inc, ouc, ksize, stride, activation, useSE, mode, affine=True, use_gn=True):
+    def __init__(self, inc, ouc, ksize, stride, activation, useSE, mode, affine=True):
         super(ShuffleBlock, self).__init__()
         self.stride = stride
         pad = ksize // 2
@@ -28,19 +28,19 @@ class ShuffleBlock(nn.Module):
 
         if mode == 'v2':
             branch_main = [
-                ConvModule(inc, midc, 1, activation=activation, affine=affine, use_gn=use_gn),
-                ConvModule(midc, midc, ksize, stride=stride, padding=pad, groups=midc, activation='linear', affine=affine, use_gn=use_gn),
-                ConvModule(midc, ouc - inc, 1, activation=activation, affine=affine, use_gn=use_gn),
+                ConvModule(inc, midc, 1, activation=activation, affine=affine),
+                ConvModule(midc, midc, ksize, stride=stride, padding=pad, groups=midc, activation='linear', affine=affine),
+                ConvModule(midc, ouc - inc, 1, activation=activation, affine=affine),
             ]
         elif mode == 'xception':
             assert ksize == 3
             branch_main = [
-                ConvModule(inc, inc, 3, stride=stride, padding=1, groups=inc, activation='linear', affine=affine, use_gn=use_gn),
-                ConvModule(inc, midc, 1, activation=activation, affine=affine, use_gn=use_gn),
-                ConvModule(midc, midc, 3, stride=1, padding=1, groups=midc, activation='linear', affine=affine, use_gn=use_gn),
-                ConvModule(midc, midc, 1, activation=activation, affine=affine, use_gn=use_gn),
-                ConvModule(midc, midc, 3, stride=1, padding=1, groups=midc, activation='linear', affine=affine, use_gn=use_gn),
-                ConvModule(midc, ouc - inc, 1, activation=activation, affine=affine, use_gn=use_gn),
+                ConvModule(inc, inc, 3, stride=stride, padding=1, groups=inc, activation='linear', affine=affine),
+                ConvModule(inc, midc, 1, activation=activation, affine=affine),
+                ConvModule(midc, midc, 3, stride=1, padding=1, groups=midc, activation='linear', affine=affine),
+                ConvModule(midc, midc, 1, activation=activation, affine=affine),
+                ConvModule(midc, midc, 3, stride=1, padding=1, groups=midc, activation='linear', affine=affine),
+                ConvModule(midc, ouc - inc, 1, activation=activation, affine=affine),
             ]
         else:
             raise TypeError
@@ -54,8 +54,8 @@ class ShuffleBlock(nn.Module):
 
         if stride == 2:
             self.branch_proj = nn.Sequential(
-                ConvModule(inc, inc, ksize, stride=stride, padding=pad, groups=inc, activation='linear', affine=affine, use_gn=use_gn),
-                ConvModule(inc, inc, 1, activation=activation, affine=affine, use_gn=use_gn),
+                ConvModule(inc, inc, ksize, stride=stride, padding=pad, groups=inc, activation='linear', affine=affine),
+                ConvModule(inc, inc, 1, activation=activation, affine=affine),
             )
         else:
             self.branch_proj = None
@@ -150,7 +150,7 @@ class HighResolutionModule(nn.Module):
                 if j > i:
                     fuse_layer.append(
                         nn.Sequential(
-                            ConvModule(num_inchannels[j], num_inchannels[i], kernel_size=1, activation='linear', use_gn=True),
+                            ConvModule(num_inchannels[j], num_inchannels[i], kernel_size=1, activation='linear'),
                             nn.Upsample(scale_factor=2**(j-i), mode='nearest')
                         )
                     )
@@ -162,12 +162,12 @@ class HighResolutionModule(nn.Module):
                         if k == i - j - 1:
                             num_outchannels_conv3x3 = num_inchannels[i]
                             conv3x3s.append(
-                                ConvModule(num_inchannels[j], num_outchannels_conv3x3, kernel_size=3, stride=2, padding=1, activation='linear', use_gn=True)
+                                ConvModule(num_inchannels[j], num_outchannels_conv3x3, kernel_size=3, stride=2, padding=1, activation='linear')
                             )
                         else:
                             num_outchannels_conv3x3 = num_inchannels[j]
                             conv3x3s.append(
-                                ConvModule(num_inchannels[j], num_outchannels_conv3x3, kernel_size=3, stride=2, padding=1, activation=activation, use_gn=True)
+                                ConvModule(num_inchannels[j], num_outchannels_conv3x3, kernel_size=3, stride=2, padding=1, activation=activation)
                             )
                     fuse_layer.append(nn.Sequential(*conv3x3s))
             fuse_layers.append(nn.ModuleList(fuse_layer))
@@ -215,8 +215,8 @@ class PoseHighResolutionNet(nn.Module):
         super(PoseHighResolutionNet, self).__init__()
 
         # stem net
-        self.conv1 = ConvModule(3, 64, kernel_size=3, stride=2, padding=1, activation='linear', use_gn=True)
-        self.conv2 = ConvModule(64, 64, kernel_size=3, stride=2, padding=1, use_gn=True)
+        self.conv1 = ConvModule(3, 64, kernel_size=3, stride=2, padding=1, activation='linear')
+        self.conv2 = ConvModule(64, 64, kernel_size=3, stride=2, padding=1)
         self.layer1 = self._make_layer(ShuffleBlock, 256, 4)
 
         self.stages = nn.ModuleList()
@@ -241,7 +241,7 @@ class PoseHighResolutionNet(nn.Module):
             self.stages.append(stage)
 
         last_inp_channels = np.int(np.sum(pre_stage_channels))
-        self.last_layer = ConvModule(last_inp_channels, 64, 1, activation='hs', use_gn=True)
+        self.last_layer = ConvModule(last_inp_channels, 64, 1, activation='hs')
 
         self.init_weights()
 
@@ -272,7 +272,7 @@ class PoseHighResolutionNet(nn.Module):
             if i < num_branches_pre:
                 if num_channels_cur_layer[i] != num_channels_pre_layer[i]:
                     transition_layers.append(
-                        ConvModule(num_channels_pre_layer[i], num_channels_cur_layer[i], kernel_size=3, padding=1, activation=activation, use_gn=True)
+                        ConvModule(num_channels_pre_layer[i], num_channels_cur_layer[i], kernel_size=3, padding=1, activation=activation)
                     )
                 else:
                     transition_layers.append(None)
@@ -283,7 +283,7 @@ class PoseHighResolutionNet(nn.Module):
                     outchannels = num_channels_cur_layer[i] \
                         if j == i-num_branches_pre else inchannels
                     conv3x3s.append(
-                        ConvModule(inchannels, outchannels, kernel_size=3, stride=2, padding=1, activation=activation, use_gn=True)
+                        ConvModule(inchannels, outchannels, kernel_size=3, stride=2, padding=1, activation=activation)
                     )
                 transition_layers.append(nn.Sequential(*conv3x3s))
 
