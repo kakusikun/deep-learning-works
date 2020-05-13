@@ -42,6 +42,7 @@ def main():
     cfg.merge_from_list(args.opts)  
 
     if args.local_rank != 0:
+        time.sleep(5)
         cfg.IO = False
         cfg.SAVE = False
         build_output(cfg, args.config, find_existing_path=True)
