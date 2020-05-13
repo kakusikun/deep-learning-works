@@ -14,7 +14,8 @@ class ImageNet(BaseData):
         self._check_before_run()
         if use_train:
             train, train_num_images, train_num_classes = self._process_train_dir()
-            self.train['handle'] = lmdb.open(self.train_dir)
+            handle = lmdb.open(self.train_dir)
+            self.train['handle'] = handle.begin()
             self.train['indice'] = train
             self.train['n_samples'] = train_num_images
             logger.info("=> {} TRAIN loaded".format(branch.upper()))
@@ -26,7 +27,8 @@ class ImageNet(BaseData):
             logger.info("  ------------------------------")
         if use_test:
             val, val_num_images, val_num_classes = self._process_val_dir()
-            self.val['handle'] = lmdb.open(self.val_dir)
+            handle = lmdb.open(self.val_dir)
+            self.val['handle'] = handle.begin()
             self.val['indice'] = val
             self.val['n_samples'] = val_num_images
             logger.info("=> {} VAL loaded".format(branch.upper()))

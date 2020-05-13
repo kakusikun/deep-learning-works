@@ -8,7 +8,7 @@ class build_image_dataset(Dataset):
     
     def __getitem__(self, index):
         img_path, label = self.data['indice'][index]
-        raw = self.data['handle'].get(img_path)
+        raw = self.data['handle'].get(img_path.encode())
         img_byte = io.BytesIO(raw)
         img = Image.open(img_byte)
         if img.mode != 'RGB':

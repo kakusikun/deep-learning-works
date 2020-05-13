@@ -23,7 +23,7 @@ def build_classification_loader(
         loader['train'] = DataLoader(
             train_dataset, 
             batch_size=train_batch_size, 
-            shuffle=True, 
+            shuffle=True if sampler is None else False, 
             num_workers=num_workers, 
             pin_memory=False,
             drop_last=True, 
