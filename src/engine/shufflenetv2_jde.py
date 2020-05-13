@@ -16,14 +16,21 @@ class Shufflenetv2JDE(BaseEngine):
         out_size = self.out_sizes[0]
         for batch in tqdm(self.tdata, desc=f"TRAIN[{self.epoch}/{self.cfg.SOLVER.MAX_EPOCHS}]"):
             self._train_iter_start()
-            for key in batch:
-                if isinstance(batch[key], dict):
-                    for sub_key in batch[key]:
-                        batch[key][sub_key] = batch[key][sub_key].cuda()
-                elif not isinstance(batch[key], torch.Tensor):
-                    continue
-                else:
-                    batch[key] = batch[key].cuda()
+            if self.use_gpu:
+                for key in batch:
+                    if isinstance(batch[key], dict):
+                        for sub_key in batch[key]:
+                            if self.cfg.DISTRIBUTED:
+                                batch[key][sub_key] = batch[key][sub_key].to(self.device, non_blocking=True)
+                            else:
+                                batch[key][sub_key] = batch[key][sub_key].cuda()
+                    elif not isinstance(batch[key], torch.Tensor):
+                        continue
+                    else:
+                        if self.cfg.DISTRIBUTED:
+                            batch[key] = batch[key].to(self.device, non_blocking=True)
+                        else:
+                            batch[key] = batch[key].cuda()
             outputs = self.graph.run(batch['inp'])
             self.loss, self.losses, logit = self.graph.loss_head(outputs, batch)
             if logit is not None:
@@ -42,14 +49,21 @@ class Shufflenetv2JDE(BaseEngine):
         with torch.no_grad():
             self._eval_epoch_start()
             for batch in tqdm(self.vdata, desc=title): 
-                for key in batch:
-                    if isinstance(batch[key], dict):
-                        for sub_key in batch[key]:
-                            batch[key][sub_key] = batch[key][sub_key].cuda()
-                    elif not isinstance(batch[key], torch.Tensor):
-                        continue
-                    else:
-                        batch[key] = batch[key].cuda()
+                if self.use_gpu:
+                    for key in batch:
+                        if isinstance(batch[key], dict):
+                            for sub_key in batch[key]:
+                                if self.cfg.DISTRIBUTED:
+                                    batch[key][sub_key] = batch[key][sub_key].to(self.device, non_blocking=True)
+                                else:
+                                    batch[key][sub_key] = batch[key][sub_key].cuda()
+                        elif not isinstance(batch[key], torch.Tensor):
+                            continue
+                        else:
+                            if self.cfg.DISTRIBUTED:
+                                batch[key] = batch[key].to(self.device, non_blocking=True)
+                            else:
+                                batch[key] = batch[key].cuda()
                 if self.cfg.ORACLE:
                     feat = {}
                     feat['hm']  = batch[out_size]['hm']

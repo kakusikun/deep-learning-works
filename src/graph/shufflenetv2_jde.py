@@ -8,17 +8,11 @@ class _Model(nn.Module):
         w, h = cfg.INPUT.SIZE
         self.out_sizes = [(w // s, h // s) for s in cfg.MODEL.STRIDES]
         self.backbone = BackboneFactory.produce(cfg)
-        self.fpn = FPN(
-            configs=["i_0", "i_1", "i_2"],
-            incs=self.backbone.stage_out_channels[-3:],
-            oss=[1, 2, 4],
-            oucs=[256, 256, 256],
-        )
         self.heads = nn.ModuleDict({
-            'hm': nn.ModuleList([HourGlassHead(256, cfg.DB.NUM_CLASSES) for _ in range(len(self.out_sizes))]),
-            'wh': nn.ModuleList([HourGlassHead(256, 2) for _ in range(len(self.out_sizes))]),
-            'reg': nn.ModuleList([HourGlassHead(256, 2) for _ in range(len(self.out_sizes))]),
-            'embb': nn.ModuleList([ConvModule(256, 128, 1, bias=True, activation='linear', use_bn=False) for _ in range(len(self.out_sizes))])
+            'hm': nn.ModuleList([HourGlassHead(64, cfg.DB.NUM_CLASSES) for _ in range(len(self.out_sizes))]),
+            'wh': nn.ModuleList([HourGlassHead(64, 2) for _ in range(len(self.out_sizes))]),
+            'reg': nn.ModuleList([HourGlassHead(64, 2) for _ in range(len(self.out_sizes))]),
+            'embb': nn.ModuleList([ConvModule(64, 128, 1, bias=True, activation='linear', use_bn=False) for _ in range(len(self.out_sizes))])
         })
         for head in self.heads['hm']:
             for m in head.modules():
@@ -43,9 +37,11 @@ class _LossHead(nn.Module):
         self.crit['hm'] = FocalLoss()  
         self.crit['wh'] = L1Loss()
         self.crit['reg'] = L1Loss()
-        self.crit['embb'] = AMSoftmaxWithLoss(s=30, m=0.35, relax=0.3)
+        self.crit['embb'] = AMSoftmaxWithLoss(s=30, m=0.35, relax=0.0)
         self.id_fc = AMSoftmaxClassiferHeadForJDE(128, cfg.REID.NUM_PERSON)
-        self.s_det = nn.Parameter(-1.85 * torch.ones(1))
+        self.s_hm = nn.Parameter(-1.85 * torch.ones(1))
+        self.s_wh = nn.Parameter(-1.85 * torch.ones(1))
+        self.s_reg = nn.Parameter(-1.85 * torch.ones(1))
         self.s_id = nn.Parameter(-1.05 * torch.ones(1))
         
     def forward(self, feats, batch):
@@ -69,16 +65,19 @@ class _LossHead(nn.Module):
                     valid_id = id_target > 0                        
                     if len(valid_id) > 0:
                         cosine = self.id_fc(output, batch[out_size]['reg_mask'], batch[out_size]['ind'])                            
-                        _id_loss, logit = self.crit[head](cosine[valid_id], id_target[valid_id])
+                        _id_loss = self.crit[head](cosine[valid_id], id_target[valid_id])
                     else:
                         _id_loss = torch.Tensor(0.0)
-                        logit = None
                     id_loss.append(_id_loss.unsqueeze(0))
                     logits.append(logit)
                 else:
                     raise TypeError
         losses = {'hm':torch.cat(hm_loss).mean(), 'wh':torch.cat(wh_loss).mean(), 'reg':torch.cat(reg_loss).mean(), 'embb':torch.cat(id_loss).mean()}
-        loss = torch.exp(-self.s_det) * (losses['hm'] + losses['wh'] * 0.1 + losses['reg']) + torch.exp(-self.s_id) * losses['embb'] + self.s_det + self.s_id
+        loss = torch.exp(-self.s_hm) * losses['hm'] + \
+                torch.exp(-self.s_wh) * losses['wh'] + \
+                torch.exp(-self.s_reg) * losses['reg'] + \
+                torch.exp(-self.s_id) * losses['embb'] + \
+                self.s_hm + self.s_wh + self.s_reg + self.s_id
         return loss, losses, logits[1]
 
 class ShuffleNetv2JDE(BaseGraph):
