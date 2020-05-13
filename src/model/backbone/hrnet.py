@@ -208,10 +208,12 @@ class PoseHighResolutionNet(nn.Module):
         stage_fused_method=['sum', 'sum', 'sum'],
         stage_activation=['relu', 'hs', 'hs'],
         stage_useSE=[False, False, True],
+        classification=False,
         ):
 
         self.inplanes = 64
         self.stage_num_branches = stage_num_branches
+        self.classification = classification
         super(PoseHighResolutionNet, self).__init__()
 
         # stem net
@@ -240,8 +242,12 @@ class PoseHighResolutionNet(nn.Module):
             self.transitions.append(transition)
             self.stages.append(stage)
 
-        last_inp_channels = np.int(np.sum(pre_stage_channels))
-        self.last_layer = ConvModule(last_inp_channels, 64, 1, activation='hs')
+        if self.classification:
+            self.incre_modules, self.downsamp_modules, \
+            self.final_layer = self._make_head(pre_stage_channels)
+        else:
+            last_inp_channels = np.int(np.sum(pre_stage_channels))
+            self.last_layer = ConvModule(last_inp_channels, 64, 1, activation='hs')
 
         self.init_weights()
 
@@ -337,6 +343,45 @@ class PoseHighResolutionNet(nn.Module):
 
         return nn.Sequential(*modules), num_inchannels
 
+    def _make_head(self, pre_stage_channels):
+        head_block = ShuffleBlock
+        head_channels = [32, 64, 128, 256]
+
+        # Increasing the #channels on each resolution 
+        # from C, 2C, 4C, 8C to 128, 256, 512, 1024
+        incre_modules = []
+        for i, channels  in enumerate(pre_stage_channels):
+            self.inplanes = channels
+            incre_module = self._make_layer(head_block,
+                                            head_channels[i],
+                                            1,
+                                            stride=1)
+            incre_modules.append(incre_module)
+        incre_modules = nn.ModuleList(incre_modules)
+            
+        # downsampling modules
+        downsamp_modules = []
+        for i in range(len(pre_stage_channels)-1):
+            in_channels = head_channels[i] * head_block.expansion
+            out_channels = head_channels[i+1] * head_block.expansion
+
+            downsamp_modules = ConvModule(
+                in_channels=in_channels,
+                out_channels=out_channels,
+                kernel_size=3,
+                stride=2,
+                padding=1,
+            )
+            downsamp_modules.append(downsamp_module)
+        downsamp_modules = nn.ModuleList(downsamp_modules)
+
+        final_layer = ConvModule(
+            in_channels= head_channels[3],
+            out_channels=2048,
+        )
+        
+        return incre_modules, downsamp_modules, final_layer
+    
     def forward(self, x):
         x = self.conv1(x)
         x = self.conv2(x)
@@ -372,17 +417,23 @@ class PoseHighResolutionNet(nn.Module):
             for y1, y2 in zip(part1, part2):
                 y_list.append(torch.cat([y1, y2], axis=1))
 
-        x = y_list
+        if self.classification:
+            y = self.incre_modules[0](y_list[0])
+            for i in range(len(self.downsamp_modules)):
+                y = self.incre_modules[i+1](y_list[i+1]) + \
+                            self.downsamp_modules[i](y)
+            x = self.final_layer(y)
+        else:          
+            x = y_list
+            # Upsampling
+            x0_h, x0_w = x[0].size(2), x[0].size(3)
+            x1 = F.interpolate(x[1], size=(x0_h, x0_w), mode='bilinear', align_corners=True)
+            x2 = F.interpolate(x[2], size=(x0_h, x0_w), mode='bilinear', align_corners=True)
+            x3 = F.interpolate(x[3], size=(x0_h, x0_w), mode='bilinear', align_corners=True)
 
-        # Upsampling
-        x0_h, x0_w = x[0].size(2), x[0].size(3)
-        x1 = F.upsample(x[1], size=(x0_h, x0_w), mode='bilinear', align_corners=True)
-        x2 = F.upsample(x[2], size=(x0_h, x0_w), mode='bilinear', align_corners=True)
-        x3 = F.upsample(x[3], size=(x0_h, x0_w), mode='bilinear', align_corners=True)
+            x = torch.cat([x[0], x1, x2, x3], 1)
 
-        x = torch.cat([x[0], x1, x2, x3], 1)
-
-        x = self.last_layer(x)
+            x = self.last_layer(x)
 
         return x
 
@@ -395,6 +446,10 @@ def fill_fc_weights(layers):
 
 def hrnet():
     model = PoseHighResolutionNet()
+    return model
+
+def hrnet_classification():
+    model = PoseHighResolutionNet(classification=True)
     return model
 
 if __name__ == "__main__":
