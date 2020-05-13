@@ -98,7 +98,7 @@ class IdBasedDistributedSampler(sampler.Sampler):
         return iter(final_idxs)
 
     def __len__(self):
-        return self.length
+        return self.length // dist.get_world_size
     
     def set_epoch(self, epoch):
         self.epoch = epoch
