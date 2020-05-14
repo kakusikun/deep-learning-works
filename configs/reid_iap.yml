@@ -1,5 +1,5 @@
 # [modelname]_[task]_[loss]_[opt]_[pretrain]
-EXPERIMENT: "OSNet_IAP-msmt_duke_cuhk123-amsoftmax-AdamW_amsgrad_lr_0.0005_freeze_step-imagenet"
+EXPERIMENT: "OSNet_IAP-msmt_duke_cuhk123-amsoftmax-AdamW_amsgrad_lr_0.0015_freeze_plateau-imagenet"
 # EVALUATE: True
 RESUME: "/home/agent/osnet_x1_0_imagenet.pth"
 APEX: True
@@ -10,10 +10,10 @@ ENGINE: "iap_reid"
 GRAPH: "iap_reid"
 TRAINER: "iap_reid"
 NUM_WORKERS: 3
-EVALUATE_FREQ: 1
+EVALUATE_FREQ: 5
 DISTRIBUTED: True
 MODEL:
-  GPU: [0,1,2]
+  GPU: [0]
   BACKBONE: "osnet_deep_reid_iap"
   FEATSIZE: 512
 INPUT:
@@ -36,11 +36,13 @@ SOLVER:
   OPTIMIZER: "AdamW"
   AMSGRAD: True
   START_EPOCH: 1
-  BASE_LR: 0.0005
+  BASE_LR: 0.0015
   BIAS_LR_FACTOR: 1.0
   WEIGHT_DECAY: 0.0005
   WEIGHT_DECAY_BIAS_FACTOR: 1.0
-  LR_POLICY: "step-40-0-0.1 step-10-1-0.1 step-15-2-0.1"
+  # LR_POLICY: "step-40-0-0.1 step-10-1-0.1 step-15-2-0.1"
+  LR_POLICY: "plateau-500-0.1-10"
+  MIN_LR: 1e-6
   MODEL_FREEZE_PEROID: 5
 REID:
   SIZE_PERSON: 4

@@ -4,7 +4,7 @@ from src.model.backbone.shufflenetv2_torchvision import shufflenetv2, shufflenet
 from src.model.backbone.osnet_deep_reid import osnet_x1_0
 from src.model.backbone.hacnn import hacnn
 from src.model.backbone.osnet_deep_reid_iap import osnet_iap_x1_0
-from src.model.backbone.hrnet import hrnet, hrnet_classification
+from src.model.backbone.hrnet import hrnet, hrnet_classification, hrnet_cifar
 from src.model.backbone.osnet_deep_reid_ain import osnet_ain_x1_0
 
 class BackboneFactory:
@@ -19,6 +19,7 @@ class BackboneFactory:
         'hrnet': hrnet,
         'hrnet_cls': hrnet_classification,
         'osnet_deep_reid_iap': osnet_ain_x1_0,
+        'hrnet_cifar': hrnet_cifar
     }
 
     @classmethod

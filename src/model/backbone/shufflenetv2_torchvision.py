@@ -107,18 +107,19 @@ class ShuffleNetV2(nn.Module):
 
     def forward(self, x):
         # See note [TorchScript super()]
-        stage_feats = []
+        # stage_feats = []
         x = self.conv1(x)
         x = self.maxpool(x) # os 2
         x = self.stage2(x) # os 4
-        stage_feats.append(x)
+        # stage_feats.append(x)
         x = self.stage3(x) # os 8
-        stage_feats.append(x)
+        # stage_feats.append(x)
         x = self.stage4(x) # os 16
-        stage_feats.append(x)
+        # stage_feats.append(x)
         # x = self.conv5(x) # os 16
         # stage_feats.append(x)
-        return stage_feats
+        # return stage_feats
+        return x
 
 def shufflenetv2():
     return ShuffleNetV2([1, 2, 2, 2, 2], [4, 8, 4], [24, 116, 232, 464])
