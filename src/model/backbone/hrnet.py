@@ -129,12 +129,10 @@ class HighResolutionModule(nn.Module):
 
     def _make_branches(self, num_branches, block, num_blocks, num_channels, activation, useSE):
         branches = []
-
         for i in range(num_branches):
             branches.append(
                 self._make_one_branch(i, block, num_blocks, num_channels, activation, useSE)
             )
-
         return nn.ModuleList(branches)
 
     def _make_fuse_layers(self, activation):
@@ -229,24 +227,29 @@ class PoseHighResolutionNet(nn.Module):
 
         self.stages = nn.ModuleList()
         self.transitions = nn.ModuleList()
+        self.csp_transitions = nn.ModuleList()
+        self.before_branches = nn.ModuleList()
         pre_stage_channels = [self.inplanes]
         for i in range(3):
             transition = self._make_transition_layer(pre_stage_channels, stage_num_channels[i], stage_activation[max(i-1, 0)])
-            num_channels = [c for c in stage_num_channels[i]]
-            stage, pre_stage_channels = self._make_stage(
+            csp_channels = [c//2 for c in stage_num_channels[i]]
+            csp_transition = self._make_transition_layer(stage_num_channels[i], csp_channels, 'linear', csp=True)
+            stage, before_branches, pre_stage_channels = self._make_stage(
                 stage_num_modules[i],
                 stage_num_branches[i],
                 stage_num_blocks[i],
-                num_channels,
+                csp_channels,
                 stage_blocks[i],
                 stage_fused_method[i],
-                num_channels,
+                csp_channels,
                 stage_activation[i],
                 stage_useSE[i],
             )
-            pre_stage_channels = [c for c in pre_stage_channels]
+            pre_stage_channels = [c*2 for c in pre_stage_channels]
             self.transitions.append(transition)
             self.stages.append(stage)
+            self.csp_transitions.append(csp_transition)
+            self.before_branches.append(before_branches)
 
         if self.classification:
             self.incre_modules, self.downsamp_modules, \
@@ -275,29 +278,38 @@ class PoseHighResolutionNet(nn.Module):
                         nn.init.constant_(m.bias, 0)
 
     def _make_transition_layer(
-            self, num_channels_pre_layer, num_channels_cur_layer, activation):
+            self, num_channels_pre_layer, num_channels_cur_layer, activation, csp=False):
         num_branches_cur = len(num_channels_cur_layer)
         num_branches_pre = len(num_channels_pre_layer)
 
         transition_layers = nn.ModuleList()
         for i in range(num_branches_cur):
             if i < num_branches_pre:
-                if num_channels_cur_layer[i] != num_channels_pre_layer[i]:
-                    transition_layers.append(
-                        ConvModule(num_channels_pre_layer[i], num_channels_cur_layer[i], kernel_size=3, padding=1, activation=activation)
-                    )
+                if num_channels_cur_layer[i] != num_channels_pre_layer[i] or csp:
+                    if csp:
+                        transition_layers.append(
+                            ConvModule(num_channels_pre_layer[i], num_channels_cur_layer[i], kernel_size=1, activation=activation)
+                        )
+                        transition_layers.append(
+                            ConvModule(num_channels_cur_layer[i] * 2, num_channels_cur_layer[i] * 2, kernel_size=1, activation=activation)
+                        )
+                    else:
+                        transition_layers.append(
+                            ConvModule(num_channels_pre_layer[i], num_channels_cur_layer[i], kernel_size=3, padding=1, activation=activation)
+                        )
                 else:
                     transition_layers.append(None)
             else:
-                conv3x3s = []
-                for j in range(i+1-num_branches_pre):
-                    inchannels = num_channels_pre_layer[-1]
-                    outchannels = num_channels_cur_layer[i] \
-                        if j == i-num_branches_pre else inchannels
-                    conv3x3s.append(
-                        ConvModule(inchannels, outchannels, kernel_size=3, stride=2, padding=1, activation=activation)
-                    )
-                transition_layers.append(nn.Sequential(*conv3x3s))
+                if not csp:
+                    conv3x3s = []
+                    for j in range(i+1-num_branches_pre):
+                        inchannels = num_channels_pre_layer[-1]
+                        outchannels = num_channels_cur_layer[i] \
+                            if j == i-num_branches_pre else inchannels
+                        conv3x3s.append(
+                            ConvModule(inchannels, outchannels, kernel_size=3, stride=2, padding=1, activation=activation)
+                        )
+                    transition_layers.append(nn.Sequential(*conv3x3s))
 
         return transition_layers
 
@@ -325,6 +337,10 @@ class PoseHighResolutionNet(nn.Module):
         multi_scale_output=True):
 
         modules = []
+        before_branches = nn.ModuleList()
+        for i in range(num_branches):
+            before_branches.append(ConvModule(num_inchannels[i]*2, num_inchannels[i], kernel_size=1))
+
         for i in range(num_modules):
             # multi_scale_output is only used last module
             if not multi_scale_output and i == num_modules - 1:
@@ -347,7 +363,7 @@ class PoseHighResolutionNet(nn.Module):
             )
             num_inchannels = modules[-1].get_num_inchannels()
 
-        return nn.Sequential(*modules), num_inchannels
+        return nn.Sequential(*modules), before_branches, num_inchannels
 
     def _make_head(self, head_channels, pre_stage_channels):
         head_block = ShuffleBlock
@@ -406,7 +422,17 @@ class PoseHighResolutionNet(nn.Module):
                         x_list.append(x)
                     else:
                         x_list.append(y_list[j])
+
+            csp_y_list = []
+            for j, xs in enumerate(x_list):
+                csp_y_list.append(self.csp_transitions[i][2*j](xs))
+                x_list[j] = self.before_branches[i][j](xs)
+
             y_list = self.stages[i](x_list)
+            for j, (csp_ys, ys) in enumerate(zip(csp_y_list, y_list)):
+                ys = torch.cat([csp_ys, ys], axis=1)
+                ys = self.csp_transitions[i][2*j+1](ys)
+                y_list[j] = ys
 
         if self.classification:
             y = self.incre_modules[0](y_list[0])
