@@ -209,21 +209,28 @@ class PoseHighResolutionNet(nn.Module):
         stage_activation=['relu', 'hs', 'hs'],
         stage_useSE=[False, False, True],
         classification=False,
+        cifar10=False,
         ):
 
         self.inplanes = 64
         self.stage_num_branches = stage_num_branches
         self.classification = classification
+        self.cifar10 = cifar10
         super(PoseHighResolutionNet, self).__init__()
 
         # stem net
-        self.conv1 = ConvModule(3, 64, kernel_size=3, stride=2, padding=1, activation='linear')
-        self.conv2 = ConvModule(64, 64, kernel_size=3, stride=2, padding=1)
-        self.layer1 = self._make_layer(ShuffleBlock, 256, 4)
+        if self.cifar10:
+            self.conv1 = ConvModule(3, 64, kernel_size=3, stride=1, padding=1, activation='linear')
+            self.conv2 = ConvModule(64, 64, kernel_size=3, stride=1, padding=1)
+        else:
+            self.conv1 = ConvModule(3, 64, kernel_size=3, stride=2, padding=1, activation='linear')
+            self.conv2 = ConvModule(64, 64, kernel_size=3, stride=2, padding=1)
+        self.layer1 = self._make_layer(ShuffleBlock, self.inplanes, 4)
 
         self.stages = nn.ModuleList()
         self.transitions = nn.ModuleList()
-        pre_stage_channels = [256]
+        self.csp_transitions = nn.ModuleList()
+        pre_stage_channels = [self.inplanes]
         for i in range(3):
             transition = self._make_transition_layer(pre_stage_channels, stage_num_channels[i], stage_activation[max(i-1, 0)])
             csp_channels = [c//2 for c in stage_num_channels[i]]
@@ -238,13 +245,15 @@ class PoseHighResolutionNet(nn.Module):
                 stage_activation[i],
                 stage_useSE[i],
             )
+            csp_transition = self._make_transition_layer(csp_channels, csp_channels, 'linear', csp=True)
             pre_stage_channels = [c*2 for c in pre_stage_channels]
             self.transitions.append(transition)
             self.stages.append(stage)
+            self.csp_transitions.append(csp_transition)
 
         if self.classification:
             self.incre_modules, self.downsamp_modules, \
-            self.final_layer = self._make_head(pre_stage_channels)
+            self.final_layer = self._make_head(stage_num_channels[-1], pre_stage_channels)
         else:
             last_inp_channels = np.int(np.sum(pre_stage_channels))
             self.last_layer = ConvModule(last_inp_channels, 64, 1, activation='hs')
@@ -269,19 +278,27 @@ class PoseHighResolutionNet(nn.Module):
                         nn.init.constant_(m.bias, 0)
 
     def _make_transition_layer(
-            self, num_channels_pre_layer, num_channels_cur_layer, activation):
+            self, num_channels_pre_layer, num_channels_cur_layer, activation, csp=False):
         num_branches_cur = len(num_channels_cur_layer)
         num_branches_pre = len(num_channels_pre_layer)
 
-        transition_layers = []
+        transition_layers = nn.ModuleList()
         for i in range(num_branches_cur):
             if i < num_branches_pre:
-                if num_channels_cur_layer[i] != num_channels_pre_layer[i]:
+                # if num_channels_cur_layer[i] != num_channels_pre_layer[i] or csp:
+                if csp:
+                    transition_layers.append(
+                        ConvModule(num_channels_pre_layer[i], num_channels_cur_layer[i], kernel_size=1, activation=activation)
+                    )
+                    transition_layers.append(
+                        ConvModule(num_channels_pre_layer[i] * 2, num_channels_cur_layer[i] * 2, kernel_size=1, activation=activation)
+                    )
+                else:
                     transition_layers.append(
                         ConvModule(num_channels_pre_layer[i], num_channels_cur_layer[i], kernel_size=3, padding=1, activation=activation)
                     )
-                else:
-                    transition_layers.append(None)
+                # else:
+                #     transition_layers.append(None)
             else:
                 conv3x3s = []
                 for j in range(i+1-num_branches_pre):
@@ -293,7 +310,7 @@ class PoseHighResolutionNet(nn.Module):
                     )
                 transition_layers.append(nn.Sequential(*conv3x3s))
 
-        return nn.ModuleList(transition_layers)
+        return transition_layers
 
     def _make_layer(self, block, planes, num_blocks, stride=1):
         layers = []
@@ -343,9 +360,8 @@ class PoseHighResolutionNet(nn.Module):
 
         return nn.Sequential(*modules), num_inchannels
 
-    def _make_head(self, pre_stage_channels):
+    def _make_head(self, head_channels, pre_stage_channels):
         head_block = ShuffleBlock
-        head_channels = [32, 64, 128, 256]
 
         # Increasing the #channels on each resolution 
         # from C, 2C, 4C, 8C to 128, 256, 512, 1024
@@ -369,10 +385,12 @@ class PoseHighResolutionNet(nn.Module):
                 padding=1,
             )
             downsamp_modules.append(downsamp_module)
-
+        feat_size = 2048
+        if self.cifar10:
+            feat_size = 1024
         final_layer = ConvModule(
             in_channels=head_channels[3],
-            out_channels=2048,
+            out_channels=feat_size,
             kernel_size=1
         )
         
@@ -404,14 +422,18 @@ class PoseHighResolutionNet(nn.Module):
             for xs in x_list:
                 n, c, h, w = xs.shape
                 assert c % 2 == 0
-                xs = xs.reshape(2, n, c//2, h, w)
+                xs = xs.reshape(2, n, c//2, h, w).contiguous()
                 part1.append(xs[0])
                 part2.append(xs[1])
 
             y_list = []
             part2 = self.stages[i](part2)
-            for y1, y2 in zip(part1, part2):
-                y_list.append(torch.cat([y1, y2], axis=1))
+            # y_list = self.stages[i](x_list)
+            for j, (y1, y2) in enumerate(zip(part1, part2)):
+                y1 = self.csp_transitions[i][2*j](y1)
+                y = torch.cat([y1, y2], axis=1)
+                y = self.csp_transitions[i][2*j+1](y)
+                y_list.append(y)
 
         if self.classification:
             y = self.incre_modules[0](y_list[0])
@@ -433,19 +455,26 @@ class PoseHighResolutionNet(nn.Module):
 
         return x
 
-def fill_fc_weights(layers):
-    for m in layers.modules():
-        if isinstance(m, nn.Conv2d):
-            if m.bias is not None:
-                nn.init.constant_(m.bias, 0)
-
-
 def hrnet():
     model = PoseHighResolutionNet()
     return model
 
 def hrnet_classification():
     model = PoseHighResolutionNet(classification=True)
+    return model
+
+def hrnet_cifar():
+    model = PoseHighResolutionNet(
+        stage_num_modules=[1,2,1],
+        stage_num_branches=[2,3,4],
+        stage_num_blocks=[[2,2], [2,2,2], [2,2,2,2]],
+        stage_num_channels=[[24,112], [24,112,232], [24,112,232,464]],
+        stage_blocks=[ShuffleBlock, ShuffleBlock, ShuffleBlock],
+        stage_activation=['relu', 'relu', 'relu'],
+        stage_useSE=[False, False, False],
+        classification=True,
+        cifar10=True
+    )
     return model
 
 if __name__ == "__main__":
