@@ -384,7 +384,7 @@ class OSNet(nn.Module):
 ##########
 # Instantiation
 ##########
-def osnet_ain_x1_0():
+def osnet_ain_x1_0(**kwargs):
     model = OSNet(
         blocks=[
             [OSBlockINin, OSBlockINin], [OSBlock, OSBlockINin],
