@@ -22,6 +22,8 @@ Fork from following task
 * ~~[(MAR) Unsupervised Person Re-identification by Soft Multilabel Learning](https://arxiv.org/abs/1903.06325)~~
 * [(BNNeck) Bag of Tricks and A Strong Baseline for Deep Person Re-identification](https://arxiv.org/abs/1903.07071)
 * [(OSNet) Omni-Scale Feature Learning for Person Re-Identification](https://arxiv.org/abs/1905.00953)
+* [(OSNet-IAP) Building Computationally Efficient and Well-Generalizing Person Re-Identification Models with Metric Learning](https://arxiv.org/abs/2003.07618)
+* [(OSNet-AIN) Learning Generalisable Omni-Scale Representations for Person Re-Identification](https://github.com/KaiyangZhou/deep-person-reid/blob/6081989d7eb7577f56a4da523da4fc47ea9fcd32/torchreid/models/osnet_ain.py)
 
 ### Pedestrian Attribute Recognition
 * Multitask Learning using fully connected layer
