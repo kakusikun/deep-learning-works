@@ -4,8 +4,9 @@ from tqdm import tqdm
 class ClassificationEngine(BaseEngine):
     def __init__(self, cfg, graph, loader, solvers, visualizer):
         super(ClassificationEngine, self).__init__(cfg, graph, loader, solvers, visualizer)
-        
+    
     def _train_once(self):
+        accus = []   
         for batch in tqdm(self.tdata, desc=f"TRAIN[{self.epoch}/{self.cfg.SOLVER.MAX_EPOCHS}]"):
             self._train_iter_start()
             if self.use_gpu:
@@ -16,9 +17,13 @@ class ClassificationEngine(BaseEngine):
                         batch[key] = batch[key].cuda()
             output = self.graph.run(batch['inp']) 
             self.loss, self.losses = self.graph.loss_head(output, batch)
-            self.train_accu = self.tensor_to_scalar((output.max(1)[1] == batch['target']).float().mean())
+            accu = (output.max(1)[1] == batch['target']).float().mean()
+            accus.append(accu)        
+            self.train_accu = self.tensor_to_scalar(accu)
             self._train_iter_end()    
-            
+
+        self.train_accu = self.tensor_to_scalar(torch.stack(accus).mean())
+        
     def _evaluate(self, eval=False):
         logger.info("Epoch {} evaluation start".format(self.epoch))
         title = "EVALUATE" if eval else f"TEST[{self.epoch}/{self.cfg.SOLVER.MAX_EPOCHS}]"
