@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import math
 
 class ConvModule(nn.Module):
     """
@@ -147,6 +148,30 @@ class SEModule(nn.Module):
         atten = self.se(x)
         atten = torch.clamp(atten + 3, 0, 6) / 6
         return x * atten
+
+class ECAModule(nn.Module):
+    """
+    Reference : https://arxiv.org/abs/1910.03151
+    input, N x C x H x W
+        => GAP, N x C x 1 x 1
+        => N X 1 x C x 1
+        => Conv, N X 1 x C x 1
+        => N x C x 1 x 1
+        =< Sigmoid
+    """
+    def __init__(self, inplanes, gamma=2, b=1):
+        super(ECAModule, self).__init__()
+        t = int(abs((math.log(inplanes, 2) + b) / gamma))
+        k = t if t % 2 else t + 1
+        self.gap = nn.AdaptiveAvgPool2d(1)
+        self.conv = nn.Conv2d(1, 1, kernel_size=(k, 1), padding=int(k/2), bias=False)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        atten = self.gap(x)
+        atten = self.conv(atten.transpose(1,2))
+        atten = self.sigmoid(atten.transpose(1,2))
+        return x * atten.expand_as(x)
 
 class Res2NetStem(nn.Module):
     """
