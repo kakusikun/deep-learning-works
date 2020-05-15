@@ -40,20 +40,20 @@ class _Model2(nn.Module):
     def __init__(self, cfg):
         super(_Model2, self).__init__()
         self.backbone = BackboneFactory.produce(cfg) 
-        self.head = ReIDTrickHead(cfg.MODEL.FEATSIZE, n_dim=256, kernal_size=(16, 8), use_local=True)
-        self.iap_cosine_head = AMSoftmaxClassiferHead(256, cfg.REID.NUM_PERSON)
+        self.iap_trick_head = ReIDTrickHead(cfg.MODEL.FEATSIZE, n_dim=0, kernal_size=(16, 8))
+        self.iap_cosine_head = AMSoftmaxClassiferHead(cfg.MODEL.FEATSIZE, cfg.REID.NUM_PERSON)
     
     def forward(self, x):
         x = self.backbone(x)
-        y = self.head(x)
-        if self.training:
+        y = self.iap_trick_head(x)
+        if self.iap_cosine_head.training:
             return self.iap_cosine_head(y)
         else:
             return y
 
 class DualNormIAPReID(BaseGraph):
     def __init__(self, cfg):
-        super(DualNormReID, self).__init__(cfg)        
+        super(DualNormIAPReID, self).__init__(cfg)        
 
     def build(self):
         self.model = _Model2(self.cfg)
