@@ -4,6 +4,29 @@ import torch.nn.functional as F
 from src.model.module.base_module import ConvModule, SEModule, HSwish
 from tools.utils import _tranpose_and_gather_feat
 
+def weights_init_kaiming(module):
+    for m in module.modules():
+        if isinstance(m, nn.Linear):
+            nn.init.kaiming_normal_(m.weight, a=0, mode='fan_out')
+            nn.init.constant_(m.bias, 0.0)
+        elif isinstance(m, nn.Conv2d):
+            nn.init.kaiming_normal_(m.weight, a=0, mode='fan_in')
+            if m.bias is not None:
+                nn.init.constant_(m.bias, 0.0)
+        elif isinstance(m, nn.BatchNorm2d):
+            if m.affine:
+                nn.init.constant_(m.weight, 1.0)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0.0)
+
+def weights_init_classifier(module):
+    for m in module.modules():
+        if isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
+            nn.init.normal_(m.weight, std=0.001)
+            if m.bias is not None:
+                nn.init.constant_(m.bias, 0.0)
+
+
 class ClassifierHead(nn.Module):
     def __init__(self, in_channels, num_classes):
         super(ClassifierHead, self).__init__()
@@ -134,47 +157,36 @@ class HourGlassHead(nn.Module):
         return self.head(x)
 
 class ReIDTrickHead(nn.Module):
-    def __init__(self, in_channels, n_dim, use_gap=True):
+    def __init__(self, in_channels, n_dim, kernal_size=0, triplet=False):
         super(ReIDTrickHead, self).__init__()
-        self.gap = nn.AdaptiveAvgPool2d(1) if use_gap else None        
-        self.BNNeck = nn.BatchNorm1d(in_channels)
+        self.triplet = triplet
+        if kernal_size:
+            self.gap = ConvModule(
+                in_channels,
+                in_channels,
+                kernal_size,
+                groups=in_channels,
+                activation='linear',
+                use_bn=False
+            )
+        else:
+            self.gap = nn.AdaptiveAvgPool2d(1)     
+        self.BNNeck = nn.BatchNorm2d(in_channels)
         self.BNNeck.bias.requires_grad_(False)  # no shift
-        self.BNNeck.apply(self.weights_init_kaiming)
+        self.BNNeck.apply(weights_init_kaiming)
         self.id_fc = nn.Linear(in_channels, n_dim, bias=False)        
-        self.id_fc.apply(self.weights_init_classifier)
+        self.id_fc.apply(weights_init_classifier)
 
     def forward(self, x):
-        if self.gap:
-            x = self.gap(x)
-            local_feat = x.view(x.size(0), -1)
-        else:
-            local_feat = x
-        x = self.BNNeck(local_feat)
-        global_feat = None
+        x = self.gap(x)
+        x = self.BNNeck(x)
+        x = x.view(-1, x.size(1))
         if self.training:
-            global_feat = self.id_fc(x)
-        return x, local_feat, global_feat
-    
-    def weights_init_kaiming(self, module):
-        for m in module.modules():
-            if isinstance(m, nn.Linear):
-                nn.init.kaiming_normal_(m.weight, a=0, mode='fan_out')
-                nn.init.constant_(m.bias, 0.0)
-            elif isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, a=0, mode='fan_in')
-                if m.bias is not None:
-                    nn.init.constant_(m.bias, 0.0)
-            elif isinstance(m, nn.BatchNorm2d):
-                if m.affine:
-                    nn.init.constant_(m.weight, 1.0)
-                    nn.init.constant_(m.bias, 0.0)
-
-    def weights_init_classifier(self, module):
-        for m in module.modules():
-            if isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
-                nn.init.normal_(m.weight, std=0.001)
-                if m.bias is not None:
-                    nn.init.constant_(m.bias, 0.0)
+            y = self.id_fc(x)
+            if self.triplet:
+                return x, y
+            return y
+        return x            
             
 class ReIDL2Head(nn.Module):
     def __init__(self, in_channels, n_pids):
@@ -217,6 +229,7 @@ class IAPHead(nn.Module):
             activation='linear',
             use_bn=False
         )
+
         self.iap_fc = nn.Sequential(
             nn.Linear(in_channels, feat_dim),
             nn.BatchNorm1d(feat_dim),
@@ -249,7 +262,6 @@ class IAPHead(nn.Module):
                 if m.bias is not None:
                     nn.init.constant_(m.bias, 0)
 
-
 class YOLOv3PredictionHead(nn.Module):
     def __init__(self, inc, n_location, n_dim):
         super(YOLOv3PredictionHead, self).__init__()
@@ -271,7 +283,6 @@ class YOLOv3PredictionHead(nn.Module):
         location = self.location(x)
         embedding = self.embedding(pre_embb)
         return torch.cat([location, embedding], dim=1)
-
 
 class AMSoftmaxClassiferHeadForJDE(nn.Module):
     def __init__(self, in_features, num_classes):   
