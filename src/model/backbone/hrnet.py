@@ -201,7 +201,7 @@ class PoseHighResolutionNet(nn.Module):
         stage_num_modules=[1,4,3],
         stage_num_branches=[2,3,4],
         stage_num_blocks=[[4,4], [4,4,4], [4,4,4,4]],
-        stage_num_channels=[[32,64], [32,64,128], [32,64,128,256]],
+        stage_num_channels=[[24,112], [24,112,232], [24,112,232,464]],
         stage_blocks=[ShuffleBlock, ShuffleBlock, ShuffleBlock],
         stage_fused_method=['sum', 'sum', 'sum'],
         stage_activation=['relu', 'hs', 'hs'],
