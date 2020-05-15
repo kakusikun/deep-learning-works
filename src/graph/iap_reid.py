@@ -35,3 +35,37 @@ class IAPReID(BaseGraph):
             return loss, losses
 
         self.loss_head = loss_head
+
+class _Model2(nn.Module):
+    def __init__(self, cfg):
+        super(_Model2, self).__init__()
+        self.backbone = BackboneFactory.produce(cfg) 
+        self.head = ReIDTrickHead(cfg.MODEL.FEATSIZE, n_dim=256, kernal_size=(16, 8), use_local=True)
+        self.iap_cosine_head = AMSoftmaxClassiferHead(256, cfg.REID.NUM_PERSON)
+    
+    def forward(self, x):
+        x = self.backbone(x)
+        y = self.head(x)
+        if self.training:
+            return self.iap_cosine_head(y)
+        else:
+            return y
+
+class DualNormIAPReID(BaseGraph):
+    def __init__(self, cfg):
+        super(DualNormReID, self).__init__(cfg)        
+
+    def build(self):
+        self.model = _Model2(self.cfg)
+        self.crit = {}
+        self.crit['amsoftmax'] = AMSoftmaxWithLoss(s=30, m=0.35, relax=0.0)
+
+        def loss_head(output, batch):
+            _loss = self.crit['amsoftmax'](output, batch['pid'])
+            losses = {
+                'amsoftmax':_loss, 
+            }
+            loss = losses['amsoftmax']
+            return loss, losses
+
+        self.loss_head = loss_head

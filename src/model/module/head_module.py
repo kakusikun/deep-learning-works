@@ -157,9 +157,10 @@ class HourGlassHead(nn.Module):
         return self.head(x)
 
 class ReIDTrickHead(nn.Module):
-    def __init__(self, in_channels, n_dim, kernal_size=0, triplet=False):
+    def __init__(self, in_channels, n_dim, kernal_size=0, triplet=False, use_local=False):
         super(ReIDTrickHead, self).__init__()
         self.triplet = triplet
+        self.use_local = use_local
         if kernal_size:
             self.gap = ConvModule(
                 in_channels,
@@ -174,14 +175,17 @@ class ReIDTrickHead(nn.Module):
         self.BNNeck = nn.BatchNorm2d(in_channels)
         self.BNNeck.bias.requires_grad_(False)  # no shift
         self.BNNeck.apply(weights_init_kaiming)
-        self.id_fc = nn.Linear(in_channels, n_dim, bias=False)        
-        self.id_fc.apply(weights_init_classifier)
+        if not self.use_local:
+            self.id_fc = nn.Linear(in_channels, n_dim, bias=False)        
+            self.id_fc.apply(weights_init_classifier)
 
     def forward(self, x):
         x = self.gap(x)
         x = self.BNNeck(x)
         x = x.view(-1, x.size(1))
         if self.training:
+            if self.use_local:
+                return x
             y = self.id_fc(x)
             if self.triplet:
                 return x, y

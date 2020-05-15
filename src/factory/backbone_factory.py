@@ -18,7 +18,7 @@ class BackboneFactory:
         'osnet_deep_reid_iap': osnet_iap_x1_0,
         'hrnet': hrnet,
         'hrnet_cls': hrnet_classification,
-        'osnet_deep_reid_iap': osnet_ain_x1_0,
+        'osnet_deep_reid_ain': osnet_ain_x1_0,
         'hrnet_cifar': hrnet_cifar
     }
 
