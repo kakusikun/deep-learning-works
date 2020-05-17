@@ -1,5 +1,6 @@
 # [modelname]_[task]_[loss]_[opt]_[pretrain]
 EXPERIMENT: "Shufflenetv2_hrnet-crowdhuman-person-focal_l1-AdamW_lr_0.01_warm_cosine_imagenet"
+PRETRAIN: True
 RESUME: "/home/agent/model_030_0.6612.pth"
 APEX: True
 SAVE: True
@@ -8,8 +9,8 @@ IO: True
 ENGINE: "shufflenetv2_object_detection"
 GRAPH: "shufflenetv2_object_detection"
 TRAINER: "centernet_object_detection"
-NUM_WORKERS: 16
-ORACLE: True
+NUM_WORKERS: 3
+# ORACLE: True
 EVALUATE_FREQ: 5
 DISTRIBUTED: True
 MODEL:
@@ -19,7 +20,7 @@ MODEL:
   FEATSIZE: 256
 INPUT:
   SIZE: (768,544)
-  TRAIN_BS: 10
+  TRAIN_BS: 2
   TEST_BS: 1
   MEAN: [0.485, 0.456, 0.406]
   STD: [0.229, 0.224, 0.225]
