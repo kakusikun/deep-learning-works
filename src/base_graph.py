@@ -113,20 +113,21 @@ class BaseGraph:
         self._state_processing(ckpt, model_state)                    
         model.load_state_dict(model_state)
 
-        if sub_models is not None:
-            assert isinstance(sub_models, dict)
-            for sub_model in enumerate(sub_models):
-                if f"{sub_model}" in state:
-                    sub_model_state = sub_models[sub_model].state_dict()
-                    ckpt = state[f"{sub_model}"]
-                    self._state_processing(ckpt, sub_model_state)
-                    sub_models[sub_model].load_state_dict(sub_model_state)
+        if not self.cfg.PRETRAIN:
+            if sub_models is not None:
+                assert isinstance(sub_models, dict)
+                for sub_model in enumerate(sub_models):
+                    if f"{sub_model}" in state:
+                        sub_model_state = sub_models[sub_model].state_dict()
+                        ckpt = state[f"{sub_model}"]
+                        self._state_processing(ckpt, sub_model_state)
+                        sub_models[sub_model].load_state_dict(sub_model_state)
 
-        if solvers is not None:
-            assert isinstance(solvers, dict)
-            for solver in solvers:
-                if f"{solver}" in state:
-                    solvers[solver].opt.load_state_dict(state[f"{solver}"])
+            if solvers is not None:
+                assert isinstance(solvers, dict)
+                for solver in solvers:
+                    if f"{solver}" in state:
+                        solvers[solver].opt.load_state_dict(state[f"{solver}"])
 
     def _initialize_weights(self):
         for m in self.model.modules():

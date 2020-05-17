@@ -28,6 +28,7 @@ cfg = CN()
 cfg.APEX = False
 cfg.OUTPUT_DIR = ""
 cfg.RESUME = ""
+cfg.PRETRAIN = False
 cfg.EVALUATE = False
 cfg.SAVE = True
 cfg.IO = True
