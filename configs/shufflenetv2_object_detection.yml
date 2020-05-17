@@ -1,17 +1,19 @@
 # [modelname]_[task]_[loss]_[opt]_[pretrain]
-EXPERIMENT: "Shufflenetv2_fpn-coco-object_detection-focal_l1-AdamW_cosine_lr_0.01_warm_plateau"
-# RESUME: "/media/allen/mass/shufflenetv2_x1-5666bf0f80.pth"
+EXPERIMENT: "Shufflenetv2_hrnet-crowdhuman-person-focal_l1-AdamW_lr_0.01_warm_cosine_imagenet"
+RESUME: "/home/agent/model_030_0.6612.pth"
+APEX: True
 SAVE: True
 IO: True
-EVALUATE: True
+# EVALUATE: True
 ENGINE: "shufflenetv2_object_detection"
 GRAPH: "shufflenetv2_object_detection"
 TRAINER: "centernet_object_detection"
 NUM_WORKERS: 16
 ORACLE: True
 EVALUATE_FREQ: 5
+DISTRIBUTED: True
 MODEL:
-  GPU: [0,1]
+  GPU: [0,1,2]
   BACKBONE: "hrnet"
   STRIDES: [4]
   FEATSIZE: 256
@@ -22,12 +24,12 @@ INPUT:
   MEAN: [0.485, 0.456, 0.406]
   STD: [0.229, 0.224, 0.225]
 DB:
-  PATH: "/media/allen/mass/DB/person_jde"
-  DATA: "cityperson"
+  PATH: "/home/agent"
+  DATA: "crowdhuman"
   DATA_FORMAT: "coco"
   LOADER: "coco"
   NUM_CLASSES: 1
-  USE_TRAIN: False
+  USE_TRAIN: True
   USE_TEST: True
   TARGET_FORMAT: "centernet" 
   TRAIN_TRANSFORM: "RandScale RandomColorJitter-0.8-0.15-0.15-0.1-0.1 RandomRotate-0.33 Tensorize Normalize"
@@ -35,8 +37,8 @@ DB:
 SOLVER:
   OPTIMIZER: "AdamW"
   START_EPOCH: 1
-  BASE_LR: 0.01
-  LR_POLICY: "warm-10 plateau-400-0.1-5"
+  BASE_LR: 0.0015
+  LR_POLICY: "warm-10 cosine-1-1-60-1"
 COCO:
   TARGET: 'person'
 

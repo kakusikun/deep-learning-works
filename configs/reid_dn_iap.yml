@@ -1,8 +1,8 @@
 # [modelname]_[task]_[loss]_[opt]_[pretrain]
 EXPERIMENT: "OSNet_AIN-msmt_duke_cuhk123-amsoftmax-AdamW_amsgrad_lr_0.0015_freeze_cosine-imagenet"
 # EVALUATE: True
-RESUME: "/home/agent/osnet_x1_0_imagenet.pth"
-APEX: True
+RESUME: "/home/agent/osnet_ain_x1_0_imagenet.pth"
+# APEX: True
 SAVE: True
 IO: True
 SEED: 42
@@ -11,7 +11,7 @@ GRAPH: "dualnorm_iap_reid"
 TRAINER: "iap_reid"
 NUM_WORKERS: 3
 EVALUATE_FREQ: 5
-DISTRIBUTED: True
+# DISTRIBUTED: True
 MODEL:
   GPU: [3]
   BACKBONE: "osnet_deep_reid_ain"
