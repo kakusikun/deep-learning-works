@@ -72,8 +72,10 @@ class BaseEngine():
 
         if self.cfg.DISTRIBUTED:
             dist.all_reduce(self.loss)
+            self.loss.detach_()
             self.loss.div_(dist.get_world_size())
             for loss in self.losses:
+                self.losses[loss].detach_()
                 dist.all_reduce(self.losses[loss])
                 self.losses[loss].div_(dist.get_world_size())
 
