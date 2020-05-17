@@ -56,6 +56,7 @@ class Solver():
         num_params = 0.0
         for params in params_groups:
             for layer, p in params:
+                logger.info(f"{layer:55} is trained")
                 #  try:
                 if not p.requires_grad:
                     continue
