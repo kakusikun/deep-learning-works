@@ -8,7 +8,7 @@ IO: True
 # EVALUATE: True
 ENGINE: "shufflenetv2_object_detection"
 GRAPH: "shufflenetv2_object_detection"
-TRAINER: "centernet_object_detection"
+TRAINER: "jde"
 NUM_WORKERS: 3
 # ORACLE: True
 EVALUATE_FREQ: 5
@@ -20,7 +20,7 @@ MODEL:
   FEATSIZE: 256
 INPUT:
   SIZE: (768,544)
-  TRAIN_BS: 2
+  TRAIN_BS: 10
   TEST_BS: 1
   MEAN: [0.485, 0.456, 0.406]
   STD: [0.229, 0.224, 0.225]

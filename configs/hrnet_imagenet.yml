@@ -2,7 +2,7 @@
 EXPERIMENT: "Shufflenetv2_hrnet-imagenet-ce-SGDW_nesterov_lr_0.1_cosine-scratch"
 # EVALUATE: True
 # RESUME: "/home/agent/osnet_x1_0_imagenet.pth"
-APEX: False
+APEX: True
 SAVE: True
 IO: True
 SEED: 42
