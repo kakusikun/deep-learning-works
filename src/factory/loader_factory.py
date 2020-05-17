@@ -51,8 +51,5 @@ class LoaderFactory:
                         num_people_per_batch=cfg.REID.SIZE_PERSON,
                     )
             if cfg.DB.USE_TRAIN:
-                if cfg.DISTRIBUTED:
-                    cfg.SOLVER.ITERATIONS_PER_EPOCH = len(loader['train']) // dist.get_world_size()
-                else:
-                    cfg.SOLVER.ITERATIONS_PER_EPOCH = len(loader['train'])
+                cfg.SOLVER.ITERATIONS_PER_EPOCH = len(loader['train'])
             return loader
