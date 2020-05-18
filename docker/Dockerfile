@@ -31,5 +31,8 @@ RUN pip3 install torch==1.4.0+cu92 torchvision==0.5.0+cu92 -f https://download.p
 RUN git clone https://github.com/kakusikun/dotfiles.git -b vim-airline --single-branch
 RUN git clone https://github.com/kakusikun/deep-learning-works.git
 RUN git clone https://github.com/cocodataset/cocoapi.git
+RUN git clone https://github.com/NVIDIA/apex.git
+RUN git config --global user.name kakusikun
+RUN git config --global user.email oo24514@gmail.com
 RUN chmod -R a+w .
 
