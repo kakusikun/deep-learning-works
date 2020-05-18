@@ -32,6 +32,9 @@ RUN git clone https://github.com/kakusikun/dotfiles.git -b vim-airline --single-
 RUN git clone https://github.com/kakusikun/deep-learning-works.git
 RUN git clone https://github.com/cocodataset/cocoapi.git
 RUN git clone https://github.com/NVIDIA/apex.git
+WORKDIR apex
+RUN pip3 install -v --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./
+WORKDIR /home
 RUN git config --global user.name kakusikun
 RUN git config --global user.email oo24514@gmail.com
 RUN chmod -R a+w .
