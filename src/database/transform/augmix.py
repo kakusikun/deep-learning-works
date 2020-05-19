@@ -38,7 +38,7 @@ class AugMix(BaseTransform):
             mixed (numpy.ndarray): Augmented and mixed image.
         '''
         s = {} 
-        if self.op_name is not None:
+        if self.op_name is None:
             ws = np.random.dirichlet([1] * self.width).astype(np.float32)
             m = np.random.beta(1, 1)
             mix = np.zeros_like(np.array(img), dtype=np.float32)

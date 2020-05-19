@@ -166,7 +166,7 @@ def solarized_add_level(level, **kwargs):
     return int((level/_MAX_LEVEL) * 110)
 
 def rotate_level(level, value=30, **kwargs):
-    level = (level/_MAX_LEVEL) * value.
+    level = (level/_MAX_LEVEL) * value
     level = _random_negate_level(level)
     return level
 
