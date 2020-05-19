@@ -76,8 +76,10 @@ class build_coco_dataset(Dataset):
 
         if isinstance(img, Image.Image):
             in_w, in_h = img.size    
-        else:
+        elif isinstance(img, np.ndarray):
             in_w, in_h = img.shape[1], img.shape[0]
+        elif isinstance(img, torch.Tensor):
+            in_w, in_h = img.shape[2], img.shape[1]
 
         valid_bboxes = []
         for bbox in bboxes:
@@ -86,6 +88,7 @@ class build_coco_dataset(Dataset):
             bbox[[0, 2]] /= in_w
             bbox[[1, 3]] /= in_h
             valid_bboxes.append(bbox)
+            #TODO: valid pid, valid cls_ids
         
         if self.use_kp:
             for i in range(len(ptss)):
