@@ -77,15 +77,16 @@ class TransformFactory:
                 bag_of_transforms.append(RandScale(size=cfg.INPUT.SIZE))
 
             if 'AugMix' in tran:
-                extra = list(map(float, tran.split('-')[1:]))
-                if len(extra) >= 2: 
+                extra = tran.split('-')[1:]
+                if len(extra) > 0: 
+                    assert len(extra) == 3
                     op_name, p, value = extra
                     bag_of_transforms.append(AugMix(
                         size=cfg.INPUT.SIZE,
                         stride=cfg.MODEL.STRIDES[0],
-                        p=p,
+                        p=float(p),
                         op_name=op_name,
-                        value=value
+                        value=float(value)
                     ))
                 else:
                     bag_of_transforms.append(AugMix(size=cfg.INPUT.SIZE, stride=cfg.MODEL.STRIDES[0]))
