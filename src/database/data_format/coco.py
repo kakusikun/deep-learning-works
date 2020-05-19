@@ -1,6 +1,7 @@
 from src.database.data_format import *
 import numpy as np
 from PIL import Image
+from copy import deepcopy
 
 class build_coco_dataset(Dataset):
     def __init__(self, data, transform=None, build_func=None, **kwargs):
@@ -67,12 +68,25 @@ class build_coco_dataset(Dataset):
                 pts = np.zeros((self.num_keypoints, 3))
             ptss.append(pts)
 
-        # rescale => hflip => tensorize => normalize
         if self.transform is not None:
-            if self.use_kp:
-                img, ss = self.transform(img, bboxes=bboxes, ptss=ptss, cls_ids=cls_ids)
-            else:
-                img, ss = self.transform(img, bboxes=bboxes)
+            while True:
+                _bboxes = deepcopy(bboxes)
+                _ptss = deepcopy(ptss)
+                if self.use_kp:
+                    _img, ss = self.transform(img, bboxes=_bboxes, ptss=_ptss, cls_ids=cls_ids)
+                else:
+                    _img, ss = self.transform(img, bboxes=_bboxes)
+                
+                num_valid = 0
+                for bbox in _bboxes:
+                    if (bbox == 0).sum() >= 2:
+                        continue
+                    num_valid += 1
+                if num_valid > 0:
+                    break
+            img = _img
+            bboxes = _bboxes
+            ptss = _ptss
 
         if isinstance(img, Image.Image):
             in_w, in_h = img.size    
@@ -81,41 +95,46 @@ class build_coco_dataset(Dataset):
         elif isinstance(img, torch.Tensor):
             in_w, in_h = img.shape[2], img.shape[1]
 
+        valid_cls_ids = []
+        valid_ids = []
         valid_bboxes = []
-        for bbox in bboxes:
+        valid_ptss = []
+        for cls_id, pid, bbox, pts in zip(cls_ids, ids, bboxes, ptss):
             if (bbox == 0).sum() >= 2:
                 continue
             bbox[[0, 2]] /= in_w
             bbox[[1, 3]] /= in_h
+            valid_cls_ids.append(cls_id)
+            valid_ids.append(pid)
             valid_bboxes.append(bbox)
-            #TODO: valid pid, valid cls_ids
+            valid_ptss.append(pts)
         
         if self.use_kp:
-            for i in range(len(ptss)):
-                for j in range(len(ptss[i])):
-                    ptss[i][j][0] /= in_w
-                    ptss[i][j][1] /= in_h
-
+            for i in range(len(valid_ptss)):
+                for j in range(len(valid_ptss[i])):
+                    valid_ptss[i][j][0] /= in_w
+                    valid_ptss[i][j][1] /= in_h
+        
         out_sizes = [(in_w // stride, in_h // stride) for stride in self.strides]
         if self.build_func is not None:
             ret = self.build_func(
-                cls_ids=cls_ids,
+                cls_ids=valid_cls_ids,
                 bboxes=valid_bboxes, 
-                ptss=ptss, 
+                ptss=valid_ptss, 
                 max_objs=self.max_objs,
                 num_classes=len(self.cat_ids), 
                 num_keypoints=self.num_keypoints,
                 out_sizes=out_sizes,
                 wh=(in_w, in_h),
                 strides=self.strides,
-                ids=ids
+                ids=valid_ids
             )
                       
         ret['inp'] = img
         ret['img_id'] = img_id
         ret['bboxes'] = valid_bboxes
         if self.use_kp:
-            ret['ptss'] = ptss
+            ret['ptss'] = valid_ptss
 
         if 'RandScale' in ss:
             ret['c'] = ss['RandScale']['c']
