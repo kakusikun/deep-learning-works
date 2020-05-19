@@ -79,9 +79,14 @@ class build_coco_dataset(Dataset):
         else:
             in_w, in_h = img.shape[1], img.shape[0]
 
-        for i in range(len(bboxes)):
-            bboxes[i][[0, 2]] /= in_w
-            bboxes[i][[1, 3]] /= in_h
+        valid_bboxes = []
+        for bbox in bboxes:
+            if (bbox == 0).sum() >= 2:
+                continue
+            bbox[[0, 2]] /= in_w
+            bbox[[1, 3]] /= in_h
+            valid_bboxes.append(bbox)
+        
         if self.use_kp:
             for i in range(len(ptss)):
                 for j in range(len(ptss[i])):
@@ -92,7 +97,7 @@ class build_coco_dataset(Dataset):
         if self.build_func is not None:
             ret = self.build_func(
                 cls_ids=cls_ids,
-                bboxes=bboxes, 
+                bboxes=valid_bboxes, 
                 ptss=ptss, 
                 max_objs=self.max_objs,
                 num_classes=len(self.cat_ids), 
@@ -105,7 +110,7 @@ class build_coco_dataset(Dataset):
                       
         ret['inp'] = img
         ret['img_id'] = img_id
-        ret['bboxes'] = bboxes
+        ret['bboxes'] = valid_bboxes
         if self.use_kp:
             ret['ptss'] = ptss
 
