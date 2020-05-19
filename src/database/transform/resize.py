@@ -17,6 +17,7 @@ class Resize(BaseTransform):
 
     def __init__(self, size):
         self.size = size
+        self.op_name = 'Resize'
     
     def apply_image(self, img):
         '''

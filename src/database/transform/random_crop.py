@@ -12,7 +12,8 @@ class RandCrop(BaseTransform):
     '''    
     def __init__(self, size, pad):
         self.handle = T.RandomCrop((size[1], size[0]), pad)
-
+        self.op_name = 'Crop'
+        
     def apply_image(self, img):
         '''
         To pad and crop the image

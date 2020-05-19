@@ -19,6 +19,7 @@ class RandomFigures(BaseTransform):
         self.thicknesses = thicknesses
         self.circle_radiuses = circle_radiuses
         self.figure_prob = figure_prob
+        self.op_name = 'Figure'
 
     def apply_image(self, img):
         s = {'state': None}

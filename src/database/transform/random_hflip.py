@@ -42,7 +42,8 @@ class RandomHFlip(BaseTransform):
         else:
             self.flip_idx = []
             self.flip_idx_offset = {}
-
+        self.op_name = 'HFlip'
+        
     def apply_image(self, img):
         '''
         Flip image

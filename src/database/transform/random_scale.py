@@ -19,6 +19,7 @@ class RandScale(BaseTransform):
 
     def __init__(self, size):
         self.size = size
+        self.op_name = 'Scale'
     
     def apply_image(self, img):
         '''

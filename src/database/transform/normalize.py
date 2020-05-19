@@ -23,6 +23,7 @@ class Normalize(BaseTransform):
         assert max(std) <= 1.0
         self.mean = mean
         self.std = std
+        self.op_name = 'Norm'
     
     def apply_image(self, img):
         '''

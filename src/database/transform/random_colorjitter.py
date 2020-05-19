@@ -14,6 +14,7 @@ class RandomColorJitter(BaseTransform):
             saturation=saturation, 
             hue=hue
         )
+        self.op_name = 'ColorJitter'
 
 
     def apply_image(self, img):

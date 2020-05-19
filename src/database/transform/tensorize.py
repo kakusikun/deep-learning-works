@@ -9,6 +9,9 @@ class Tensorize(BaseTransform):
     '''
     To transform the data to tensor with scale [0, 1]
     '''    
+    def __init__(self): 
+        self.op_name = 'Tensor'
+        
     def apply_image(self, img):
         '''
         transform image to tensor

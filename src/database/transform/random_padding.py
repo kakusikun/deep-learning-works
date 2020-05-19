@@ -6,12 +6,13 @@ from PIL import Image
 from src.database.transform import *
 
 class RandomPadding(BaseTransform):
-    """Random rotate
+    """Random padding
     """
 
     def __init__(self, p=0.5, padding=(0, 10), **kwargs):
         self.p = p
         self.padding_limits = padding
+        self.op_name = 'Padding'
 
     def apply_image(self, img, *args, **kwargs):
         s = {'state': None}

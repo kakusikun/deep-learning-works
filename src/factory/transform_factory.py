@@ -16,7 +16,6 @@ from src.database.transform.random_erasing import RandomErasing
 from src.database.transform.random_figure import RandomFigures
 from src.database.transform.random_padding import RandomPadding
 from src.database.transform.random_colorjitter import RandomColorJitter
-from src.database.transform.random_rotate import RandomRotate
 from src.database.transform.random_grayscale import RandomGrayScale
 from src.database.transform.random_grid import RandomGrid
 
@@ -38,7 +37,6 @@ class TransformFactory:
         'RandomFigures',
         'RandomPadding',
         'RandomColorJitter',
-        'RandomRotate',
         'RandomGrayScale',
         'RandomGrid',
     ]
@@ -110,10 +108,6 @@ class TransformFactory:
                 p, b, c, s, h = list(map(float, tran.split('-')[1:]))
                 bag_of_transforms.append(RandomColorJitter(p=p, brightness=b, contrast=c, saturation=s, hue=h))
 
-            if 'RandomRotate' in tran:
-                p = float(tran.split('-')[-1])
-                bag_of_transforms.append(RandomRotate(p=p, size=cfg.INPUT.SIZE))
-
             if 'RandomGrayScale' in tran:
                 p = float(tran.split('-')[-1])
                 bag_of_transforms.append(RandomGrayScale(p=p))
@@ -152,18 +146,18 @@ class Transform():
         ss = {}
         for t in self.t_list:
             img, s = t.apply_image(img)
-            ss[type(t).__name__] = s
+            ss[t.op_name] = s
 
         if bboxes is not None:
             for t in self.t_list:
                 for i in range(len(bboxes)):
-                    bboxes[i] = t.apply_bbox(bboxes[i], ss[type(t).__name__])
+                    bboxes[i] = t.apply_bbox(bboxes[i], ss[t.op_name])
 
         if ptss is not None:
             assert cls_ids is not None
             for t in self.t_list:
                 for i in range(len(ptss)):
-                    ptss[i] = t.apply_pts(cls_ids[i], ptss[i], ss[type(t).__name__])
+                    ptss[i] = t.apply_pts(cls_ids[i], ptss[i], ss[t.op_name])
         if bboxes is None:
             return img
         return img, ss

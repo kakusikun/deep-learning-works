@@ -9,6 +9,7 @@ class RandomGrayScale(BaseTransform):
 
     def __init__(self, p=0.5, **kwargs):
         self.p = p
+        self.op_name = 'GrayScale'
 
     def apply_image(self, img):
         s = {'state': None}

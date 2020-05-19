@@ -29,6 +29,8 @@ class AugMix(BaseTransform):
         self.p = p
         self.op_name = op_name
         self.value = value
+        print(op_name)
+        
 
     def apply_image(self, img):   
         '''

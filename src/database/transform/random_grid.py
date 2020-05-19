@@ -15,6 +15,7 @@ class RandomGrid(BaseTransform):
         self.grid_size = grid_size
         self.thickness = thickness
         self.angle = angle
+        self.op_name = 'Grid'
 
     def apply_image(self, img):
         s = {'state': None}

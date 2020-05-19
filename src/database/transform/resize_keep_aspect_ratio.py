@@ -19,6 +19,7 @@ class ResizeKeepAspectRatio(BaseTransform):
 
     def __init__(self, size):
         self.size = size
+        self.op_name = 'RKAR'
     
     def apply_image(self, img):
         '''

@@ -22,6 +22,7 @@ class RandomErasing(BaseTransform):
         self.sl = sl
         self.sh = sh
         self.r1 = r1
+        self.op_name = 'Erasing'
 
     def apply_image(self, img):
         s = {'state': None}
