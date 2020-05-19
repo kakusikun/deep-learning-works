@@ -141,14 +141,14 @@ def _random_negate_level(level):
 def no_level(level, **kwargs):
     return None
 
-def shear_level(level, **kwargs):
-    level = (level/_MAX_LEVEL) * 0.3
+def shear_level(level, value=0.3, **kwargs):
+    level = (level/_MAX_LEVEL) * value
     # Flip level to negative with 50% chance.
     level = _random_negate_level(level)
     return level
 
-def translate_level(level, **kwargs):
-    translate_const = kwargs['size'][0] // 3
+def translate_level(level, value=3, **kwargs):
+    translate_const = kwargs['size'][0] // value
     level = (level/_MAX_LEVEL) * float(translate_const)
     level = _random_negate_level(level)
     return level
@@ -165,8 +165,8 @@ def solarize_level(level, **kwargs):
 def solarized_add_level(level, **kwargs):
     return int((level/_MAX_LEVEL) * 110)
 
-def rotate_level(level, **kwargs):
-    level = (level/_MAX_LEVEL) * 30.
+def rotate_level(level, value=30, **kwargs):
+    level = (level/_MAX_LEVEL) * value.
     level = _random_negate_level(level)
     return level
 
