@@ -148,10 +148,7 @@ def default_collate(batch):
         output = {}
         for key in elem:
             if 'bboxes' in key:
-                output[key] = []
-                for d in batch:
-                    if len(d[key]) > 0:
-                        output[key].append(torch.from_numpy(np.vstack(d[key])))
+                output[key] = [torch.from_numpy(np.vstack(d[key])) for d in batch]
             else:
                 output[key] = default_collate([d[key] for d in batch])
         return output
