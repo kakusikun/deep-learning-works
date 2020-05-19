@@ -36,7 +36,7 @@ def rotate_A(level, shape, **kwargs):
 
     post_trans = (0, 0)
     rotn_center = (w / 2.0, h / 2.0)
-    angle = -math.radians(angle)
+    angle = math.radians(angle)
     matrix = [
         round(math.cos(angle), 15),
         round(math.sin(angle), 15),

@@ -30,8 +30,17 @@ class RandomRotate(BaseTransform):
 
     def apply_bbox(self, bbox, s):
         A = aug.AUG_AS[self.op_name](**s[self.op_name])
-        bbox[:2] = aug.apply_A(bbox[:2], A)
-        bbox[2:] = aug.apply_A(bbox[2:], A)
+        tlx, tly, brx, bry = bbox
+        trx, tr_y, blx, bly = brx, tly, tlx, bry
+        tlx, tly = aug.apply_A([tlx, tly], A)
+        brx, bry = aug.apply_A([brx, bry], A)
+        trx, tr_y = aug.apply_A([trx, tr_y], A)
+        blx, bly = aug.apply_A([blx, bly], A)
+        x1 = np.array([tlx, trx, blx, brx]).min()
+        y1 = np.array([tly, tr_y, bly, bry]).min()
+        x2 = np.array([tlx, trx, blx, brx]).max()
+        y2 = np.array([tly, tr_y, bly, bry]).max()
+        bbox = np.array([x1, y1, x2, y2])
         out_w, out_h = np.array(self.size)
         bbox[[0, 2]] = np.clip(bbox[[0, 2]], 0, out_w - 1)
         bbox[[1, 3]] = np.clip(bbox[[1, 3]], 0, out_h - 1) 
