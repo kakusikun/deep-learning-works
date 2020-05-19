@@ -77,7 +77,7 @@ class build_coco_dataset(Dataset):
         if isinstance(img, Image.Image):
             in_w, in_h = img.size    
         else:
-            in_w, in_h = img.shape[2], img.shape[1]
+            in_w, in_h = img.shape[1], img.shape[0]
 
         for i in range(len(bboxes)):
             bboxes[i][[0, 2]] /= in_w
@@ -89,7 +89,6 @@ class build_coco_dataset(Dataset):
                     ptss[i][j][1] /= in_h
 
         out_sizes = [(in_w // stride, in_h // stride) for stride in self.strides]
-
         if self.build_func is not None:
             ret = self.build_func(
                 cls_ids=cls_ids,
