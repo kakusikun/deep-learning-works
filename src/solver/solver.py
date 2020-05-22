@@ -7,6 +7,13 @@ from src.solver.lr_schedulers import LRScheduler
 import logging
 logger = logging.getLogger("logger")
 
+try:
+    import apex
+    APEX_IMPORTED = True
+except:
+    logger.info("Install nvidia apex first")
+    APEX_IMPORTED = False
+
 class Solver(): 
     def __init__(self, 
         cfg, 
@@ -40,6 +47,8 @@ class Solver():
             self.opt = torch.optim.AdamW(self.params, amsgrad=cfg.SOLVER.AMSGRAD)
         elif self.opt_name == 'SGDW':
             self.opt = opts.SGDW(self.params, nesterov=cfg.SOLVER.NESTEROV)
+        elif cfg.APEX and APEX_IMPORTED and self.opt_name == 'FusedLAMB':
+            self.opt = apex.optimizers.FusedLAMB(self.params)
 
         self.scheduler = LRScheduler(
             optimizer=self.opt,
