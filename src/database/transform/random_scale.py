@@ -41,7 +41,7 @@ class RandScale(BaseTransform):
         # image is randomly dragged to an center area with width and height of half of original
         w_border = get_border(int(w * 0.4), w)
         h_border = get_border(int(h * 0.4), h)
-        s = s * np.random.choice(np.arange(0.6, 1.4, 0.1))
+        s = s * np.random.choice(np.arange(0.8, 1.4, 0.1))
         c[0] = np.random.randint(low=w_border, high=w - w_border)
         c[1] = np.random.randint(low=h_border, high=h - h_border)            
 
