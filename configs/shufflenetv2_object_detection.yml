@@ -1,5 +1,5 @@
 # [modelname]_[task]_[loss]_[opt]_[pretrain]
-EXPERIMENT: "Shufflenetv2_hrnet-crowdhuman_cuhksysu_ethz_prw_caltech_cityperson-person-focal_l1-AdamW_lr_0.0015_cosine_imagenet"
+EXPERIMENT: "Shufflenetv2_hrnet-crowdhuman_cuhksysu_ethz_prw_caltech_cityperson-person-focal_l1-FusedLAMB_lr_0.0015_cosine_imagenet"
 PRETRAIN: True
 RESUME: "/home/agent/Shufflenetv2_hrnet-imagenet-ce-SGDW_nesterov_lr_0.1_cosine-scratch_model_030_0.6612.pth"
 APEX: True
@@ -19,8 +19,8 @@ MODEL:
   STRIDES: [4]
   FEATSIZE: 256
 INPUT:
-  SIZE: (768,544)
-  TRAIN_BS: 10
+  SIZE: (512,512)
+  TRAIN_BS: 16
   TEST_BS: 1
   MEAN: [0.485, 0.456, 0.406]
   STD: [0.229, 0.224, 0.225]
@@ -36,7 +36,7 @@ DB:
   TRAIN_TRANSFORM: "RandScale RandomColorJitter-0.8-0.15-0.15-0.1-0.1 AugMix-Rotate-0.33-0 Tensorize Normalize"
   TEST_TRANSFORM: "ResizeKeepAspectRatio Tensorize Normalize"
 SOLVER:
-  OPTIMIZER: "AdamW"
+  OPTIMIZER: "FusedLAMB"
   START_EPOCH: 1
   BASE_LR: 0.0015
   LR_POLICY: "warm-10 cosine-1-1-120-1"
