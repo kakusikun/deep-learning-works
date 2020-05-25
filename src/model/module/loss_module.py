@@ -306,6 +306,20 @@ class AMSoftmaxWithLoss(nn.Module):
 
         return loss.mean()
 
+class BinCrossEntropyLoss(nn.Module):
+    def __init__(self, num_bins=5):
+        super(BinCrossEntropyLoss, self).__init__()
+        self.num_bins = num_bins
+        self.loss = nn.CrossEntropyLoss()
+    def forward(self, output, mask, ind, target):
+        # output : N x (4 x num_bins) x W x H
+        # target : N x max_obj x 4
+        pred = _tranpose_and_gather_feat(output, ind) # N x max_obj x (4 x num_bins)
+        pred_mask = reg_mask.unsqueeze(2).expand_as(pred).bool()
+        target_mask = reg_mask.unsqueeze(2).expand_as(target).bool()
+        mask = mask.unsqueeze(2).expand_as(pred).float()
+        loss = self.loss(pred[pred_mask].reshape(-1, self.num_bins), wh[wh_mask])
+        return loss
 
 if __name__ == "__main__":
     feats = torch.rand(16, 10)

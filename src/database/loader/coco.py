@@ -3,6 +3,7 @@ from src.database.loader import *
 from src.base_data import BaseData
 from tools.centerface_utils import centerface_facial_target, centerface_bbox_target
 from tools.centernet_utils import centernet_keypoints_target, centernet_bbox_target
+from tools.scopehead_utils import scopehead_bbox_target
 from tools.yolov3_utils import yolov3_JDE_targets
 import re
 from torch._six import container_abcs, string_classes, int_classes
@@ -46,6 +47,8 @@ def build_coco_loader(
         build_func = centerface_bbox_target
     elif target_format == 'yolov3_jde':
         build_func = partial(yolov3_JDE_targets, anchors=cfg.YOLO.ANCHORS)
+    elif target_format == 'scopehead':
+        build_func = scopehead_bbox_target
     else:
         build_func = None
     if use_train:
