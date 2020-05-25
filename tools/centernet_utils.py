@@ -124,7 +124,6 @@ def centernet_keypoints_target(cls_ids, bboxes, ptss, max_objs, num_classes, num
 
     return rets
 
-
 def centernet_pose_decode(heat, wh, kps, reg=None, hm_kp=None, kp_reg=None, K=100):
     batch, cat, height, width = heat.size()
     num_joints = kps.shape[1] // 2

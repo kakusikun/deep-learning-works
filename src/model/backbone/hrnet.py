@@ -209,12 +209,12 @@ class PoseHighResolutionNet(nn.Module):
         classification=False,
         cifar10=False,
         ):
+        super(PoseHighResolutionNet, self).__init__()
 
         self.inplanes = 64
         self.stage_num_branches = stage_num_branches
         self.classification = classification
         self.cifar10 = cifar10
-        super(PoseHighResolutionNet, self).__init__()
 
         # stem net
         if self.cifar10:
