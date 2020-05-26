@@ -44,15 +44,15 @@ def scopehead_bbox_target(cls_ids, bboxes, ids, max_objs, num_classes, out_sizes
     '''
     rets = {}
     for output_w, output_h in out_sizes:
-        unit_w = output_w // num_bins
-        unit_h = output_h // num_bins
+        unit_w = (output_w / 2) // num_bins
+        unit_h = (output_h / 2) // num_bins
 
         # center, object heatmap
         hm = torch.zeros(num_classes, output_h, output_w)
         # 4 directions, left, up, right, down, since the center of object is searched, the symmetric bbox is assumed
-        bins = torch.zeros(max_objs, 4).long()
+        bins = torch.zeros(max_objs, 2, num_bins).long()
         # 4 directions, adjust the length of selected bin
-        reg = torch.zeros(max_objs, 4)       
+        reg = torch.zeros(max_objs, 2)       
         ind = torch.zeros(max_objs).long()
         reg_mask = torch.zeros(max_objs).byte()    
         pids = torch.ones(max_objs).long() * -1
@@ -71,21 +71,21 @@ def scopehead_bbox_target(cls_ids, bboxes, ids, max_objs, num_classes, out_sizes
                 ct = torch.FloatTensor([(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2])
                 ct_int = ct.int()
                 draw_gaussian(hm[cls_id].numpy(), ct_int.numpy(), radius)
-                bins[k][0] = bbox[0] // unit_w
-                bins[k][1] = bbox[1] // unit_h
-                bins[k][2] = (output_w - bbox[2]) // unit_w
-                bins[k][3] = (output_h - bbox[3]) // unit_h
-                reg[k][0] = (bbox[0] % unit_w) / unit_w
-                reg[k][1] = (bbox[1] % unit_h) / unit_h
-                reg[k][2] = ((output_w-bbox[2]) % unit_w) / unit_w
-                reg[k][3] = ((output_h-bbox[3]) % unit_h) / unit_h
+                bins[k][0][:int((w/2) // unit_w + 1)] = 1
+                bins[k][1][:int((h/2) // unit_h + 1)] = 1
+                # bins[k][2][:int((w/2) // unit_w + 1)] = 1
+                # bins[k][3][:int((h/2) // unit_h + 1)] = 1
+                reg[k][0] = np.log((w/2) / (((w/2) // unit_w + 1) * unit_w))
+                reg[k][1] = np.log((h/2) / (((h/2) // unit_h + 1) * unit_h))
+                # reg[k][2] = np.log((w/2) / (((w/2) // unit_w + 1) * unit_w))
+                # reg[k][3] = np.log((h/2) / (((h/2) // unit_h + 1) * unit_h))
                 ind[k] = ct_int[1] * output_w + ct_int[0]
                 reg_mask[k] = 1  
                 pids[k] = pid
                 
         rets[(output_w, output_h)] = {
             'hm': hm,
-            'wh': bins,
+            'wh': bins.reshape(max_objs, -1),
             'reg': reg,
             'reg_mask': reg_mask,
             'ind': ind,
@@ -103,19 +103,19 @@ def scopehead_det_decode(heat, wh, reg, K=100, num_bins=5):
       
     scores, inds, clses, ys, xs = _topk(heat, K=K)
     reg = _tranpose_and_gather_feat(reg, inds)
-    reg = reg.view(batch, K, 4)
+    reg = reg.view(batch, K, 2)
     wh = _tranpose_and_gather_feat(wh, inds)
-    wh = (wh.view(batch, K, 4, -1).max(dim=-1)[1] + reg) * unit
-    
-    valid_object = wh[:,:,0].gt(0) * wh[:,:,1].gt(0)
+    ordinal_wh = wh.view(batch, K, 2, num_bins, 2)
+    rank = ordinal_wh[...,1] > ordinal_wh[...,0]
+    wh = rank.sum(dim=-1) * unit * torch.exp(reg)
     
     clses  = clses.view(batch, K, 1).float()
     scores = scores.view(batch, K, 1)
     bboxes = torch.cat([xs - wh[..., 0:1], 
                         ys - wh[..., 1:2],
-                        xs + wh[..., 2:3], 
-                        ys + wh[..., 3:4]], dim=2)
-    detections = torch.cat([bboxes, scores, clses], dim=2)[valid_object]
+                        xs + wh[..., 0:1], 
+                        ys + wh[..., 1:2]], dim=2)
+    detections = torch.cat([bboxes, scores, clses], dim=2)
       
     return detections
 
