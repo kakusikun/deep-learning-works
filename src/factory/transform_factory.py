@@ -53,25 +53,25 @@ class TransformFactory:
             if tran != "" and tran.split("-")[0] not in cls.products:
                 raise KeyError("Invalid transform, got '{}', but expected to be one of {}".format(tran, cls.products))
             
-            if 'RandAugment' in tran:
+            if 'RandAugment' == tran:
                 bag_of_transforms.append(RandAugment(cfg.INPUT.RAND_AUG_N, cfg.INPUT.RAND_AUG_M, size=cfg.INPUT.SIZE, stride=cfg.MODEL.STRIDES[0]))
 
-            if 'Resize' in tran:
+            if 'Resize' == tran:
                 bag_of_transforms.append(Resize(size=cfg.INPUT.SIZE))
 
-            if 'ResizeKeepAspectRatio' in tran:
+            if 'ResizeKeepAspectRatio' == tran:
                 bag_of_transforms.append(ResizeKeepAspectRatio(size=cfg.INPUT.SIZE))
 
-            if 'RandomHFlip' in tran:
+            if 'RandomHFlip' == tran:
                 bag_of_transforms.append(RandomHFlip(num_keypoints=cfg.DB.NUM_KEYPOINTS))
                 
-            if 'Tensorize' in tran:
+            if 'Tensorize' == tran:
                 bag_of_transforms.append(Tensorize())
 
-            if 'Normalize' in tran:
+            if 'Normalize' == tran:
                 bag_of_transforms.append(Normalize(mean=cfg.INPUT.MEAN, std=cfg.INPUT.STD))
             
-            if 'RandScale' in tran:
+            if 'RandScale' == tran:
                 bag_of_transforms.append(RandScale(size=cfg.INPUT.SIZE))
 
             if 'AugMix' in tran:
@@ -89,10 +89,10 @@ class TransformFactory:
                 else:
                     bag_of_transforms.append(AugMix(size=cfg.INPUT.SIZE, stride=cfg.MODEL.STRIDES[0]))
 
-            if 'RandCrop' in tran:
+            if 'RandCrop' == tran:
                 bag_of_transforms.append(RandCrop(size=cfg.INPUT.SIZE, pad=cfg.INPUT.PAD))
 
-            if 'RandomErasing' in tran:
+            if 'RandomErasing' == tran:
                 p = float(tran.split('-')[-1])
                 bag_of_transforms.append(RandomErasing(p=p))
 
@@ -115,6 +115,7 @@ class TransformFactory:
             if 'RandomGrid' in tran:
                 p = float(tran.split('-')[-1])
                 bag_of_transforms.append(RandomGrid(p=p))
+        print(bag_of_transforms)
         return Transform(bag_of_transforms)
 
 class Transform():
