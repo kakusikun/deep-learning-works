@@ -8,7 +8,7 @@ from src.engine.iap_reid import IAPReIDEngine
 from src.engine.hourglass_jde import HourglassJDE
 from src.engine.shufflenetv2_jde import Shufflenetv2JDE
 from src.engine.shufflenetv2_object_detection import Shufflenetv2OD
-
+from src.engine.shufflenetv2_scopehead_object_detection import Shufflenetv2ScopeHeadOD
 class EngineFactory():
     products = {
         'classification': ClassificationEngine,
@@ -21,6 +21,7 @@ class EngineFactory():
         'hourglass_jde': HourglassJDE,
         'shufflenetv2_jde': Shufflenetv2JDE,
         'shufflenetv2_object_detection': Shufflenetv2OD,
+        'shufflenetv2_scopehead_object_detection': Shufflenetv2ScopeHeadOD,
     }
 
     @classmethod
