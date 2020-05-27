@@ -10,7 +10,7 @@ class _Model(nn.Module):
         self.backbone = BackboneFactory.produce(cfg)
         self.heads = nn.ModuleDict({
             'hm': nn.ModuleList([HourGlassHead(64, cfg.DB.NUM_CLASSES) for _ in range(len(self.out_sizes))]),
-            'wh': nn.ModuleList([HourGlassHead(64, 2*5) for _ in range(len(self.out_sizes))]),
+            'wh': nn.ModuleList([HourGlassHead(64, 5*4) for _ in range(len(self.out_sizes))]),
             'reg': nn.ModuleList([HourGlassHead(64, 4) for _ in range(len(self.out_sizes))]),
         })
         for head in self.heads['hm']:
