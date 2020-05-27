@@ -89,8 +89,8 @@ class Shufflenetv2ScopeHeadOD(BaseEngine):
                     if self.cfg.DB.TARGET_FORMAT == 'centerface_bbox':
                         feat['wh'].exp_()
 
-                    dets = centernet_det_decode(feat['hm'], feat['wh'], reg=feat['reg'], K=100)
-                    dets = dets.detach().cpu().numpy().reshape(1, -1, dets.shape[1])
+                    dets = scopehead_det_decode(feat['hm'], feat['wh'], reg=feat['reg'], K=100)
+                    dets = dets.detach().cpu().numpy().reshape(1, 100, -1)
                     dets_out = centernet_det_post_process(
                         dets.copy(), 
                         batch['c'].cpu().numpy(), 

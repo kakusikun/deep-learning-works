@@ -49,6 +49,8 @@ class Solver():
             self.opt = opts.SGDW(self.params, nesterov=cfg.SOLVER.NESTEROV)
         elif cfg.APEX and APEX_IMPORTED and self.opt_name == 'FusedLAMB':
             self.opt = apex.optimizers.FusedLAMB(self.params)
+        else:
+            raise ValueError("Get an unexpected optimizer")
 
         self.scheduler = LRScheduler(
             optimizer=self.opt,
