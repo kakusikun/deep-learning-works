@@ -309,16 +309,16 @@ class AMSoftmaxWithLoss(nn.Module):
 class BinCrossEntropyLoss(nn.Module):
     def __init__(self):
         super(BinCrossEntropyLoss, self).__init__()
-        self.loss = nn.CrossEntropyLoss()
+        self.loss = nn.BCEWithLogitsLoss(reduction='sum')
     def forward(self, output, mask, ind, target):
-        # output : N x (4 x num_bins) x W x H
-        # target : N x max_obj x 4
-        n = output.size(0)
-        pred = _tranpose_and_gather_feat(output, ind) # N x max_obj x (4 x num_bins)
-        pred_mask = reg_mask.unsqueeze(2).expand_as(pred).bool()
-        target_mask = reg_mask.unsqueeze(2).expand_as(target).bool()
-        mask = mask.unsqueeze(2).expand_as(pred).float()
-        loss = self.loss(pred[pred_mask].reshape(n, -1), wh[wh_mask].reshape(n, -1))
+        # output : N x (2 x num_bins) x W x H
+        # target : N x max_obj x 2
+        pred = _tranpose_and_gather_feat(output, ind) # N x max_obj x (2 x num_bins)
+        mask = mask.unsqueeze(2).expand_as(pred).bool()
+        # target_mask = mask.unsqueeze(2).expand_as(target).bool()
+        masked_pred = pred[mask].view(-1)
+        masked_target = target[mask]
+        loss = self.loss(masked_pred, masked_target) / (mask.sum() + 1e-4)
         return loss
 
 if __name__ == "__main__":
