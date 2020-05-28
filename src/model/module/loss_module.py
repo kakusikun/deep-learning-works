@@ -342,21 +342,21 @@ class CIOULoss(nn.Module):
         super(CIOULoss, self).__init__()
 
     def forward(self, p_wh, p_reg, t_inds, t_hm, t_dets):
-        n, _, h, w = p_wh.size()
+        n, _, h, w = t_hm.size()
         p_dets, p_inds = scopehead_det_decode(t_hm, p_wh, reg=p_reg, K=100, return_inds=True)
         p_dets = p_dets.view(n, 100, -1)
-        t_dets = torch.cat(t_dets, dim=0)
-        t_dets[[0, 2]] *= w
-        t_dets[[1, 3]] *= h
-        p_order = inds[t_inds>0].sort()[1]
+        t_dets = t_hm.new_tensor(torch.cat(t_dets, dim=0))
+        t_dets[:,[0, 2]] *= w
+        t_dets[:,[1, 3]] *= h
+        p_order = p_inds[t_inds>0].sort()[1]
         t_order = t_inds[t_inds>0].sort()[1]
         match_dets = []
         match_bboxes = []
         for p_ind, t_ind in zip(p_order, t_order):
             match_dets.append(p_dets[p_dets[...,4] > 0.5][...,:4][p_ind])
             match_bboxes.append(t_dets[t_ind])
-        match_dets = p_wh.new_tensor(torch.stack(match_dets))
-        match_bboxes = p_wh.new_tensor(torch.stack(match_bboxes))
+        match_dets = t_hm.new_tensor(torch.stack(match_dets))
+        match_bboxes = t_hm.new_tensor(torch.stack(match_bboxes))
         ciou = self.bbox_overlaps_ciou(match_dets, match_bboxes)
         return (1 - ciou).mean()
 
