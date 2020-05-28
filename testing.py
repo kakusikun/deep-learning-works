@@ -39,6 +39,10 @@ def test_IdBasedDistributedSampler():
         for i in sampler:
             print(dataset[i])
 
+def test_CIOULoss():
+    print("test CIOULoss")
+    from src.model.module.loss_module import CIOULoss
+    
 
 
 if __name__ == "__main__":

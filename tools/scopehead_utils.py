@@ -94,13 +94,12 @@ def scopehead_bbox_target(cls_ids, bboxes, ids, max_objs, num_classes, out_sizes
 
     return rets
 
-def scopehead_det_decode(heat, wh, reg, K=100, num_bins=5, thresh=0.5):
+def scopehead_det_decode(heat, wh, reg, K=100, num_bins=5, thresh=0.5, return_inds=False):
     batch, cat, height, width = heat.size()
     unit = wh.new_tensor([(width / 2) / num_bins, (height / 2) / num_bins, (width / 2) / num_bins, (height / 2) / num_bins])
     # heat = torch.sigmoid(heat)
     # perform nms on heatmaps
     heat = _nms(heat)
-      
     scores, inds, clses, ys, xs = _topk(heat, K=K)
     reg = _tranpose_and_gather_feat(reg, inds)
     reg = reg.view(batch, K, 4)
@@ -116,7 +115,8 @@ def scopehead_det_decode(heat, wh, reg, K=100, num_bins=5, thresh=0.5):
                           xs + wh[..., 2], 
                           ys + wh[..., 3]], dim=-1).view(batch, K, -1)
     detections = torch.cat([bboxes, scores, clses], dim=2)
-      
+    if return_inds:
+        return detections, inds
     return detections
 
 
