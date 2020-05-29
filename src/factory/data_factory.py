@@ -30,7 +30,9 @@ class DataFactory:
         'cityperson': COCO,
         'ethz': COCO,
         'prw': COCO,
-        'flow': FLOW,
+        'flow01': FLOW,
+        'flow02': FLOW,
+        'flow03': FLOW,
         'crowdhuman': COCO,
     }
 
