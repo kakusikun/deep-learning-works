@@ -1,5 +1,5 @@
 # [modelname]_[task]_[loss]_[opt]_[pretrain]
-EXPERIMENT: "OSNet_AIN-msmt_duke_cuhk123-amsoftmax-AdamW_amsgrad_lr_0.0015_freeze_cosine-imagenet"
+EXPERIMENT: "OSNet_AIN-msmt_duke_cuhk12_market-amsoftmax-AdamW_amsgrad_lr_0.0015_freeze_cosine-imagenet"
 # EVALUATE: True
 RESUME: "/home/agent/osnet_ain_x1_0_imagenet.pth"
 # APEX: True
@@ -9,7 +9,7 @@ SEED: 42
 ENGINE: "iap_reid"
 GRAPH: "dualnorm_iap_reid"
 TRAINER: "iap_reid"
-NUM_WORKERS: 3
+NUM_WORKERS: 8
 EVALUATE_FREQ: 5
 # DISTRIBUTED: True
 MODEL:
@@ -25,7 +25,7 @@ INPUT:
   STD: [0.229, 0.224, 0.225]
 DB:
   PATH: "/home/agent/person_reid"
-  DATA: "msmt duke cuhk01 cuhk02 cuhk03"
+  DATA: "msmt duke cuhk01 cuhk02 flow01 flow02 flow03 market"
   DATA_FORMAT: "reid"
   LOADER: "reid"
   USE_TRAIN: True
