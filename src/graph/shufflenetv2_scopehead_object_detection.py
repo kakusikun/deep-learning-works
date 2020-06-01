@@ -58,7 +58,7 @@ class _LossHead(nn.Module):
                     reg_loss.append(self.crit[head](output, batch[out_size]['reg_mask'], batch[out_size]['ind'], batch[out_size]['reg']).unsqueeze(0))
                 else:
                     raise TypeError
-            iou_loss.append(self.crit['iou'](feats[out_size]['wh'], feats[out_size]['reg'], batch[out_size]['ind'], batch[out_size]['hm'], batch['bboxes']).unsqueeze(0))
+            iou_loss.append(self.crit['iou'](feats[out_size]['wh'], feats[out_size]['reg'], batch[out_size]['ind'], batch['bboxes']).unsqueeze(0))
         losses = {'hm':torch.cat(hm_loss).mean(), 'wh':torch.cat(wh_loss).mean(), 'reg':torch.cat(reg_loss).mean(), 'iou':torch.cat(iou_loss).mean()}
         loss = torch.exp(-self.s_hm) * losses['hm'] + torch.exp(-self.s_wh) * losses['wh'] + torch.exp(-self.s_reg) * losses['reg'] + torch.exp(-self.s_iou) * losses['iou'] + self.s_hm + self.s_wh + self.s_reg + self.s_iou
         uncertainty = {'s_hm': self.s_hm, 's_wh': self.s_wh, 's_reg': self.s_reg, 's_iou': self.s_iou}

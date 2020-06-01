@@ -59,6 +59,7 @@ def scopehead_bbox_target(cls_ids, bboxes, ids, max_objs, num_classes, out_sizes
 
         draw_gaussian = draw_umich_gaussian
 
+        invalid = []
         for k, (cls_id, _bbox, pid) in enumerate(zip(cls_ids, bboxes, ids)):
             bbox = _bbox.copy()
             bbox[[0, 2]] *= output_w
@@ -82,6 +83,11 @@ def scopehead_bbox_target(cls_ids, bboxes, ids, max_objs, num_classes, out_sizes
                 ind[k] = ct_int[1] * output_w + ct_int[0]
                 reg_mask[k] = 1  
                 pids[k] = pid
+            else:
+                invalid.append(k)
+        
+        for k in invalid[::-1]:
+            bboxes.pop(k)
                 
         rets[(output_w, output_h)] = {
             'hm': hm,
@@ -94,7 +100,7 @@ def scopehead_bbox_target(cls_ids, bboxes, ids, max_objs, num_classes, out_sizes
 
     return rets
 
-def scopehead_det_decode(heat, wh, reg, K=100, num_bins=5, thresh=0.5, return_inds=False):
+def scopehead_det_decode(heat, wh, reg, K=100, num_bins=5, thresh=0.5):
     batch, cat, height, width = heat.size()
     unit = wh.new_tensor([(width / 2) / num_bins, (height / 2) / num_bins, (width / 2) / num_bins, (height / 2) / num_bins])
     # heat = torch.sigmoid(heat)

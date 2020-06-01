@@ -341,23 +341,29 @@ class CIOULoss(nn.Module):
     def __init__(self):
         super(CIOULoss, self).__init__()
 
-    def forward(self, p_wh, p_reg, t_inds, t_hm, t_dets):
-        n, _, h, w = t_hm.size()
-        p_dets, p_inds = scopehead_det_decode(t_hm, p_wh, reg=p_reg, K=100, return_inds=True)
-        p_dets = p_dets.view(n, 100, -1)
-        t_dets = t_hm.new_tensor(torch.cat(t_dets, dim=0))
+    def forward(self, p_wh, p_reg, t_inds, t_dets):
+        num_bins=5
+        device = p_wh.get_device()
+        n, _, h, w = p_wh.size()
+        unit = p_wh.new_tensor([(w / 2) / num_bins, (h / 2) / num_bins, (w / 2) / num_bins, (h / 2) / num_bins])
+        p_reg = _tranpose_and_gather_feat(p_reg, t_inds)
+        p_reg = p_reg.view(n, -1, 4)
+        p_wh = _tranpose_and_gather_feat(p_wh, t_inds)
+        ordinal_p_wh = p_wh.view(n, -1, 4, 5)
+        rank = (ordinal_p_wh >= 0.5).sum(dim=-1)
+        p_wh = (rank * unit * torch.exp(p_reg))[t_inds>0,:]
+
+        t_dets = torch.cat(t_dets, dim=0).to(device)
         t_dets[:,[0, 2]] *= w
         t_dets[:,[1, 3]] *= h
-        p_order = p_inds[t_inds>0].sort()[1]
-        t_order = t_inds[t_inds>0].sort()[1]
-        match_dets = []
-        match_bboxes = []
-        for p_ind, t_ind in zip(p_order, t_order):
-            match_dets.append(p_dets[p_dets[...,4] > 0.5][...,:4][p_ind])
-            match_bboxes.append(t_dets[t_ind])
-        match_dets = t_hm.new_tensor(torch.stack(match_dets))
-        match_bboxes = t_hm.new_tensor(torch.stack(match_bboxes))
-        ciou = self.bbox_overlaps_ciou(match_dets, match_bboxes)
+
+        cx = (t_dets[:,0] + t_dets[:,2]) / 2
+        cy = (t_dets[:,1] + t_dets[:,3]) / 2
+        p_dets = torch.stack([cx - p_wh[..., 0], 
+                              cy - p_wh[..., 1],
+                              cx + p_wh[..., 2], 
+                              cy + p_wh[..., 3]], dim=-1).view(-1, 4)
+        ciou = self.bbox_overlaps_ciou(p_dets, t_dets)
         return (1 - ciou).mean()
 
     @staticmethod
@@ -397,8 +403,8 @@ class CIOULoss(nn.Module):
         outer_diag = (outer[:, 0] ** 2) + (outer[:, 1] ** 2)
         union = area1+area2-inter_area
         u = (inter_diag) / outer_diag
-        iou = inter_area / union
-        v = (4 / (math.pi ** 2)) * torch.pow((torch.atan(w2 / h2) - torch.atan(w1 / h1)), 2)
+        iou = inter_area / (union + 1e-12)
+        v = (4 / (math.pi ** 2)) * torch.pow((torch.atan(w2 / (h2+1e-12)) - torch.atan(w1 / (h1+1e-12))), 2)
         with torch.no_grad():
             S = torch.clamp(1 - iou, min=1e-6)
             alpha = v / (S + v)
