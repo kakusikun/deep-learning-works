@@ -246,6 +246,8 @@ class BaseGraph:
         is_unknown = False
         is_not_fit = False
         for layer, weight in src_state.items():
+            if "module." in layer[:7]:
+                layer = layer[7:]
             if layer not in trt_state:
                 logger.info("{}src_state {:55} ...... {}?{}".format(bcolors.RESET, layer, bcolors.WARNING, bcolors.RESET))
                 is_unknown = True
