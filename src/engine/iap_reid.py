@@ -34,6 +34,7 @@ class IAPReIDEngine(BaseEngine):
                     p.requires_grad = True
                 
     def _train_once(self):
+        accus = [] 
         for batch in tqdm(self.tdata, desc=f"TRAIN[{self.epoch}/{self.cfg.SOLVER.MAX_EPOCHS}]"):
             self._train_iter_start()
             if self.use_gpu:
@@ -45,6 +46,10 @@ class IAPReIDEngine(BaseEngine):
             output = self.graph.run(batch['inp']) 
             loss, losses = self.graph.loss_head(output, batch)
             self.loss, self.losses = loss, losses
+
+            accu = (output.max(1)[1] == batch['pid']).float().mean()
+            accus.append(accu)        
+            self.train_accu = self.tensor_to_scalar(accu)
             self._train_iter_end()
 
     def _evaluate(self, eval=False):

@@ -40,16 +40,16 @@ class _Model2(nn.Module):
     def __init__(self, cfg):
         super(_Model2, self).__init__()
         self.backbone = BackboneFactory.produce(cfg) 
-        self.iap_trick_head = ReIDTrickHead(cfg.MODEL.FEATSIZE, n_dim=0, kernal_size=(16, 8))
-        self.iap_cosine_head = AMSoftmaxClassiferHead(cfg.MODEL.FEATSIZE, cfg.REID.NUM_PERSON)
+        self.iap_trick_head = ReIDTrickHead(cfg.MODEL.FEATSIZE, n_dim=cfg.REID.NUM_PERSON, kernal_size=(16, 8))
+        # self.iap_cosine_head = AMSoftmaxClassiferHead(cfg.MODEL.FEATSIZE, cfg.REID.NUM_PERSON)
     
     def forward(self, x):
         x = self.backbone(x)
         y = self.iap_trick_head(x)
-        if self.iap_cosine_head.training:
-            return self.iap_cosine_head(y)
-        else:
-            return y
+        # if self.iap_cosine_head.training:
+        #     return self.iap_cosine_head(y)
+        # else:
+        return y
 
 class DualNormIAPReID(BaseGraph):
     def __init__(self, cfg):
@@ -58,14 +58,14 @@ class DualNormIAPReID(BaseGraph):
     def build(self):
         self.model = _Model2(self.cfg)
         self.crit = {}
-        self.crit['amsoftmax'] = AMSoftmaxWithLoss(s=30, m=0.35, relax=0.0)
+        self.crit['cels'] = CrossEntropyLossLS(self.cfg.REID.NUM_PERSON)
 
         def loss_head(output, batch):
-            _loss = self.crit['amsoftmax'](output, batch['pid'])
+            _loss = self.crit['cels'](output, batch['pid'])
             losses = {
-                'amsoftmax':_loss, 
+                'cels':_loss, 
             }
-            loss = losses['amsoftmax']
+            loss = losses['cels']
             return loss, losses
 
         self.loss_head = loss_head
