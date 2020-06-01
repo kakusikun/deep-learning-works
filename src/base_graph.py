@@ -37,6 +37,7 @@ class BaseGraph:
         self.use_gpu = False
         self.sub_models = {}
         self.inference_trans = None
+        self.torchscript_model = None
         
         if self.cfg.IO:
             self.set_save_path()
@@ -276,3 +277,20 @@ class BaseGraph:
             else:
                 logger.info("Model Loaded Successfully")
         
+    def to_torchscript(self, shape, load_path="", model=None, save_path=""):
+        if model is None:
+            assert self.torchscript_model is not None, "Trochscript Model does not exist!"
+            model = self.torchscript_model
+
+        if load_path:
+            self.load(load_path, model)
+        else:
+            self.load(self.cfg.RESUME, model)
+
+        x = torch.rand(shape)
+        traced_model = torch.jit.trace(model.eval(), (x,))
+
+        if save_path:
+            traced_model.save(os.path.join(save_path, f'{self.cfg.MODEL.BACKBONE}.zip'))
+        else:
+            traced_model.save(os.path.join(os.getcwd(), "external", f'{self.cfg.MODEL.BACKBONE}.zip'))
