@@ -1,5 +1,5 @@
 # [modelname]_[task]_[loss]_[opt]_[pretrain]
-EXPERIMENT: "OSNet_AIN-msmt_duke_cuhk12_market-amsoftmax-AdamW_amsgrad_lr_0.0015_freeze_cosine-imagenet"
+EXPERIMENT: "OSNet_AIN-msmt_duke_cuhk12_market-cels-AdamW_amsgrad_lr_0.0015_freeze_cosine-imagenet"
 # EVALUATE: True
 RESUME: "/home/agent/osnet_ain_x1_0_imagenet.pth"
 # APEX: True
@@ -25,12 +25,12 @@ INPUT:
   STD: [0.229, 0.224, 0.225]
 DB:
   PATH: "/home/agent/person_reid"
-  DATA: "msmt duke cuhk01 cuhk02 flow01 flow02 flow03 market"
+  DATA: "msmt duke cuhk03 market market"
   DATA_FORMAT: "reid"
   LOADER: "reid"
   USE_TRAIN: True
   USE_TEST: True
-  TRAIN_TRANSFORM: "RandomGrid-0.15 RandomPadding-0.25 RandomFigures-0.5 Resize RandomHFlip RandomColorJitter-0.8-0.15-0.15-0.1-0.1 RandomRotate-0.33 RandomGrayScale-0.1 Tensorize RandomErasing-0.5 Normalize"
+  TRAIN_TRANSFORM: "RandomGrid-0.15 RandomPadding-0.25 RandomFigures-0.5 Resize RandomHFlip RandomColorJitter-0.8-0.15-0.15-0.1-0.1 Tensorize RandomErasing-0.5 Normalize"
   TEST_TRANSFORM: "Resize Tensorize Normalize"
 SOLVER:
   OPTIMIZER: "AdamW"
@@ -41,9 +41,8 @@ SOLVER:
   WEIGHT_DECAY: 0.0005
   WEIGHT_DECAY_BIAS_FACTOR: 1.0
   # LR_POLICY: "step-40-0-0.1 step-10-1-0.1 step-15-2-0.1"
-  LR_POLICY: "cosine-1-1-100-1"
-  MIN_LR: 1e-6
-  MODEL_FREEZE_PEROID: 5
+  LR_POLICY: "cosine-1-1-250-1"
+  MODEL_FREEZE_PEROID: 10
 REID:
   SIZE_PERSON: 4
   MSMT_ALL: True
