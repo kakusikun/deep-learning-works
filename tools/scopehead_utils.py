@@ -59,7 +59,6 @@ def scopehead_bbox_target(cls_ids, bboxes, ids, max_objs, num_classes, out_sizes
 
         draw_gaussian = draw_umich_gaussian
 
-        invalid = []
         for k, (cls_id, _bbox, pid) in enumerate(zip(cls_ids, bboxes, ids)):
             bbox = _bbox.copy()
             bbox[[0, 2]] *= output_w
@@ -84,11 +83,8 @@ def scopehead_bbox_target(cls_ids, bboxes, ids, max_objs, num_classes, out_sizes
                 reg_mask[k] = 1  
                 pids[k] = pid
             else:
-                invalid.append(k)
+                bboxes[k][-1] = 0.0
         
-        for k in invalid[::-1]:
-            bboxes.pop(k)
-                
         rets[(output_w, output_h)] = {
             'hm': hm,
             'wh': bins.reshape(max_objs, -1),

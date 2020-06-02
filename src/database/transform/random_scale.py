@@ -67,7 +67,7 @@ class RandScale(BaseTransform):
         out_w, out_h = np.array(self.size)
         trans_output = get_affine_transform(s['c'], s['s'], 0, [out_w, out_h])
         bbox[:2] = affine_transform(bbox[:2], trans_output)
-        bbox[2:] = affine_transform(bbox[2:], trans_output)
+        bbox[2:4] = affine_transform(bbox[2:4], trans_output)
         bbox[[0, 2]] = np.clip(bbox[[0, 2]], 0, out_w - 1)
         bbox[[1, 3]] = np.clip(bbox[[1, 3]], 0, out_h - 1) 
         return bbox

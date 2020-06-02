@@ -19,7 +19,7 @@ class build_coco_dataset(Dataset):
         self.use_kp = True if self.num_keypoints > 0 else False
 
     def _coco_box_to_bbox(self, box):
-        bbox = np.array([box[0], box[1], box[0] + box[2], box[1] + box[3]], dtype=np.float32)
+        bbox = np.array([box[0], box[1], box[0] + box[2], box[1] + box[3], 1.0], dtype=np.float32)
         return bbox
     
     def __len__(self):

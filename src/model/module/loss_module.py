@@ -354,6 +354,7 @@ class CIOULoss(nn.Module):
         p_wh = (rank * unit * torch.exp(p_reg))[t_inds>0,:]
 
         t_dets = torch.cat(t_dets, dim=0).to(device)
+        t_dets = t_dets[t_dets[:,-1] > 0]
         t_dets[:,[0, 2]] *= w
         t_dets[:,[1, 3]] *= h
 
@@ -392,9 +393,9 @@ class CIOULoss(nn.Module):
         center_x2 = (bboxes2[:, 2] + bboxes2[:, 0]) / 2
         center_y2 = (bboxes2[:, 3] + bboxes2[:, 1]) / 2
 
-        inter_max_xy = torch.min(bboxes1[:, 2:],bboxes2[:, 2:])
+        inter_max_xy = torch.min(bboxes1[:, 2:4],bboxes2[:, 2:4])
         inter_min_xy = torch.max(bboxes1[:, :2],bboxes2[:, :2])
-        out_max_xy = torch.max(bboxes1[:, 2:],bboxes2[:, 2:])
+        out_max_xy = torch.max(bboxes1[:, 2:4],bboxes2[:, 2:4])
         out_min_xy = torch.min(bboxes1[:, :2],bboxes2[:, :2])
         inter = torch.clamp((inter_max_xy - inter_min_xy), min=0)
         inter_area = inter[:, 0] * inter[:, 1]

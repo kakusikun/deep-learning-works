@@ -38,7 +38,7 @@ class RandAugment(BaseTransform):
         for op_name in s:
             A = aug.AUG_AS[op_name](**s[op_name])
             bbox[:2] = aug.apply_A(bbox[:2], A)
-            bbox[2:] = aug.apply_A(bbox[2:], A)
+            bbox[2:4] = aug.apply_A(bbox[2:4], A)
         out_h, out_w = (np.array(self.size) // self.stride).astype(int)
         bbox[[0, 2]] = np.clip(bbox[[0, 2]], 0, out_w - 1)
         bbox[[1, 3]] = np.clip(bbox[[1, 3]], 0, out_h - 1) 
