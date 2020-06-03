@@ -345,25 +345,24 @@ class CIOULoss(nn.Module):
         num_bins=5
         device = p_wh.get_device()
         n, _, h, w = p_wh.size()
-        unit = p_wh.new_tensor([(w / 2) / num_bins, (h / 2) / num_bins, (w / 2) / num_bins, (h / 2) / num_bins])
         p_reg = _tranpose_and_gather_feat(p_reg, t_inds)
-        p_reg = p_reg.view(n, -1, 4)
         p_wh = _tranpose_and_gather_feat(p_wh, t_inds)
-        ordinal_p_wh = p_wh.view(n, -1, 4, 5)
-        rank = (ordinal_p_wh >= 0.5).sum(dim=-1)
-        p_wh = ((rank + reg) * unit)[t_inds>0,:]
+        p_reg = p_reg[t_inds>0,:]
+        p_wh = p_wh[t_inds>0,:].view(-1, 2)
 
-        t_dets = torch.cat(t_dets, dim=0).to(device)
+        t_dets = torch.cat(t_dets, dim=0)
         t_dets = t_dets[t_dets[:,-1] > 0]
         t_dets[:,[0, 2]] *= w
         t_dets[:,[1, 3]] *= h
 
-        cx = (t_dets[:,0] + t_dets[:,2]) / 2
-        cy = (t_dets[:,1] + t_dets[:,3]) / 2
-        p_dets = torch.stack([cx - p_wh[..., 0], 
-                              cy - p_wh[..., 1],
-                              cx + p_wh[..., 2], 
-                              cy + p_wh[..., 3]], dim=-1).view(-1, 4)
+        cx = ((t_dets[:,0] + t_dets[:,2]) / 2).int() + p_reg[:, 0]
+        cy = ((t_dets[:,1] + t_dets[:,3]) / 2).int() + p_reg[:, 1]
+    
+        p_dets = torch.stack([cx - p_wh[..., 0] / 2, 
+                              cy - p_wh[..., 1] / 2,
+                              cx + p_wh[..., 0] / 2, 
+                              cy + p_wh[..., 1] / 2], dim=-1).view(-1, 4)
+                              
         ciou = self.bbox_overlaps_ciou(p_dets, t_dets)
         return (1 - ciou).mean()
 
