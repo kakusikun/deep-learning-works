@@ -351,7 +351,7 @@ class CIOULoss(nn.Module):
         p_wh = _tranpose_and_gather_feat(p_wh, t_inds)
         ordinal_p_wh = p_wh.view(n, -1, 4, 5)
         rank = (ordinal_p_wh >= 0.5).sum(dim=-1)
-        p_wh = (rank * unit * torch.exp(p_reg))[t_inds>0,:]
+        p_wh = ((rank + reg) * unit)[t_inds>0,:]
 
         t_dets = torch.cat(t_dets, dim=0).to(device)
         t_dets = t_dets[t_dets[:,-1] > 0]
