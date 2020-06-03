@@ -75,10 +75,10 @@ def scopehead_bbox_target(cls_ids, bboxes, ids, max_objs, num_classes, out_sizes
                 bins[k][1][:(int((h/2) / unit_h) + 1)] = 1
                 bins[k][2][:(int((w/2) / unit_w) + 1)] = 1
                 bins[k][3][:(int((h/2) / unit_h) + 1)] = 1
-                reg[k][0] = math.log((w/2 - (ct[0] - ct_int[0])) / ((int((w/2) / unit_w) + 1) * unit_w))
-                reg[k][1] = math.log((h/2 - (ct[1] - ct_int[1])) / ((int((h/2) / unit_h) + 1) * unit_h))
-                reg[k][2] = math.log((w/2 + (ct[0] - ct_int[0])) / ((int((w/2) / unit_w) + 1) * unit_w))
-                reg[k][3] = math.log((h/2 + (ct[1] - ct_int[1])) / ((int((h/2) / unit_h) + 1) * unit_h))
+                reg[k][0] = math.log(min(1e-6, (w/2 - (ct[0] - ct_int[0]))) / ((int((w/2) / unit_w) + 1) * unit_w))
+                reg[k][1] = math.log(min(1e-6, (h/2 - (ct[1] - ct_int[1]))) / ((int((h/2) / unit_h) + 1) * unit_h))
+                reg[k][2] = math.log(min(1e-6, (w/2 + (ct[0] - ct_int[0]))) / ((int((w/2) / unit_w) + 1) * unit_w))
+                reg[k][3] = math.log(min(1e-6, (h/2 + (ct[1] - ct_int[1]))) / ((int((h/2) / unit_h) + 1) * unit_h))
                 ind[k] = ct_int[1] * output_w + ct_int[0]
                 reg_mask[k] = 1  
                 pids[k] = pid
