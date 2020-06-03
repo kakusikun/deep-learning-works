@@ -346,8 +346,8 @@ class CIOULoss(nn.Module):
         _, _, h, w = p_wh.size()
         p_reg = _tranpose_and_gather_feat(p_reg, t_inds)
         p_wh = _tranpose_and_gather_feat(p_wh, t_inds)
-        p_reg = p_reg[mask>=0,:]
-        p_wh = p_wh[mask>=0,:].view(-1, 2)
+        p_reg = p_reg[mask>0,:]
+        p_wh = p_wh[mask>0,:].view(-1, 2)
 
         t_dets = torch.cat(t_dets, dim=0).to(device)
         t_dets = t_dets[t_dets[:,-1] > 0]
