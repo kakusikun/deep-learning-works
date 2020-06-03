@@ -341,13 +341,13 @@ class CIOULoss(nn.Module):
     def __init__(self):
         super(CIOULoss, self).__init__()
 
-    def forward(self, p_wh, p_reg, t_inds, t_dets):
+    def forward(self, p_wh, p_reg, mask, t_inds, t_dets):
         device = p_wh.get_device()
         _, _, h, w = p_wh.size()
         p_reg = _tranpose_and_gather_feat(p_reg, t_inds)
         p_wh = _tranpose_and_gather_feat(p_wh, t_inds)
-        p_reg = p_reg[t_inds>=0,:]
-        p_wh = p_wh[t_inds>=0,:].view(-1, 2)
+        p_reg = p_reg[mask>=0,:]
+        p_wh = p_wh[mask>=0,:].view(-1, 2)
 
         t_dets = torch.cat(t_dets, dim=0).to(device)
         t_dets = t_dets[t_dets[:,-1] > 0]
