@@ -71,14 +71,14 @@ def scopehead_bbox_target(cls_ids, bboxes, ids, max_objs, num_classes, out_sizes
                 ct = torch.FloatTensor([(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2])
                 ct_int = ct.int()
                 draw_gaussian(hm[cls_id].numpy(), ct_int.numpy(), radius)
-                bins[k][0][:int((w/2) / unit_w)] = 1
-                bins[k][1][:int((h/2) / unit_h)] = 1
-                bins[k][2][:int((w/2) / unit_w)] = 1
-                bins[k][3][:int((h/2) / unit_h)] = 1
-                reg[k][0] = ((w/2 - (ct[0] - ct_int[0])) - (((w/2) // unit_w) * unit_w)) / unit_w 
-                reg[k][1] = ((h/2 - (ct[1] - ct_int[1])) - (((h/2) // unit_h) * unit_h)) / unit_h 
-                reg[k][2] = ((w/2 + (ct[0] - ct_int[0])) - (((w/2) // unit_w) * unit_w)) / unit_w 
-                reg[k][3] = ((h/2 + (ct[1] - ct_int[1])) - (((h/2) // unit_h) * unit_h)) / unit_h 
+                bins[k][0][:int((w/2) // unit_w)] = 1
+                bins[k][1][:int((h/2) // unit_h)] = 1
+                bins[k][2][:int((w/2) // unit_w)] = 1
+                bins[k][3][:int((h/2) // unit_h)] = 1
+                reg[k][0] = ((w/2 - (ct[0] - ct_int[0])) - (int((w/2) // unit_w) * unit_w)) / unit_w 
+                reg[k][1] = ((h/2 - (ct[1] - ct_int[1])) - (int((h/2) // unit_h) * unit_h)) / unit_h 
+                reg[k][2] = ((w/2 + (ct[0] - ct_int[0])) - (int((w/2) // unit_w) * unit_w)) / unit_w 
+                reg[k][3] = ((h/2 + (ct[1] - ct_int[1])) - (int((h/2) // unit_h) * unit_h)) / unit_h 
                 ind[k] = ct_int[1] * output_w + ct_int[0]
                 reg_mask[k] = 1  
                 pids[k] = pid

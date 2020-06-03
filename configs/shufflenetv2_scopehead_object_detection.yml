@@ -1,7 +1,7 @@
 # [modelname]_[task]_[loss]_[opt]_[pretrain]
 EXPERIMENT: "Shufflenetv2_hrnet_scopehead-crowdhuman_cuhksysu_ethz_prw_caltech_cityperson-person-focal_l1_ciou-AdamW_lr_0.0015_cosine_imagenet"
 PRETRAIN: True
-RESUME: "/home/agent/Shufflenetv2_hrnet-imagenet-ce-SGDW_nesterov_lr_0.1_cosine-scratch_model_030_0.6612.pth"
+RESUME: "/media/acer/5f45949f-0fc7-4475-965b-e61989afcc10/Downloads/result-200603/crowdhuman cuhksysu ethz prw caltech cityperson crowdhuman/Shufflenetv2_hrnet_scopehead-crowdhuman_cuhksysu_ethz_prw_caltech_cityperson-person-focal_l1_ciou-AdamW_lr_0.0015_cosine_imagenet/001-2020-06-02_06-30/weights/model_030_0.2469.pth"
 APEX: True
 SAVE: True
 IO: True
