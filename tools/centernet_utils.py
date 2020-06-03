@@ -245,7 +245,7 @@ def centernet_bbox_target(cls_ids, bboxes, ids, max_objs, num_classes, out_sizes
         wh = torch.zeros(max_objs, 2)
         # object offset
         reg = torch.zeros(max_objs, 2)       
-        ind = torch.zeros(max_objs).long()
+        ind = torch.ones(max_objs).long() * -1
         reg_mask = torch.zeros(max_objs).byte()    
         pids = torch.ones(max_objs).long() * -1
 
@@ -268,6 +268,8 @@ def centernet_bbox_target(cls_ids, bboxes, ids, max_objs, num_classes, out_sizes
                 reg[k] = ct - ct_int
                 reg_mask[k] = 1  
                 pids[k] = pid
+            else:
+                bboxes[k][-1] = 0.0
                 
         rets[(output_w, output_h)] = {
             'hm': hm,
