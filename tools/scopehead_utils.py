@@ -117,8 +117,6 @@ def scopehead_det_decode(heat, wh, reg, K=100, num_bins=5, thresh=0.5):
                           xs + wh[..., 2], 
                           ys + wh[..., 3]], dim=-1).view(batch, K, -1)
     detections = torch.cat([bboxes, scores, clses], dim=2)
-    if return_inds:
-        return detections, inds
     return detections
 
 
