@@ -358,8 +358,8 @@ class CIOULoss(nn.Module):
         t_dets[:,[0, 2]] *= w
         t_dets[:,[1, 3]] *= h
 
-        cx = (t_dets[:,0] + t_dets[:,2]) / 2
-        cy = (t_dets[:,1] + t_dets[:,3]) / 2
+        cx = ((t_dets[:,0] + t_dets[:,2]) / 2).int()
+        cy = ((t_dets[:,1] + t_dets[:,3]) / 2).int()
         p_dets = torch.stack([cx - p_wh[..., 0], 
                               cy - p_wh[..., 1],
                               cx + p_wh[..., 2], 
