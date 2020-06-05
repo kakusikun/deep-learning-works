@@ -85,7 +85,7 @@ class Shufflenetv2OD(BaseEngine):
                     feat['wh'].exp_()
 
                 dets = centernet_det_decode(feat['hm'], feat['wh'], reg=feat['reg'], K=100)
-                dets = dets.detach().cpu().numpy().reshape(1, 100, -1)
+                dets = dets.detach().cpu().numpy().reshape(1, -1, 6)
                 dets_out = centernet_det_post_process(
                     dets.copy(), 
                     batch['c'].cpu().numpy(), 

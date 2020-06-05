@@ -361,7 +361,8 @@ class CIOULoss(nn.Module):
                               cy - p_wh[..., 1] / 2,
                               cx + p_wh[..., 0] / 2, 
                               cy + p_wh[..., 1] / 2], dim=-1).view(-1, 4)
-                              
+        if p_dets.dtype == torch.float16:
+            t_dets = t_dets.half()
         ciou = self.bbox_overlaps_ciou(p_dets, t_dets)
         return (1 - ciou).mean()
 
@@ -390,7 +391,6 @@ class CIOULoss(nn.Module):
         center_y1 = (bboxes1[:, 3] + bboxes1[:, 1]) / 2
         center_x2 = (bboxes2[:, 2] + bboxes2[:, 0]) / 2
         center_y2 = (bboxes2[:, 3] + bboxes2[:, 1]) / 2
-
         inter_max_xy = torch.min(bboxes1[:, 2:4],bboxes2[:, 2:4])
         inter_min_xy = torch.max(bboxes1[:, :2],bboxes2[:, :2])
         out_max_xy = torch.max(bboxes1[:, 2:4],bboxes2[:, 2:4])
@@ -402,8 +402,8 @@ class CIOULoss(nn.Module):
         outer_diag = (outer[:, 0] ** 2) + (outer[:, 1] ** 2)
         union = area1+area2-inter_area
         u = (inter_diag) / outer_diag
-        iou = inter_area / (union + 1e-12)
-        v = (4 / (math.pi ** 2)) * torch.pow((torch.atan(w2 / (h2+1e-12)) - torch.atan(w1 / (h1+1e-12))), 2)
+        iou = inter_area / (union + 1e-6)
+        v = (4 / (math.pi ** 2)) * torch.pow((torch.atan(w2 / (h2+1e-6)) - torch.atan(w1 / (h1+1e-6))), 2)
         with torch.no_grad():
             S = torch.clamp(1 - iou, min=1e-6)
             alpha = v / (S + v)

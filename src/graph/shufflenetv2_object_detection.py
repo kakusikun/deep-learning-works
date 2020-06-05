@@ -35,17 +35,14 @@ class _LossHead(nn.Module):
         self.crit['hm'] = FocalLoss()  
         self.crit['wh'] = L1Loss()
         self.crit['reg'] = L1Loss()
-        self.crit['iou'] = CIOULoss()
         self.s_hm = nn.Parameter(-1.85 * torch.ones(1))
         self.s_wh = nn.Parameter(-1.85 * torch.ones(1))
         self.s_reg = nn.Parameter(-1.85 * torch.ones(1))
-        self.s_iou = nn.Parameter(-1.85 * torch.ones(1))
 
     def forward(self, feats, batch):
         hm_loss = []
         wh_loss = []
         reg_loss = []
-        iou_loss = []
         for out_size in feats:
             for head in feats[out_size]:
                 output = feats[out_size][head]
@@ -58,10 +55,9 @@ class _LossHead(nn.Module):
                     reg_loss.append(self.crit[head](output, batch[out_size]['reg_mask'], batch[out_size]['ind'], batch[out_size]['reg']).unsqueeze(0))
                 else:
                     raise TypeError
-            iou_loss.append(self.crit['iou'](feats[out_size]['wh'], feats[out_size]['reg'], batch[out_size]['reg_mask'], batch[out_size]['ind'], batch['bboxes']).unsqueeze(0))
-        losses = {'hm':torch.cat(hm_loss).mean(), 'wh':torch.cat(wh_loss).mean(), 'reg':torch.cat(reg_loss).mean(), 'iou':torch.cat(iou_loss).mean()}
-        loss = torch.exp(-self.s_hm) * losses['hm'] + torch.exp(-self.s_wh) * losses['wh'] + torch.exp(-self.s_reg) * losses['reg'] + torch.exp(-self.s_iou) * losses['iou'] + self.s_hm + self.s_wh + self.s_reg + self.s_iou
-        uncertainty = {'s_hm': self.s_hm, 's_wh': self.s_wh, 's_reg': self.s_reg, 's_iou': self.s_iou}
+        losses = {'hm':torch.cat(hm_loss).mean(), 'wh':torch.cat(wh_loss).mean(), 'reg':torch.cat(reg_loss).mean()}
+        loss = torch.exp(-self.s_hm) * losses['hm'] + torch.exp(-self.s_wh) * losses['wh'] + torch.exp(-self.s_reg) * losses['reg'] + self.s_hm + self.s_wh + self.s_reg
+        uncertainty = {'s_hm': self.s_hm, 's_wh': self.s_wh, 's_reg': self.s_reg}
         losses.update(uncertainty)
         return loss, losses
 
