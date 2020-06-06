@@ -78,9 +78,9 @@ class ShuffleNetV2_Plus(nn.Module):
         channel_scale = [0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0]
         self.strides = strides
         self.stage_repeats = stage_repeats
-        self.extract_stage_indice = [-1]
+        self.extract_block_indice = [-1]
         for idx, repeat in enumerate(self.stage_repeats):
-            self.extract_stage_indice.append(repeat + self.extract_stage_indice[idx])
+            self.extract_block_indice.append(repeat + self.extract_block_indice[idx])
         self.stage_out_channels = stage_out_channels
         self.multiscale = multiscale
         
@@ -138,10 +138,10 @@ class ShuffleNetV2_Plus(nn.Module):
     def forward(self, x):
         x = self.first_conv(x)
         x = self.max_pool(x)
-        stage_feats = [x]
-        for stage_idx, stage in enumerate(self.features):
-            x = stage(x)
-            if stage_idx in self.extract_stage_indice:
+        stage_feats = []
+        for block_idx, block in enumerate(self.features):
+            x = block(x)
+            if block_idx in self.extract_block_indice:
                 stage_feats.append(x)
         if self.multiscale:
             return stage_feats
