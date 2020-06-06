@@ -50,6 +50,7 @@ cfg.MODEL.BACKBONE = ""
 cfg.MODEL.SAVE_CRITERION = "acc"
 cfg.MODEL.STRIDES = [1]
 cfg.MODEL.FEATSIZE = 0
+cfg.MODEL.MAX_STRIDE = 32
 
 # -----------------------------------------------------------------------------
 # INPUT
