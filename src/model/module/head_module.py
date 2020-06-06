@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from src.model.module.base_module import ConvModule, SEModule, HSwish
+from src.model.module.base_module import ConvModule, SEModule, HSwish, get_ConvModule
 from tools.utils import _tranpose_and_gather_feat
 
 def weights_init_kaiming(module):
@@ -317,14 +317,47 @@ class L2Norm(nn.Module):
         out = self.weight.unsqueeze(0).unsqueeze(2).unsqueeze(3).expand_as(x) * x
         return out
 
-# TODO: use CSP
-# class CSPHead(nn.Module):
-#     def __init__(self, num_stages):
-#         super(CSPHead, self).__init__()
-#         self.num_stages = num_stages
-#         pks = nn.ModuleList()
-#         for _ in range(self.num_stages):
-#             pks.append(nn.Sequential(
-#                 nn.ConvTranspose2d
-#             ))
+class CSPHead(nn.Module):
+    def __init__(self, stage_out_channels, oss):
+        super(CSPHead, self).__init__()
+        self.pks = nn.ModuleList()
+        for ouc, os in zip(stage_out_channels, oss):
+            if os == 1:
+                self.pks.append(nn.Sequential(L2Norm(ouc, 10)))
+            elif os == 2:
+                self.pks.append(nn.Sequential(
+                    nn.ConvTranspose2d(ouc, 256, stride=2, kernel_size=4, padding=1),
+                    L2Norm(ouc, 10)
+                ))
+            elif os == 4:
+                self.pks.append(nn.Sequential(
+                    nn.ConvTranspose2d(ouc, 256, stride=4, kernel_size=4, padding=0),
+                    L2Norm(256, 10)
+                ))
+            elif os == 8:
+                self.pks.append(nn.Sequential(
+                    nn.ConvTranspose2d(ouc, 256, stride=8, kernel_size=8, padding=0),
+                    L2Norm(256, 10)
+                ))
+
+        self.aggregate = get_ConvModule(
+            stage_out_channels[0] + (len(stage_out_channels) - 1) * 256,
+            256, 3, 1, 1, activation='relu')
+        
+        self._init_params()
+
+    def forward(self, feats):
+        assert len(feats) == len(self.pks)
+        outputs = []
+        for i in range(len(self.pks)):
+            outputs.append(self.pks[i](feats[i]))
+        output = torch.cat(outputs, dim=1)
+        return self.aggregate(output)
+    
+    def _init_params(self):
+        for m in self.modules():
+            if isinstance(m, nn.ConvTranspose2d) or isinstance(m, nn.Conv2d):
+                nn.init.xavier_normal_(m.weight)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
 

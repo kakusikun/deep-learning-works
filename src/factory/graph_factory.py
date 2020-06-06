@@ -10,6 +10,7 @@ from src.graph.hourglass_jde import HourglassJDE
 from src.graph.shufflenetv2_jde import ShuffleNetv2JDE
 from src.graph.shufflenetv2_object_detection import ShuffleNetv2OD
 from src.graph.shufflenetv2_scopehead_object_detection import ShuffleNetv2ScopeHeadOD
+from src.graph.shufflenetv2_plus_csp import ShuffleNetv2CSP
 
 class GraphFactory:
     products = {
@@ -26,6 +27,7 @@ class GraphFactory:
         'shufflenetv2_object_detection': ShuffleNetv2OD,
         'dualnorm_iap_reid': DualNormIAPReID,
         'shufflenetv2_scopehead_object_detection': ShuffleNetv2ScopeHeadOD,
+        'shufflenetv2_csp': ShuffleNetv2CSP
     }
 
     @classmethod

@@ -34,23 +34,19 @@ class FocalLoss(nn.Module):
         super(FocalLoss, self).__init__()
         self.a = a
         self.b = b
+        self.basic_loss = nn.BCEWithLogitsLoss(reduction="none")
+
     def forward(self, feat, target):
         pos_inds = target.eq(1).float()
-        neg_inds = target.lt(1).float()
+        neg_inds = target.lt(1).float() * target.gt(0).float()
 
-        neg_weights = torch.pow(1 - target, self.b)
+        log_loss = self.basic_loss(feat, pos_inds)
+        pos_weight = pos_inds * torch.pow(1 - feat, self.a)
+        neg_weight = neg_inds * torch.pow(feat, self.a) * torch.pow(1 - target, self.b)
+        focal_weight = pos_weight + neg_weight
 
-        pos_loss = pos_inds * torch.log(feat) * torch.pow(1 - feat, self.a)
-        neg_loss = neg_inds * torch.log(1 - feat) * torch.pow(feat, self.a) * neg_weights
-    
-        num_pos  = pos_inds.float().sum()
-        pos_loss = pos_loss.sum()
-        neg_loss = neg_loss.sum()
-    
-        if num_pos == 0:
-            return -neg_loss
-        else:
-            return -1.0 * (pos_loss + neg_loss) / num_pos
+        num_pos  = pos_inds.sum()
+        return torch.sum(focal_weight*log_loss) / max(1.0, num_pos)
 
 class CrossEntropyLossLS(nn.Module):
     """Cross entropy loss with label smoothing regularizer.

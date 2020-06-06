@@ -1,6 +1,5 @@
 from src.graph import *
 import math
-from tools.utils import _sigmoid
 
 class _Model(nn.Module):
     def __init__(self, cfg):
@@ -8,11 +7,11 @@ class _Model(nn.Module):
         w, h = cfg.INPUT.SIZE
         self.out_sizes = [(w // s, h // s) for s in cfg.MODEL.STRIDES]
         self.backbone = BackboneFactory.produce(cfg)
-        self.conv = get_ConvModule(512, 256, 3, 1, 1, activation="hs")
+        self.csp_head = CSPHead(self.backbone.stage_out_channels, [1,2,4,8])
         self.heads = nn.ModuleDict({
-            'hm': nn.ModuleList([HourGlassHead(64, cfg.DB.NUM_CLASSES) for _ in range(len(self.out_sizes))]),
-            'wh': nn.ModuleList([HourGlassHead(64, 2) for _ in range(len(self.out_sizes))]),
-            'reg': nn.ModuleList([HourGlassHead(64, 2) for _ in range(len(self.out_sizes))]),
+            'hm': nn.ModuleList([get_ConvModule(256, 1, 1, activation='linear', use_bn=False) for _ in range(len(self.out_sizes))]),
+            'wh': nn.ModuleList([get_ConvModule(256, 2, 1, activation='linear', use_bn=False) for _ in range(len(self.out_sizes))]),
+            'reg': nn.ModuleList([get_ConvModule(256, 2, 1, activation='linear', use_bn=False) for _ in range(len(self.out_sizes))]),
         })
         for head in self.heads['hm']:
             for m in head.modules():
@@ -21,12 +20,13 @@ class _Model(nn.Module):
                         m.bias.data.fill_(-2.19)
 
     def forward(self, x):
-        outs = self.backbone(x)
+        xs = self.backbone(x)
+        x = self.csp_head(xs)
         head_out = {}
         for i, out_size in enumerate(self.out_sizes):
             head_out[out_size] = {}
             for head in self.heads:
-                head_out[out_size][head] = self.heads[head][i](outs)
+                head_out[out_size][head] = self.heads[head][i](x)
         return head_out
 
 class _LossHead(nn.Module):
@@ -48,7 +48,6 @@ class _LossHead(nn.Module):
             for head in feats[out_size]:
                 output = feats[out_size][head]
                 if head == 'hm':
-                    output = _sigmoid(output)
                     hm_loss.append(self.crit[head](output, batch[out_size]['hm']).unsqueeze(0))
                 elif head == 'wh':
                     wh_loss.append(self.crit[head](output, batch[out_size]['reg_mask'], batch[out_size]['ind'], batch[out_size]['wh']).unsqueeze(0))
@@ -62,9 +61,9 @@ class _LossHead(nn.Module):
         losses.update(uncertainty)
         return loss, losses
 
-class ShuffleNetv2OD(BaseGraph):
+class ShuffleNetv2CSP(BaseGraph):
     def __init__(self, cfg):
-        super(ShuffleNetv2OD, self).__init__(cfg)        
+        super(ShuffleNetv2CSP, self).__init__(cfg)        
     
     def build(self):
         self.model = _Model(self.cfg)     
