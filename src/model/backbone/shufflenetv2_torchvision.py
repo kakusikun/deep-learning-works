@@ -70,9 +70,10 @@ class InvertedResidual(nn.Module):
 
 
 class ShuffleNetV2(nn.Module):
-    def __init__(self, strides, stages_repeats, stages_out_channels, inverted_residual=InvertedResidual):
+    def __init__(self, strides, stages_repeats, stages_out_channels, inverted_residual=InvertedResidual, multiscale=False):
         super(ShuffleNetV2, self).__init__()
         self.stage_out_channels = stages_out_channels
+        self.multiscale = multiscale
 
         input_channels = 3
         output_channels = self.stage_out_channels[0]
@@ -107,18 +108,19 @@ class ShuffleNetV2(nn.Module):
 
     def forward(self, x):
         # See note [TorchScript super()]
-        # stage_feats = []
+        stage_feats = []
         x = self.conv1(x)
-        x = self.maxpool(x) # os 2
-        x = self.stage2(x) # os 4
+        x = self.maxpool(x)
+        x = self.stage2(x)
+        stage_feats.append(x)
+        x = self.stage3(x)
+        stage_feats.append(x)
+        x = self.stage4(x)
+        stage_feats.append(x)
+        # x = self.conv5(x)
         # stage_feats.append(x)
-        x = self.stage3(x) # os 8
-        # stage_feats.append(x)
-        x = self.stage4(x) # os 16
-        # stage_feats.append(x)
-        # x = self.conv5(x) # os 16
-        # stage_feats.append(x)
-        # return stage_feats
+        if self.multiscale:
+            return stage_feats
         return x
 
 def shufflenetv2():
@@ -126,3 +128,6 @@ def shufflenetv2():
 
 def shufflenetv2_low_resolution():
     return ShuffleNetV2([1, 1, 2, 2, 2], [4, 8, 4], [24, 116, 232, 464])
+
+def shufflenetv2_csp():
+    return ShuffleNetV2([2, 2, 2, 2, 1], [4, 8, 4], [24, 116, 232, 464], multiscale=True)

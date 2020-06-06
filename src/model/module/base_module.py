@@ -48,6 +48,40 @@ class ConvModule(nn.Module):
             x = self.activation(x)
         return x
 
+def get_ConvModule(in_channels, out_channels, kernel_size, 
+        stride=1, padding=0, groups=1, bias=False,
+        activation='relu', 
+        use_bn=True, affine=True, return_module=True):
+    """
+    (#activation)
+    (relu) Conv => BN (use_bn) => ReLU
+    (hs)   Conv => BN (use_bn) => HSwish
+    (linear)   Conv => BN (use_bn)
+    """
+    conv_module = []
+    conv_module.append(
+        nn.Conv2d(
+            in_channels, 
+            out_channels, 
+            kernel_size, 
+            stride=stride,
+            padding=padding, 
+            bias=bias, 
+            groups=groups)
+    )
+        
+    if use_bn:
+        conv_module.append(nn.BatchNorm2d(out_channels, affine=affine))
+
+    if activation == 'relu':
+        conv_module.append(nn.ReLU(inplace=True))
+    if activation == 'hs':
+        conv_module.append(HSwish())
+
+    if return_module:
+        return nn.Sequential(*conv_module)
+    return conv_module
+
 class InversedDepthwiseSeparable(nn.Module):
     """
     Inversed Depthwise Separable
@@ -127,7 +161,7 @@ class SEModule(nn.Module):
         super(SEModule, self).__init__()
         if isTensor:
             # if the input is (N, C, H, W)
-            self.se = nn.Sequential(
+            self.SE_opr = nn.Sequential(
                 nn.AdaptiveAvgPool2d(1),
                 nn.Conv2d(inplanes, inplanes // 4, kernel_size=1, stride=1, bias=False),
                 nn.BatchNorm2d(inplanes // 4),
@@ -136,7 +170,7 @@ class SEModule(nn.Module):
             )
         else:
             # if the input is (N, C)
-            self.se = nn.Sequential(
+            self.SE_opr = nn.Sequential(
                 nn.AdaptiveAvgPool2d(1),
                 nn.Linear(inplanes, inplanes // 4, bias=False),
                 nn.BatchNorm1d(inplanes // 4),
@@ -145,7 +179,7 @@ class SEModule(nn.Module):
             )
 
     def forward(self, x):
-        atten = self.se(x)
+        atten = self.SE_opr(x)
         atten = torch.clamp(atten + 3, 0, 6) / 6
         return x * atten
 

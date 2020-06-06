@@ -1,4 +1,4 @@
-from src.model.backbone.shufflenetv2_plus import shufflenetv2_plus
+from src.model.backbone.shufflenetv2_plus import shufflenetv2_plus, shufflenetv2_plus_csp
 from src.model.backbone.hourglass import hourglass_net
 from src.model.backbone.shufflenetv2_torchvision import shufflenetv2, shufflenetv2_low_resolution
 from src.model.backbone.osnet_deep_reid import osnet_x1_0
@@ -19,7 +19,8 @@ class BackboneFactory:
         'hrnet': hrnet,
         'hrnet_cls': hrnet_classification,
         'osnet_deep_reid_ain': osnet_ain_x1_0,
-        'hrnet_cifar': hrnet_cifar
+        'hrnet_cifar': hrnet_cifar,
+        'shufflenetv2+_csp': shufflenetv2_plus_csp
     }
 
     @classmethod
