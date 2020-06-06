@@ -18,6 +18,7 @@ from src.database.transform.random_padding import RandomPadding
 from src.database.transform.random_colorjitter import RandomColorJitter
 from src.database.transform.random_grayscale import RandomGrayScale
 from src.database.transform.random_grid import RandomGrid
+from src.database.transform.resize_fit import ResizeFit
 
 import logging
 logger = logging.getLogger("logger")
@@ -39,6 +40,7 @@ class TransformFactory:
         'RandomColorJitter',
         'RandomGrayScale',
         'RandomGrid',
+        'ResizeFit',
     ]
 
     @classmethod
@@ -71,8 +73,9 @@ class TransformFactory:
             if 'Normalize' == tran:
                 bag_of_transforms.append(Normalize(mean=cfg.INPUT.MEAN, std=cfg.INPUT.STD))
             
-            if 'RandScale' == tran:
-                bag_of_transforms.append(RandScale(size=cfg.INPUT.SIZE))
+            if 'RandScale' in tran:
+                min_s, max_s = list(map(float, tran.split('-')[1:]))
+                bag_of_transforms.append(RandScale(size=cfg.INPUT.SIZE, scale(min_s, max_s)))
 
             if 'AugMix' in tran:
                 extra = tran.split('-')[1:]
@@ -115,6 +118,10 @@ class TransformFactory:
             if 'RandomGrid' in tran:
                 p = float(tran.split('-')[-1])
                 bag_of_transforms.append(RandomGrid(p=p))
+            
+            if 'ResizeFit' == tran:
+                bag_of_transforms.append(ResizeFit(divisor=cfg.MODEL.MAX_STRIDE))
+            
         print(bag_of_transforms)
         return Transform(bag_of_transforms)
 

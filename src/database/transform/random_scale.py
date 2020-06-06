@@ -12,13 +12,15 @@ class RandScale(BaseTransform):
 
     Args:
         size (tuple): the output size
+        scale (tuple): the scale of randomness
 
     Attributes:
         size (tuple): arg, size
     '''
 
-    def __init__(self, size):
+    def __init__(self, size, scale):
         self.size = size
+        self.scale = scale
         self.op_name = 'Scale'
     
     def apply_image(self, img):
@@ -40,9 +42,9 @@ class RandScale(BaseTransform):
         s = max(h, w) * 1.0
 
         # image is randomly dragged to an center area with width and height of half of original
-        w_border = get_border(int(w * 0.4), w)
-        h_border = get_border(int(h * 0.4), h)
-        s = s * np.random.choice(np.arange(0.8, 1.4, 0.1))
+        w_border = get_border(int(w * 0.5), w)
+        h_border = get_border(int(h * 0.5), h)
+        s = s * np.random.uniform(self.scale[0], self.scale[1]) #np.random.choice(np.arange(0.8, 1.5, 0.1))
         c[0] = np.random.randint(low=w_border, high=w - w_border)
         c[1] = np.random.randint(low=h_border, high=h - h_border)            
 
