@@ -137,7 +137,8 @@ class ShuffleNetV2_Plus(nn.Module):
 
     def forward(self, x):
         x = self.first_conv(x)
-        x = self.max_pool(x)
+        if self.max_pool is not None:
+            x = self.max_pool(x)
         stage_feats = []
         for block_idx, block in enumerate(self.features):
             x = block(x)
@@ -217,7 +218,7 @@ def shufflenetv2_plus_csp(model_size='Medium', **kwargs):
     channel_choice = [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
     # block_choice = [1, 3, 2, 3, 3, 1, 2, 0, 3, 0, 2, 3, 0, 0, 1, 2, 2, 2, 3, 1] 
     # channel_choice = [8, 7, 5, 7, 1, 7, 7, 5, 1, 4, 0, 1, 0, 5, 1, 2, 3, 8, 2, 8]
-    strides = [2, 1, 2, 2, 2, 1]
+    strides = [2, 1, 2, 2, 2, 2]
     stage_repeats = [4, 4, 8, 4]
 
     if model_size == 'Large':

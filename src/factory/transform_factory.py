@@ -75,7 +75,7 @@ class TransformFactory:
             
             if 'RandScale' in tran:
                 min_s, max_s = list(map(float, tran.split('-')[1:]))
-                bag_of_transforms.append(RandScale(size=cfg.INPUT.SIZE, scale(min_s, max_s)))
+                bag_of_transforms.append(RandScale(size=cfg.INPUT.SIZE, scale=(min_s, max_s)))
 
             if 'AugMix' in tran:
                 extra = tran.split('-')[1:]

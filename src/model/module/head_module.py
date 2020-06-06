@@ -309,7 +309,7 @@ class L2Norm(nn.Module):
         self.reset_parameters()
 
     def reset_parameters(self):
-        init.constant_(self.weight, self.gamma)
+        nn.init.constant_(self.weight, self.gamma)
 
     def forward(self, x):
         norm = x.pow(2).sum(dim=1, keepdim=True).sqrt()+self.eps
@@ -327,7 +327,7 @@ class CSPHead(nn.Module):
             elif os == 2:
                 self.pks.append(nn.Sequential(
                     nn.ConvTranspose2d(ouc, 256, stride=2, kernel_size=4, padding=1),
-                    L2Norm(ouc, 10)
+                    L2Norm(256, 10)
                 ))
             elif os == 4:
                 self.pks.append(nn.Sequential(

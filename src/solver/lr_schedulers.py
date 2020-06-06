@@ -28,7 +28,7 @@ class LRScheduler():
                     and T_MULT D
                 step-A-B-C, 
                     step the lr with number of epochs of A 
-                    with power B of C
+                    lr = lr * C^B
                 plateau-A-B-C,
                     until epoch A
                     step the lr with factor B

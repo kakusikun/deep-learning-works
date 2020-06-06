@@ -7,7 +7,7 @@ class _Model(nn.Module):
         w, h = cfg.INPUT.SIZE
         self.out_sizes = [(w // s, h // s) for s in cfg.MODEL.STRIDES]
         self.backbone = BackboneFactory.produce(cfg)
-        self.csp_head = CSPHead(self.backbone.stage_out_channels, [1,2,4,8])
+        self.csp_head = CSPHead(self.backbone.stage_out_channels[1:], [1,2,4,8])
         self.heads = nn.ModuleDict({
             'hm': nn.ModuleList([get_ConvModule(256, 1, 1, activation='linear', use_bn=False) for _ in range(len(self.out_sizes))]),
             'wh': nn.ModuleList([get_ConvModule(256, 2, 1, activation='linear', use_bn=False) for _ in range(len(self.out_sizes))]),

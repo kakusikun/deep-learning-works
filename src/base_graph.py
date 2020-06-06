@@ -108,6 +108,9 @@ class BaseGraph:
         if 'model' in state:
             ckpt = state['model']            
         else:
+            if len(state) == 1:
+                key = list(state.keys())[0]
+                state = state[key]
             ckpt = state
             model = self.model.backbone
         model_state = model.state_dict() 
