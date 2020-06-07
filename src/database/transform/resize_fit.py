@@ -30,8 +30,8 @@ class ResizeFit(BaseTransform):
                 ratio (tuple), scale of width and height
         '''
         w, h = img.size
-        rest_w = w % self.divisor
-        rest_h = h % self.divisor
+        rest_w = self.divisor - w % self.divisor
+        rest_h = self.divisor - h % self.divisor
         r_w = (rest_w + w) / float(w)
         r_h = (rest_h + h) / float(h)
         img = TF.resize(img, (rest_h + h, rest_w + w))

@@ -124,6 +124,18 @@ def gaussian2D(shape, sigma=1):
     h[h < np.finfo(h.dtype).eps * h.max()] = 0
     return h
 
+def draw_csp_gaussian(heatmap, center, w, h):
+  def gaussian(kernel):
+    sigma = ((kernel-1) * 0.5 - 1) * 0.3 + 0.8
+    s = 2*(sigma**2)
+    dx = np.exp(-np.square(np.arange(kernel) - int(kernel / 2)) / s)
+    return np.reshape(dx, (-1, 1))
+  x1, y1, x2, y2 = center[0] - int(w/2), center[1] - int(h/2), center[0] + int(w/2), center[1] + int(h/2)
+  dx = gaussian(x2-x1)
+  dy = gaussian(y2-y1)
+  gau_map = np.multiply(dy, np.transpose(dx))
+  heatmap[y1:y2, x1:x2] = np.maximum(heatmap[y1:y2, x1:x2], gau_map)
+
 def draw_umich_gaussian(heatmap, center, radius, k=1):
   diameter = 2 * radius + 1
   gaussian = gaussian2D((diameter, diameter), sigma=diameter / 6)
