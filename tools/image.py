@@ -130,7 +130,7 @@ def draw_csp_gaussian(heatmap, center, w, h):
     s = 2*(sigma**2)
     dx = np.exp(-np.square(np.arange(kernel) - int(kernel / 2)) / s)
     return np.reshape(dx, (-1, 1))
-  x1, y1, x2, y2 = center[0] - int(w/2), center[1] - int(h/2), center[0] + int(w/2), center[1] + int(h/2)
+  x1, y1, x2, y2 = center[0] - int(w/2) + 1, center[1] - int(h/2) + 1, center[0] + int(w/2) + 1, center[1] + int(h/2) + 1
   dx = gaussian(x2-x1)
   dy = gaussian(y2-y1)
   gau_map = np.multiply(dy, np.transpose(dx))

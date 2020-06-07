@@ -4,6 +4,7 @@ from tools.image import (
     get_affine_transform, 
     affine_transform, 
     draw_umich_gaussian, 
+    draw_csp_gaussian,
     gaussian_radius, 
     color_aug,
 )
@@ -262,7 +263,8 @@ def centernet_bbox_target(cls_ids, bboxes, ids, max_objs, num_classes, out_sizes
                 radius = max(0, int(radius))
                 ct = torch.FloatTensor([(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2])
                 ct_int = ct.int()
-                draw_gaussian(hm[cls_id].numpy(), ct_int.numpy(), radius)
+                # draw_gaussian(hm[cls_id].numpy(), ct_int.numpy(), radius)
+                draw_csp_gaussian(hm[cls_id].numpy(), ct_int.numpy(), w, h)
                 wh[k] = wh[k].new_tensor([1. * w, 1. * h])
                 ind[k] = ct_int[1] * output_w + ct_int[0]
                 reg[k] = ct - ct_int
