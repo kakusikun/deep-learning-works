@@ -120,7 +120,7 @@ class TransformFactory:
                 bag_of_transforms.append(RandomGrid(p=p))
             
             if 'ResizeFit' == tran:
-                bag_of_transforms.append(ResizeFit(divisor=cfg.MODEL.MAX_STRIDE))
+                bag_of_transforms.append(ResizeFit(divisor=cfg.MODEL.MAX_STRIDE, long_side=max(cfg.INPUT.SIZE)))
             
         print(bag_of_transforms)
         return Transform(bag_of_transforms)
