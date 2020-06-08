@@ -38,7 +38,7 @@ class FocalLoss(nn.Module):
 
     def forward(self, feat, target):
         pos_inds = target.eq(1).float()
-        neg_inds = target.lt(1).float() * target.gt(0).float()
+        neg_inds = target.lt(1).float()
 
         log_loss = self.basic_loss(feat, pos_inds)
         pos_weight = pos_inds * torch.pow(1 - feat, self.a)
