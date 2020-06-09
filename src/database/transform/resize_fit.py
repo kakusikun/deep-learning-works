@@ -15,8 +15,9 @@ class ResizeFit(BaseTransform):
         divisor (float): arg, divisor
     '''
 
-    def __init__(self, divisor):
+    def __init__(self, divisor, long_side):
         self.divisor = divisor
+        self.long_side = long_side
         self.op_name = 'ResizeFit'
     
     def apply_image(self, img):
@@ -30,11 +31,20 @@ class ResizeFit(BaseTransform):
                 ratio (tuple), scale of width and height
         '''
         w, h = img.size
-        rest_w = self.divisor - w % self.divisor
-        rest_h = self.divisor - h % self.divisor
-        r_w = (rest_w + w) / float(w)
-        r_h = (rest_h + h) / float(h)
-        img = TF.resize(img, (rest_h + h, rest_w + w))
+        if h > w:
+            new_w = int(w/h * self.long_side)
+            rest = new_w % self.divisor
+            rest_w = self.divisor - rest if rest > self.divisor / 2 else -1 * rest
+            r_w = (rest_w + new_w) / float(w)
+            r_h = self.long_side / float(h)
+            img = TF.resize(img, (self.long_side, rest_w + new_w))
+        else:
+            new_h = int(h/w * self.long_side)
+            rest = new_h % self.divisor
+            rest_h = self.divisor - rest if rest > self.divisor / 2 else -1 * rest
+            r_w = self.long_side / float(w)
+            r_h = (rest_h + new_h) / float(h)
+            img = TF.resize(img, (rest_h + new_h, self.long_side))
         s = {'ratio': (r_w, r_h)}
         return img, s
     

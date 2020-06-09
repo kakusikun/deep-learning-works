@@ -5,6 +5,8 @@ from pycocotools.cocoeval import COCOeval
 from tqdm import tqdm
 import json
 from collections import defaultdict
+
+from torchvision.ops import nms
 # recover = T.Compose([T.Normalize(mean = [-0.485/0.229, -0.456/0.224, -0.406/0.225], std = [1/0.229,1/0.224,1/0.225])])
 
 class Shufflenetv2OD(BaseEngine):
@@ -94,7 +96,12 @@ class Shufflenetv2OD(BaseEngine):
                     feat['hm'].shape[3], 
                     feat['hm'].shape[1]
                 )
+                if len(dets_out[0][1]) > 0:
+                    _dets = torch.Tensor(dets_out[0][1])
+                    keep_ids = nms(_dets[:,:4], _dets[:,4], 0.5)
+                    dets_out[0][1] = _dets[keep_ids].numpy().tolist()
                 results[batch['img_id'][0]] = dets_out[0]
+
         cce = coco_eval(self.vdata.dataset.coco[0], results, self.cfg.OUTPUT_DIR)  
 
         logger.info('Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets={:>3d} ] = {:.3f}'.format(cce.params.maxDets[2], cce.stats[0]))
