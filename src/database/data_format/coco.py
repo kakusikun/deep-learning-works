@@ -52,10 +52,12 @@ class build_coco_dataset(Dataset):
             ann = anns[k]
             cls_ids.append(int(self.cat_ids[ann['category_id']]))
             bboxes.append(self._coco_box_to_bbox(ann['bbox']))
-            if 'pid' in ann:
-                pid = self.pid[handle_idx][ann['pid']]
-            else:
-                pid = -1
+            # if 'pid' in ann:
+            #     print(self.pid[handle_idx])
+            #     print(ann['pid'])
+            #     pid = self.pid[handle_idx][str(ann['pid'])]
+            # else:
+            pid = -1
                 
             if pid > 0:
                 ids.append(pid + offset)
