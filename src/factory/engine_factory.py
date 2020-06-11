@@ -9,6 +9,7 @@ from src.engine.hourglass_jde import HourglassJDE
 from src.engine.shufflenetv2_jde import Shufflenetv2JDE
 from src.engine.shufflenetv2_object_detection import Shufflenetv2OD
 from src.engine.shufflenetv2_scopehead_object_detection import Shufflenetv2ScopeHeadOD
+from src.engine.shufflenetv2_fsaf import Shufflenetv2FSAF
 class EngineFactory():
     products = {
         'classification': ClassificationEngine,
@@ -22,6 +23,7 @@ class EngineFactory():
         'shufflenetv2_jde': Shufflenetv2JDE,
         'shufflenetv2_object_detection': Shufflenetv2OD,
         'shufflenetv2_scopehead_object_detection': Shufflenetv2ScopeHeadOD,
+        'shufflenetv2_fsaf': Shufflenetv2FSAF,
     }
 
     @classmethod

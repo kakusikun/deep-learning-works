@@ -11,6 +11,7 @@ from src.graph.shufflenetv2_jde import ShuffleNetv2JDE
 from src.graph.shufflenetv2_object_detection import ShuffleNetv2OD
 from src.graph.shufflenetv2_scopehead_object_detection import ShuffleNetv2ScopeHeadOD
 from src.graph.shufflenetv2_plus_csp import ShuffleNetv2CSP
+from src.graph.shufflenetv2_fsaf import ShuffleNetv2FSAF
 
 class GraphFactory:
     products = {
@@ -27,7 +28,8 @@ class GraphFactory:
         'shufflenetv2_object_detection': ShuffleNetv2OD,
         'dualnorm_iap_reid': DualNormIAPReID,
         'shufflenetv2_scopehead_object_detection': ShuffleNetv2ScopeHeadOD,
-        'shufflenetv2_csp': ShuffleNetv2CSP
+        'shufflenetv2_csp': ShuffleNetv2CSP,
+        'shufflenetv2_fsaf': ShuffleNetv2FSAF,
     }
 
     @classmethod

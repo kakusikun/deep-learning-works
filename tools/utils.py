@@ -4,6 +4,7 @@ import sys
 import errno
 import shutil
 import json
+import math
 import os.path as osp
 from PIL import Image
 # import matplotlib.pyplot as plt
@@ -401,3 +402,49 @@ def merge_feature(feature_list, shp, sample_rate = None):
     if sample_rate > 0:
         final_nfm = final_nfm[0:-1:sample_rate, 0:-1,sample_rate, :]
     return final_nfm
+
+def bbox_overlaps_ciou(bboxes1, bboxes2):
+    rows = bboxes1.shape[0]
+    cols = bboxes2.shape[0]
+    cious = torch.zeros((rows, cols))
+    if rows * cols == 0:
+        return cious
+    exchange = False
+    if bboxes1.shape[0] > bboxes2.shape[0]:
+        bboxes1, bboxes2 = bboxes2, bboxes1
+        cious = torch.zeros((cols, rows))
+        exchange = True
+
+    w1 = bboxes1[:, 2] - bboxes1[:, 0]
+    h1 = bboxes1[:, 3] - bboxes1[:, 1]
+    w2 = bboxes2[:, 2] - bboxes2[:, 0]
+    h2 = bboxes2[:, 3] - bboxes2[:, 1]
+
+    area1 = w1 * h1
+    area2 = w2 * h2
+
+    center_x1 = (bboxes1[:, 2] + bboxes1[:, 0]) / 2
+    center_y1 = (bboxes1[:, 3] + bboxes1[:, 1]) / 2
+    center_x2 = (bboxes2[:, 2] + bboxes2[:, 0]) / 2
+    center_y2 = (bboxes2[:, 3] + bboxes2[:, 1]) / 2
+    inter_max_xy = torch.min(bboxes1[:, 2:4],bboxes2[:, 2:4])
+    inter_min_xy = torch.max(bboxes1[:, :2],bboxes2[:, :2])
+    out_max_xy = torch.max(bboxes1[:, 2:4],bboxes2[:, 2:4])
+    out_min_xy = torch.min(bboxes1[:, :2],bboxes2[:, :2])
+    inter = torch.clamp((inter_max_xy - inter_min_xy), min=0)
+    inter_area = inter[:, 0] * inter[:, 1]
+    inter_diag = (center_x2 - center_x1)**2 + (center_y2 - center_y1)**2
+    outer = torch.clamp((out_max_xy - out_min_xy), min=0)
+    outer_diag = (outer[:, 0] ** 2) + (outer[:, 1] ** 2)
+    union = area1+area2-inter_area
+    u = (inter_diag) / outer_diag
+    iou = inter_area / (union + 1e-6)
+    v = (4 / (math.pi ** 2)) * torch.pow((torch.atan(w2 / (h2+1e-6)) - torch.atan(w1 / (h1+1e-6))), 2)
+    with torch.no_grad():
+        S = torch.clamp(1 - iou, min=1e-6)
+        alpha = v / (S + v)
+    cious = iou - (u + alpha * v)
+    cious = torch.clamp(cious,min=-1.0,max = 1.0)
+    if exchange:
+        cious = cious.T
+    return cious
