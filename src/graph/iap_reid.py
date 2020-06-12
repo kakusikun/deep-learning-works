@@ -8,6 +8,7 @@ class IAPReID(BaseGraph):
 
     def build(self):
         self.model = _Model(self.cfg)
+        self.torchscript_model = TorchSciptModel2(self.cfg)
         self.crit = {}
         self.crit['amsoftmax'] = AMSoftmaxWithLoss(s=30, m=0.35, relax=0.0)
 
@@ -27,7 +28,7 @@ class DualNormIAPReID(BaseGraph):
 
     def build(self):
         self.model = _Model2(self.cfg)
-        self.torchscript_model = TorchSciptModel(self.cfg)
+        self.torchscript_model = TorchSciptModel1(self.cfg)
         self.crit = {}
         self.crit['cels'] = CrossEntropyLossLS(self.cfg.REID.NUM_PERSON)
 
@@ -92,7 +93,7 @@ class StaticReIDTrickHead(nn.Module):
         x = x.view(-1, x.size(1))
         return x
 
-class TorchSciptModel(nn.Module):
+class TorchSciptModel1(nn.Module):
     def __init__(self, cfg):
         super(TorchSciptModel, self).__init__()
         self.backbone = BackboneFactory.produce(cfg) 
@@ -110,4 +111,20 @@ class TorchSciptModel(nn.Module):
         y = self.iap_trick_head(x)
         return y
 
+class TorchSciptModel2(nn.Module):
+    def __init__(self, cfg):
+        super(TorchSciptModel2, self).__init__()
+        self.backbone = BackboneFactory.produce(cfg) 
+        self.head = IAPHead(cfg.MODEL.FEATSIZE, (16, 8), 256)
+        self.mean = [0.485, 0.456, 0.406]
+        self.std = [0.229, 0.224, 0.225]
 
+    def preprocess(self, x):
+        x = TF.normalize(x, self.mean, self.std).unsqueeze(0)
+        return x
+
+    def forward(self, x):
+        x = self.preprocess(x)
+        x = self.backbone(x)
+        embb = self.head(x)
+        return embb
