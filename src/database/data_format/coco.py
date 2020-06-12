@@ -102,10 +102,9 @@ class build_coco_dataset(Dataset):
         valid_bboxes = []
         valid_ptss = []
         for cls_id, pid, bbox, pts in zip(cls_ids, ids, bboxes, ptss):
-            if (bbox == 0).sum() >= 2:
-                continue
             bbox[[0, 2]] /= in_w
             bbox[[1, 3]] /= in_h
+            np.clip(bbox, 0, 1, out=bbox)
             valid_cls_ids.append(cls_id)
             valid_ids.append(pid)
             valid_bboxes.append(bbox)
