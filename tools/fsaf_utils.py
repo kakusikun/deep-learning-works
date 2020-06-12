@@ -34,17 +34,15 @@ def fsaf_bbox_target(cls_ids, bboxes, ids, max_objs, num_classes, out_sizes, **k
     '''
     rets = {}
     _bboxes = np.array(bboxes)
-    nbranch = len(out_sizes)
     area = (_bboxes[:,2] - _bboxes[:,0]) * (_bboxes[:,3] - _bboxes[:,1])
     build_order = np.argsort(area)[::-1]
     max_effetive = int(out_sizes[0][0] * out_sizes[0][1] / 2)
-
-    hm = torch.zeros(nbranch, num_classes, output_h, output_w)
-    ind = torch.zeros(nbranch, max_objs*max_effetive).long()
-    ecount = torch.zeros(nbranch, max_objs).long()
-    mask = torch.zeros(nbranch, max_objs*max_effetive).byte()
-    for branch_idx, (output_w, output_h) in enumerate(out_sizes):
+    for output_w, output_h in out_sizes:
         # center, object heatmap
+        hm = torch.zeros(num_classes, output_h, output_w)
+        ind = torch.zeros(max_objs*max_effetive).long()
+        ecount = torch.zeros(max_objs).long()
+        mask = torch.zeros(max_objs*max_effetive).byte()
 
         idx = 0
         for k in build_order:
@@ -69,20 +67,20 @@ def fsaf_bbox_target(cls_ids, bboxes, ids, max_objs, num_classes, out_sizes, **k
                 ex2 = min(output_w, ct_int[0]+e_w+1)
                 ey1 = max(0, ct_int[1]-e_h)
                 ey2 = min(output_h, ct_int[1]+e_h+1)
-                hm[branch_idx, cls_id, iy1:iy2, ix1:ix2] = -1
-                hm[branch_idx, cls_id, ey1:ey2, ex1:ex2] = 1
+                hm[:, iy1:iy2, ix1:ix2] = -1
+                hm[:, ey1:ey2, ex1:ex2] = 1
                 nei = 0
                 for ei, (ex, ey) in enumerate(product(range(ex1, ex2), range(ey1, ey2))):
-                    ind[branch_idx, idx] = ey * output_w + ex
-                    mask[branch_idx, idx] = 1
+                    ind[idx] = ey * output_w + ex
+                    mask[idx] = 1
                     idx += 1
                     nei += 1
                 if nei == 0:
                     print(nei)
-                ecount[branch_idx, k] = nei
+                ecount[k] = nei
             else:
                 bboxes[k][-1] = 0.0
-        rets = {
+        rets[(output_w, output_h)] = {
             'hm': hm,
             'mask': mask,
             'ecount': ecount,
