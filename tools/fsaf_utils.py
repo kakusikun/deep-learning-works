@@ -59,16 +59,27 @@ def fsaf_bbox_target(cls_ids, bboxes, ids, max_objs, num_classes, out_sizes, **k
                 i_w, i_h = int(w * IGNORE / 2), int(h * IGNORE / 2)
                 ct = torch.FloatTensor([(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2])
                 ct_int = ct.int()
-                hm[:, (ct_int[1]-i_h):(ct_int[1]+i_h+1), (ct_int[0]-i_w):(ct_int[0]+i_w+1)] = -1
-                hm[:, (ct_int[1]-e_h):(ct_int[1]+e_h+1), (ct_int[0]-e_w):(ct_int[0]+e_w+1)] = 1
-                for ei, (ex, ey) in enumerate(product(range(ct_int[0]-i_w, ct_int[0]+i_w+1), range(ct_int[1]-i_h, ct_int[1]+i_h+1))):
+                ix1 = max(0, ct_int[0]-i_w)
+                ix2 = min(output_w, ct_int[0]+i_w+1)
+                iy1 = max(0, ct_int[1]-i_h)
+                iy2 = min(output_h, ct_int[1]+i_h+1)
+                ex1 = max(0, ct_int[0]-e_w)
+                ex2 = min(output_w, ct_int[0]+e_w+1)
+                ey1 = max(0, ct_int[1]-e_h)
+                ey2 = min(output_h, ct_int[1]+e_h+1)
+                hm[:, iy1:iy2, ix1:ix2] = -1
+                hm[:, ey1:ey2, ex1:ex2] = 1
+                nei = 0
+                for ei, (ex, ey) in enumerate(product(range(ex1, ex2), range(ey1, ey2))):
                     ind[idx] = ey * output_w + ex
                     mask[idx] = 1
                     idx += 1
-                ecount[k] = ei + 1
+                    nei += 1
+                if nei == 0:
+                    print(nei)
+                ecount[k] = nei
             else:
                 bboxes[k][-1] = 0.0
-
         rets[(output_w, output_h)] = {
             'hm': hm,
             'mask': mask,
