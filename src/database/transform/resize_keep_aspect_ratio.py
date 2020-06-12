@@ -33,12 +33,13 @@ class ResizeKeepAspectRatio(BaseTransform):
         '''
 
         np_img = np.array(img)
+        mean = np_img.mean(axis=0).mean(axis=0)
         h, w = np_img.shape[0], np_img.shape[1] 
         in_w, in_h = self.size
         c = np.array([w / 2., h / 2.], dtype=np.float32)
         s = max(h, w) * 1.0
         trans_input = get_affine_transform(c, s, 0, [in_w, in_h])
-        np_img = cv2.warpAffine(np_img, trans_input, (in_w, in_h), flags=cv2.INTER_LINEAR)
+        np_img = cv2.warpAffine(np_img, trans_input, (in_w, in_h), flags=cv2.INTER_LINEAR, borderValue=(int(mean[0]), int(mean[1]), int(mean[2])))
         img = Image.fromarray(np_img)
         s = {'c': c, 's': s}
         return img, s
