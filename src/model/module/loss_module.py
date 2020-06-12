@@ -38,14 +38,23 @@ class FocalLoss(nn.Module):
 
     def forward(self, feat, target):
         pos_inds = target.eq(1) 
-        neg_inds = target.eq(0)
+        # neg_inds = target.eq(0)
         nonig_inds = target.gt(-1)
 
         log_loss = self.basic_loss(feat, target)
-        pos_weight = torch.pow(1 - feat[pos_inds], self.a)
-        neg_weight = torch.pow(feat[neg_inds], self.a) * torch.pow(1 - target[neg_inds], self.b)
-        focal_loss = (pos_weight * log_loss[pos_inds]).sum() + (neg_weight * log_loss[neg_inds]).sum()        
-        return focal_loss / max(1.0, pos_inds.sum())
+        alpha = torch.ones_like(target) * self.b
+        alpha = torch.where(target.eq(1), alpha, 1 - alpha)
+        focal_weight = torch.where(target.eq(1), 1 - feat, feat)
+        focal_weight = alpha * torch.pow(focal_weight, self.a)
+        focal_loss = focal_weight[nonig_inds] * log_loss[nonig_inds]
+        return focal_loss.sum() / max(1.0, pos_inds.sum())
+
+        # pos_weight = torch.pow(1 - feat[pos_inds], self.a)
+        # pos_weight = torch.pow(1 - feat[pos_inds], self.a) * self.b
+        # neg_weight = torch.pow(feat[neg_inds], self.a) * torch.pow(1 - target[neg_inds], self.b)
+        # neg_weight = torch.pow(feat[neg_inds], self.a) * (1 - self.b)
+        # focal_loss = (pos_weight * log_loss[pos_inds]).sum() + (neg_weight * log_loss[neg_inds]).sum()        
+        # return focal_loss / max(1.0, pos_inds.sum())
         # pos_inds = target.eq(1).float()
         # neg_inds = target.lt(1).float()
 

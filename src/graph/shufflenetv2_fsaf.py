@@ -29,10 +29,10 @@ class _LossHead(nn.Module):
     def __init__(self, cfg):
         super(_LossHead, self).__init__()
         self.crit = {}
-        self.crit['hm'] = FocalLoss()  
+        self.crit['hm'] = FocalLoss(a=2, b=0.25)  
         self.crit['iou'] = FsafCIOULoss()
-        self.s_hm = nn.Parameter(torch.zeros(1))
-        self.s_iou = nn.Parameter(torch.zeros(1))
+        self.s_hm = nn.Parameter(-1.85 * torch.ones(1))
+        self.s_iou = nn.Parameter(-1.85 * torch.ones(1))
         
     def forward(self, feats, batch):
         hm_loss = []
@@ -40,8 +40,11 @@ class _LossHead(nn.Module):
         for out_size in feats:
             hm_loss.append(self.crit['hm'](feats[out_size]['hm'], batch[out_size]['hm']).unsqueeze(0))
             iou_loss.append(self.crit['iou'](feats[out_size]['wh'], feats[out_size]['reg'], batch[out_size]['mask'], batch[out_size]['ecount'], batch[out_size]['ind'], batch['bboxes']).unsqueeze(0))
-        losses = {'hm':torch.cat(hm_loss).mean(), 'iou':torch.cat(iou_loss).mean()}
-        loss = torch.exp(-self.s_hm) * losses['hm'] + torch.exp(-self.s_iou) * losses['iou'] + self.s_hm + self.s_iou
+        hm_loss = torch.cat(hm_loss)
+        iou_loss = torch.cat(iou_loss)
+        loss = torch.exp(-self.s_hm) * hm_loss + torch.exp(-self.s_iou) * iou_loss + self.s_hm + self.s_iou
+        loss, idx = loss.max(dim=0)
+        losses = {'hm':hm_loss[idx], 'iou':iou_loss[idx]}
         uncertainty = {'s_hm': self.s_hm, 's_iou': self.s_iou}
         losses.update(uncertainty)
         return loss, losses
