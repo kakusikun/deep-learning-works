@@ -1,46 +1,47 @@
 # [modelname]_[task]_[loss]_[opt]_[pretrain]
-EXPERIMENT: "Shufflenetv2_hrnet-crowdhuman_cuhksysu_ethz_prw-person-focal_iou-SGDW_lr_0.01_warm_cosine_imagenet"
+EXPERIMENT: "Shufflenetv2_hrnet-crowdhuman_cuhksysu_ethz_prw-person-focal_iou-AdamW_lr_0.0015_step_imagenet"
 PRETRAIN: True
 RESUME: "/home/agent/deep-learning-works/external/ShuffleNetV2+.Medium.pth.tar"
 # APEX: True
 SAVE: True
 IO: True
-EVALUATE: True
+# EVALUATE: True
 ENGINE: "shufflenetv2_fsaf"
 GRAPH: "shufflenetv2_fsaf"
 TRAINER: "jde"
-NUM_WORKERS: 1
+NUM_WORKERS: 2
 # ORACLE: True
 EVALUATE_FREQ: 5
-# DISTRIBUTED: True
+DISTRIBUTED: True
 MODEL:
-  GPU: [0]
+  GPU: [0,1,2,3]
   BACKBONE: "shufflenetv2+_csp"
   STRIDES: [4, 8, 16, 32]
   FEATSIZE: 256
   MAX_STRIDE: 32
 INPUT:
   SIZE: (512,512)
-  TRAIN_BS: 2
+  TRAIN_BS: 8
   TEST_BS: 1
   MEAN: [0.485, 0.456, 0.406]
   STD: [0.229, 0.224, 0.225]
 DB:
   PATH: "/home/agent/person_jde"
-  DATA: "crowdhuman"
+  DATA: "crowdhuman cuhksysu prw ethz crowdhuman"
   DATA_FORMAT: "coco"
   LOADER: "coco"
   NUM_CLASSES: 1
-  USE_TRAIN: False
+  USE_TRAIN: True
   USE_TEST: True
   TARGET_FORMAT: "fsaf" 
-  TRAIN_TRANSFORM: "Resize RandomHFlip RandomColorJitter-0.8-0.15-0.15-0.1-0.1 Tensorize Normalize"
+  TRAIN_TRANSFORM: "ResizeKeepAspectRatio RandomHFlip RandomColorJitter-0.8-0.15-0.15-0.1-0.1 Tensorize Normalize"
   TEST_TRANSFORM: "ResizeFit Tensorize Normalize"
 SOLVER:
-  OPTIMIZER: "SGDW"
+  OPTIMIZER: "AdamW"
   START_EPOCH: 1
-  BASE_LR: 0.01
-  LR_POLICY: "warm-10 cosine-1-1-120-1"
+  BASE_LR: 0.0015
+  LR_POLICY: "step-60-0-0.1 step-20-1-0.1 step-10-2-0.1"
+  # LR_POLICY: "warm-10 cosine-1-1-120-1"
 COCO:
   TARGET: 'person'
 

@@ -40,11 +40,11 @@ class _LossHead(nn.Module):
         for out_size in feats:
             hm_loss.append(self.crit['hm'](feats[out_size]['hm'], batch[out_size]['hm']).unsqueeze(0))
             iou_loss.append(self.crit['iou'](feats[out_size]['wh'], feats[out_size]['reg'], batch[out_size]['mask'], batch[out_size]['ecount'], batch[out_size]['ind'], batch['bboxes']).unsqueeze(0))
-        hm_loss = torch.cat(hm_loss)
-        iou_loss = torch.cat(iou_loss)
+        hm_loss = torch.cat(hm_loss).sum()
+        iou_loss = torch.cat(iou_loss).sum()
         loss = torch.exp(-self.s_hm) * hm_loss + torch.exp(-self.s_iou) * iou_loss + self.s_hm + self.s_iou
-        loss, idx = loss.max(dim=0)
-        losses = {'hm':hm_loss[idx], 'iou':iou_loss[idx]}
+        loss = hm_loss + iou_loss
+        losses = {'hm':hm_loss, 'iou':iou_loss}
         uncertainty = {'s_hm': self.s_hm, 's_iou': self.s_iou}
         losses.update(uncertainty)
         return loss, losses
