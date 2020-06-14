@@ -99,15 +99,16 @@ class build_coco_dataset(Dataset):
 
         valid_cls_ids = []
         valid_ids = []
-        valid_bboxes = []
+        valid_bboxes = np.zeros((self.max_objs, 5))
         valid_ptss = []
-        for cls_id, pid, bbox, pts in zip(cls_ids, ids, bboxes, ptss):
+        for k, (cls_id, pid, bbox, pts) in enumerate(zip(cls_ids, ids, bboxes, ptss)):
             bbox[[0, 2]] /= in_w
             bbox[[1, 3]] /= in_h
             np.clip(bbox, 0, 1, out=bbox)
             valid_cls_ids.append(cls_id)
             valid_ids.append(pid)
-            valid_bboxes.append(bbox)
+            valid_bboxes[k,:4] = bbox
+            valid_bboxes[k,4] = 1
             valid_ptss.append(pts)
         
         if self.use_kp:
